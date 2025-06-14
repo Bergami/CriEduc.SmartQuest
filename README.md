@@ -18,6 +18,8 @@
 - Data analysts wanting to visualize the focus areas of their assessments
 
 ## 🧱 Project Structure
+
+```text
 📁 CriEduc.SmartQuest/
 │
 ├── 🛠️ .vscode/                      
@@ -48,6 +50,7 @@
 ├── 📦 requirements.txt               # Dependências do projeto
 ├── 📘 README.md                      # Documentação inicial
 └── 🔐 .env                           # Variáveis de ambiente (tokens, configs)
+
 
 ## 🛠️ Tech Stack
 
