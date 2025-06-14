@@ -18,27 +18,36 @@
 - Data analysts wanting to visualize the focus areas of their assessments
 
 ## 🧱 Project Structure
-CriEduc.SmartQuest/
+📁 CriEduc.SmartQuest/
 │
-├── app/                     # Código da aplicação (FastAPI)
-│   ├── main.py              # Ponto de entrada da API
-│   ├── api/                 # Rotas e controladores
-│   ├── services/            # Regras de negócio (extração, análise, NLP)
-│   ├── models/              # Schemas (Pydantic) e entidades
-│   ├── core/                # Configs, middlewares, utils
-│   ├── extractors/          # Leitura de PDFs, OCR, parser de texto
-│   └── ia/                  # Modelos de IA e classificação de assuntos
+├── 🛠️ .vscode/                      
+│   └── 🐞 launch.json                # Configuração de debug (VS Code)
 │
-├── tests/                   # Testes unitários e de integração
+├── 🚀 app/                           # Código da aplicação (FastAPI)
+│   ├── 🏁 main.py                    # Ponto de entrada da API
+│   ├── 📦 __init__.py
 │
-├── data/                    # Arquivos de entrada (PDFs para testes)
+│   ├── 🌐 api/                       # Rotas e controladores
+│   │   ├── 📦 __init__.py            # Monta o APIRouter principal
+│   │   ├── ❤️ health_controller.py   # Rota: GET /health
+│   │   └── 🧠 analyze_controller.py  # Rota: POST /analyze
 │
-├── notebooks/               # Experimentações (ML, NLP, protótipos)
+│   ├── 🧾 schemas/                   # DTOs (entrada e saída)
+│   │   └── 📂 analyze_document/
+│   │       └── 📄 upload.py          # UploadRequest & Response
 │
-├── requirements.txt         # Dependências do projeto
-├── README.md                # Documentação inicial
-└── .env                     # Variáveis de ambiente (token OCR, configs)
-
+│   ├── 🧠 services/                  # Lógica de negócio e orquestração
+│   ├── 🏗️ models/                    # Entidades do domínio / ORM
+│   ├── ⚙️ core/                      # Configs, middlewares, utils
+│   ├── 📚 extractors/                # Leitura de PDFs, OCR, parser de texto
+│   └── 🤖 ia/                        # Modelos de IA e classificação de assuntos
+│
+├── 🧪 tests/                         # Testes unitários e de integração
+├── 📂 data/                          # Arquivos de entrada para testes (PDFs etc.)
+├── 📓 notebooks/                     # Experimentações (ML, NLP, protótipos)
+├── 📦 requirements.txt               # Dependências do projeto
+├── 📘 README.md                      # Documentação inicial
+└── 🔐 .env                           # Variáveis de ambiente (tokens, configs)
 
 ## 🛠️ Tech Stack
 
