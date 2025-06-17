@@ -1,17 +1,14 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
+from typing import Dict, Optional, List
 
 
 class UploadAnalyzeDocumentRequest(BaseModel):
-    """
-    Schema for the metadata fields provided when uploading an analyze document.
-    This data is submitted via multipart/form-data using Form(...)
-    """
-
-    subject: Optional[str] = Field(None, description="Subject of the exam (e.g. Math, History)")
-    category: Optional[str] = Field(None, description="Exam category (e.g. ENEM, Vestibular)")
-    difficulty_level: Optional[str] = Field(None, description="Optional difficulty level")
-    tags: Optional[List[str]] = Field(None, description="Optional tags for filtering (e.g. ['algebra', 'geometry'])")
+    """Schema for the metadata fields provided when uploading an analyze document."""
+    
+    metadata: Dict[str, Optional[str]] = Field(
+        {}, description="Metadata including subject, category, difficulty, and tags"
+    )
 
 
 class UploadAnalyzeDocumentResponse(BaseModel):

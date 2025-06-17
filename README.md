@@ -1,84 +1,135 @@
-# SmartQuest
+## 🏗️ SmartQuest
 
-**SmartQuest** is a microservice of the CriEduc ecosystem, designed to intelligently extract, classify, and analyze educational assessments (exams, tests, quizzes) provided in PDF format. Its goal is to provide automated insights about the structure and content of educational materials using natural language processing and artificial intelligence.
+SmartQuest is a microservice within the CriEduc ecosystem, designed to intelligently extract, classify, and analyze educational assessments (exams, tests, quizzes) provided in PDF format. Its goal is to provide automated insights into the structure and content of educational materials using natural language processing and artificial intelligence
+
 
 ## 📌 Features
 
-- Upload and process school assessments (PDF)
-- Extract questions and answer choices
-- Identify relevant subjects/topics covered in each question
-- Classify question types (e.g. multiple choice, open-ended)
-- Generate potential feedback or commentary (optional/future)
-- Provide results in structured, machine-readable formats (JSON, etc.)
+| ✅ Feature | Description |
+|-----------|------------|
+| **Upload assessments** | Process educational assessments in **PDF format** |
+| **Extract questions & answers** | Identify and extract **questions & answer choices** from documents |
+| **Detect subjects/topics** | Recognize relevant **subjects and topics** covered in each question |
+| **Classify question types** | Identify question formats like **multiple-choice, open-ended**, etc. |
+| **Generate feedback** *(future feature)* | Provide **potential commentary or analysis** based on content |
+| **Machine-readable results** | Output structured **JSON-formatted data** for automation |
+
+
 
 ## 🧠 Use Cases
+- 🔹 Educational platforms aiming to automate test analysis
+- 🔹 Teachers and schools that want fast classification of learning objectives
+- 🔹 Data analysts needing to visualize assessment focus area
 
-- Educational platforms looking to automate test analysis
-- Teachers and schools that want quick classification of learning objectives
-- Data analysts wanting to visualize the focus areas of their assessments
 
 ## 🧱 Project Structure
-## 🧱 Estrutura do Projeto
 
 ```
 📁 CriEduc.SmartQuest/
 │
-├── 🛠️ .vscode/                      # Configuração do ambiente (VS Code)
-│   └── 🐞 launch.json               # Debug para FastAPI
+├── 🛠️ .vscode/                      # VS Code environment settings
+│   └── 🐞 launch.json               # Debugging configuration for FastAPI
 │
-├── 🚀 app/                          # Código principal (FastAPI)
-│   ├── 🏁 main.py                   # Ponto de entrada da API
+├── 🚀 app/                          # Main application code (FastAPI)
+│   ├── 🏁 main.py                   # API entry point
 │   ├── 📦 __init__.py
 │
-│   ├── 🌐 api/                      # Rotas e controladores
-│   │   ├── 📦 __init__.py           # Monta o APIRouter principal
+│   ├── 🌐 api/                      # API routes and controllers
+│   │   ├── 📦 __init__.py           # Main APIRouter assembly
 │   │   ├── ❤️ health_controller.py  # Endpoint: GET /health
-│   │   └── 🧠 analyze_controller.py  # Endpoint: POST /analyze
+│   │   └── 🧠 analyze_controller.py # Endpoint: POST /analyze_document
 │
-│   ├── 🧾 schemas/                  # DTOs (entrada e saída)
-│   │   └── 📂 analyze_document/     # Schemas do domínio AnalyzeDocument
-│   │       └── 📄 upload.py         # UploadRequest & Response
+│   ├── 🧾 schemas/                  # Request/Response DTOs
+│   │   └── 📂 analyze_document/     # AnalyzeDocument domain schemas
+│   │       └── 📄 upload.py         # Upload request & response schemas
 │
-│   ├── 🧠 services/                 # Lógica de negócio e orquestração
-│   ├── 🏗️ models/                   # Entidades do domínio / ORM
-│   ├── ⚙️ core/                     # Configurações, middlewares, utils
-│   ├── 📚 extractors/               # Leitura de PDFs, OCR, parser de texto
-│   └── 🤖 ia/                       # Modelos de IA e classificação
+│   ├── 🧠 services/                 # Business logic and orchestration
+│   ├── 🏗️ models/                   # Domain entities / ORM models
+│   ├── ⚙️ core/                     # Configurations, middlewares, utilities
+│   ├── 📚 extractors/               # PDF parsing, OCR, text processing
+│   └── 🤖 ia/                       # AI models and classification logic
 │
-├── 🧪 tests/                        # Testes unitários e de integração
-├── 📂 data/                         # Arquivos de entrada para testes (PDFs etc.)
-├── 📓 notebooks/                    # Experimentações (ML, NLP, protótipos)
-├── 📦 requirements.txt              # Dependências do projeto
-├── 📘 README.md                     # Documentação inicial
-└── 🔐 .env                          # Variáveis de ambiente (tokens, configs)
+├── 🧪 tests/                        # Unit and integration tests
+├── 📂 data/                         # Input files for testing (PDFs, etc.)
+├── 📓 notebooks/                    # Research and experimentation (ML, NLP)
+├── 📦 requirements.txt              # Project dependencies
+├── 📘 README.md                     # Documentation
+└── 🔐 .env                          # Environment variables (tokens, configs)
 ```
 
 ## 🛠️ Tech Stack
 
-- **Python 3.13+** — tested on version 3.13.4
-- **FastAPI** — for building RESTful APIs
-- **pdfplumber / PyMuPDF** — PDF reading and layout extraction
-- **spaCy / Transformers / Tesseract** — NLP, semantic analysis, OCR (when necessary)
-- **Pydantic** — request/response validation and data modeling
-- **Pytest** — testing framework
+
+| ✅ Technology | Description |
+|--------------|------------|
+| **Python 3.13+** | Tested on version 3.13.4 |
+| **FastAPI** | High-performance web framework for building RESTful APIs |
+| **pdfplumber / PyMuPDF** | PDF reading and layout extraction |
+| **spaCy / Transformers / Tesseract** | NLP, semantic analysis, OCR (optional) |
+| **Pydantic** | Request validation and data modeling |
+| **Pytest** | Unit testing framework |
+
+
 
 ## 🚀 Getting Started
 
-> Coming soon: setup instructions and example usage...
+📌 1. Clone the Repository
+
+`````
+git clone https://github.com/your-repository.git
+cd CriEduc.SmartQuest
+`````
+
+📌 2. Create and Activate the Virtual Environment
+
+````` 
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+.venv\Scripts\activate     # Windows
+````` 
+
+📌 3. Install Dependencies
+
+````` 
+pip install -r requirements.txt
+````` 
+📌 4. Start the API
+
+````` 
+uvicorn app.main:app --reload
+````` 
+
+## 📡 Available Endpoints  
+
+| Method | Endpoint | Description |
+|--------|---------|------------|
+| **GET** | `/health` | Checks API health status |
+| **POST** | `/analyze_document` | Uploads and analyzes a document |
+
 
 ## 📚 Future Roadmap
 
-- [ ] Classification of question topics with LLMs
-- [ ] Integration with CriEduc core platform via REST
-- [ ] Dashboard for previewing parsed content
-- [ ] Support for scanned PDF with OCR fallback
-- [ ] Auto-detection of difficulty levels
+🔹 Short-Term Improvements
+- [ ] Integrate SmartQuest with the CriEduc core platform (REST API)
+- [ ] Develop a dashboard for previewing parsed content
+🔹 Long-Term Vision
+- [ ] Classify question topics using LLMs (Large Language Models)
+- [ ] Support scanned PDFs with OCR fallback
+- [ ] Implement automatic difficulty level detectio
 
-## 💡 Inspiration
+## 💡 Background
 
-SmartQuest is part of a larger vision that began with [CriEduc](https://repositorio.ufes.br/items/55cebe33-b582-4c95-818e-dc661346fab5/full), an educational platform created during a Master's thesis to support georeferenced and interactive learning experiences.
+SmartQuest is part of a larger vision that began with CriEduc, an educational platform initially developed during a Master's thesis, aiming to provide georeferenced and interactive learning experiences.
+
 
 ## 👨‍💻 Author
 
-Created by **Wander Vinicius Bergami** as part of the CriEduc ecosystem.  
-Let’s build the future of smart education.
+Developed by Wander Vinicius Bergami as part of the CriEduc ecosystem.'
+Let's build the future of smart education together! 🚀
+
+## 🎯 What Changed?
+
+- ✅ Standardized everything in English for clarity
+- ✅ Improved project structure descriptions for better readability
+- ✅ Expanded the Getting Started section with install instructions
+- ✅ Divided roadmap into short-term and long-term tasks for better planning

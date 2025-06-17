@@ -1,3 +1,5 @@
-requirementsfastapi==0.110.2
+# This file is used to specify the dependencies for the FastAPI application.
+fastapi==0.110.2
 uvicorn[standard]==0.29.0
 python-multipart==0.0.9
+pdfplumber == 0.11.7
