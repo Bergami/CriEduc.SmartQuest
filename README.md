@@ -44,6 +44,8 @@ SmartQuest is a microservice within the CriEduc ecosystem, designed to intellige
 │   │       └── 📄 upload.py         # Upload request & response schemas
 │
 │   ├── 🧠 services/                 # Business logic and orchestration
+│   ├── 🗂️ parsers/                  # Text parsing utilities
+│   │   └── 📂 header_parser/       # Modular exam header extraction
 │   ├── 🏗️ models/                   # Domain entities / ORM models
 │   ├── ⚙️ core/                     # Configurations, middlewares, utilities
 │   ├── 📚 extractors/               # PDF parsing, OCR, text processing
@@ -55,6 +57,30 @@ SmartQuest is a microservice within the CriEduc ecosystem, designed to intellige
 ├── 📦 requirements.txt              # Project dependencies
 ├── 📘 README.md                     # Documentation
 └── 🔐 .env                          # Environment variables (tokens, configs)
+```
+
+## 📑 Header Parsing
+
+The metadata block at the top of each exam is parsed by small, focused
+functions located under `app/parsers/header_parser/`. Each file is
+responsible for extracting a single field, making the code easy to test
+and extend.
+
+```
+app/parsers/header_parser/
+├── base.py            # Entry point used by services
+├── parse_network.py   # Detects the education network
+├── parse_school.py    # Extracts the school name
+├── parse_city.py      # Matches city names
+├── parse_teacher.py   # Teacher name
+├── parse_subject.py   # Subject taught
+├── parse_exam_title.py# Exam title
+├── parse_trimester.py # Trimester value
+├── parse_grade.py     # Grade or school year
+├── parse_class.py     # Class identifier
+├── parse_student.py   # Student name
+├── parse_grade_value.py# Expected grade value
+└── parse_date.py      # Exam date
 ```
 
 ## 🛠️ Tech Stack
