@@ -1,26 +1,45 @@
-   
-from fastapi import UploadFile
-from app.core.exceptions import InvalidDocumentFormatException, MissingMetadataException
+from fastapi import HTTPException, UploadFile
+from pydantic import BaseModel, EmailStr, ValidationError
+from app.core.utils import is_pdf
+from app.core.exceptions import (
+    InvalidDocumentFormatException,
+    MissingFileException,
+    InvalidEmailException,
+    MultipleValidationException
+)
+
+class EmailValidationModel(BaseModel):
+    email: EmailStr
 
 class AnalyzeValidator:
-    @staticmethod
-    def validate_file(file: UploadFile):
-        """Valida se o arquivo é um PDF."""
-        if not file.filename.lower().endswith(".pdf"):
-            raise InvalidDocumentFormatException()
 
     @staticmethod
-    def validate_metadata(metadata: dict):
-        """Valida se os campos obrigatórios estão presentes."""
-      
-        # 🛠️ Cria uma lista de campos obrigatórios que devem estar no metadata
-        required_fields = ["subject", "category", "difficulty", "tags"]
+    def validate_all(file: UploadFile, email: str) -> list[dict]:
+        errors = []
 
-        # 🔍 Verifica quais campos obrigatórios estão ausentes no metadata
-        missing_fields = [field for field in required_fields if field not in metadata]
+        # Validação de e-mail
+        try:
+            EmailValidationModel(email=email)
+        except ValidationError:
+            errors.append(AnalyzeValidator.format_exception(InvalidEmailException()))
 
-        # 📢 Se houver campos faltando, retornamos a lista com eles
-        if missing_fields:
-            raise MissingMetadataException(f"Missing metadata fields: {', '.join(missing_fields)}")
-        
-        
+        # Validação de arquivo
+        if not file:
+            errors.append(AnalyzeValidator.format_exception(MissingFileException()))        
+        elif not is_pdf(file):
+                errors.append(AnalyzeValidator.format_exception(InvalidDocumentFormatException()))
+        elif not file.filename.lower().endswith(".pdf"):
+            errors.append(AnalyzeValidator.format_exception(InvalidDocumentFormatException()))
+
+        # Se houver erros, lança a exceção agrupada
+        if errors:
+            raise MultipleValidationException(errors)
+    
+    @staticmethod
+    def format_exception(exc: HTTPException) -> dict:
+        return {
+            "code": exc.status_code,
+            "message": exc.detail
+        }
+    
+    
