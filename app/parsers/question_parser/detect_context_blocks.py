@@ -12,10 +12,12 @@ def detect_context_blocks(text: str) -> list[dict]:
     start_patterns = [
         r"Leia o texto a seguir",
         r"Analise o texto a seguir",
-        r"Observe (a|o) (imagem|gráfico|tabela)",
-        r"Texto \d?:?",
+        r"Leia este texto",
+        r"Analise a imagem",
+        r"Observe (a|o) (imagem|gr[áa]fico|tabela)",
+        r"^Texto\s*\d*[:.-]?$",
         r"Baseando-se no texto",
-        r"Com base no texto"
+        r"Com base no texto",
     ]
     start_regex = re.compile("|".join(start_patterns), re.IGNORECASE)
 
