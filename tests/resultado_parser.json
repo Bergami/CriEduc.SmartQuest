@@ -1,0 +1,321 @@
+{
+  "email": "wander.bergami@gmail.com",
+  "document_id": "3a84f709-f2c4-41dd-a376-8646ad23ec80",
+  "filename": "3Tri.pdf",
+  "header": {
+    "network": "Prefeitura Municipal de Vila Velha",
+    "school": "UMEF Saturnino Rangel Mauro",
+    "city": "Vila Velha",
+    "teacher": "Danielle",
+    "subject": "Língua Portuguesa",
+    "exam_title": "Prova Trimestral",
+    "trimester": "3º",
+    "grade": "7º ano do Ensino Fundamental",
+    "class": null,
+    "student": null,
+    "grade_value": "12,0",
+    "date": null
+  },
+  "questions": [ 
+      {
+        "number": 1,
+        "question": " Nesse texto, o discípulo que venceu a prova porque",
+        "alternatives": [
+          {
+            "letter": "A",
+            "text": "colocou o feijão em um sapato."
+          },
+          {
+            "letter": "B",
+            "text": "cozinhou o feijão. "
+          },
+          {
+            "letter": "C",
+            "text": "desceu a montanha correndo."
+          },
+          {
+            "letter": "D",
+            "text": "sumiu da vista do oponente."
+          },
+          {
+            "letter": "E",
+            "text": "tirou seu sapato."
+          }
+        ],
+        "hasImage": false,
+        "context_id": 1
+      },
+      {
+        "number": 2,
+        "question": "No trecho “-Antes de colocá-LOS no sapato, eu OS cozinhei”, os termos destacados referem-se",
+        "alternatives": [
+          {
+            "letter": "A",
+            "text": "aos sapatos."
+          },
+          {
+            "letter": "B",
+            "text": "aos problemas"
+          },
+          {
+            "letter": "C",
+            "text": "aos discípulos."
+          },
+          {
+            "letter": "D",
+            "text": "aos vencedores."
+          },
+          {
+            "letter": "E",
+            "text": "aos feijões."
+          }
+        ],
+        "hasImage": false,
+        "context_id": 1
+      },  
+      {
+        "number": 3,
+        "question": "No texto “Feijões ou Problemas?”, qual é o conflito gerador do enredo?",
+        "alternatives": [
+          {
+            "letter": "A",
+            "text": "A necessidade do monge em encontrar um sucessor."
+          },
+          {
+            "letter": "B",
+            "text": "A solução encontrada pelo discípulo vencedor."
+          },
+          {
+            "letter": "C",
+            "text": "A subida dos discípulos a uma grande montanha"
+          },
+          {
+            "letter": "D",
+            "text": " O desafio proposto pelo mestre aos seus discípulos."
+          },
+          {
+            "letter": "E",
+            "text": "O sofrimento do discípulo ao ver o oponente vencer."
+          }
+        ],
+        "hasImage": false,
+        "context_id": 1
+      },
+      {
+        "number": 4,
+        "question": "O autor justifica o fato de os ecologistas referirem-se aos parques nacionais como “arcas de Noé para o futuro” da seguinte maneira:",
+        "alternatives": [
+          {
+            "letter": "A",
+            "text": "Porque são áreas preservadas da caça e pesca indiscriminadas"
+          },
+          {
+            "letter": "B",
+            "text": "Porque ocupam espaços administrativamente delimitados pelo Instituto Brasileiro de Desenvolvimento Florestal. "
+          },
+          {
+            "letter": "C",
+            "text": "Porque espécies animais e vegetais que estão se extinguindo em outras regiões têm preservada sua sobrevivência nesses parques."
+          },
+          {
+            "letter": "D",
+            "text": "Porque nesses parques colecionam-se casais de espécies animais e vegetais em extinção noutras áreas."
+          },
+          {
+            "letter": "E",
+            "text": " Porque há agentes florestais incumbidos de zelar pelos animais e vegetais dos parques"
+          }
+        ],
+        "hasImage": false,
+        "context_id": 2
+      },
+      {
+        "number": 5,
+        "question": "A respeito dos incêndios referidos pelo autor, depreende-se do texto que",
+        "alternatives": [
+          {
+            "letter": "A",
+            "text": "embora tivessem ameaçado espécie de animais e vegetais raras, apresentaram um lado positivo."
+          },
+          {
+            "letter": "B",
+            "text": "foram provocados pela rigorosa estiagem do inverno, no Centro-Sul, e pela seca prolongada no sertão nordestino."
+          },
+          {
+            "letter": "C",
+            "text": "não foram combatidos com presteza e eficiência pelos bombeiros. "
+          },
+          {
+            "letter": "D",
+            "text": "só foram debelados por providenciais chuvas que eventualmente vieram a cair sobre os parques."
+          },
+          {
+            "letter": "E",
+            "text": "destruíram parte da flora e fauna das reservas, desfigurando sua paisagem."
+          }
+        ],
+        "hasImage": false,
+        "context_id": 2
+      },
+      {
+        "number": 6,
+        "question": "No trecho, segundo parágrafo, “[...] ELAS logo caíram em desuso”, o pronome em destaque retoma",
+        "alternatives": [
+          {
+            "letter": "A",
+            "text": "diferenças"
+          },
+          {
+            "letter": "B",
+            "text": "cabeleiras."
+          },
+          {
+            "letter": "C",
+            "text": "perucas"
+          },
+          {
+            "letter":"D",
+            "text": "classes sociais."
+          },
+          {
+            "letter":"E",
+            "text": "cabeças raspadas"
+          }
+        ],
+        "hasImage": false,
+        "context_id": 3
+      },
+      {
+        "number": 7,
+        "question": "Qual é a informação principal do texto “Diabetes sem freio”?",
+        "alternatives": [
+          {
+            "letter": "A",
+            "text": "A diabetes associada a problemas cardíacos."
+          },
+          {
+            "letter": "B",
+            "text": "O crescimento da epidemia de diabetes no mundo."
+          },
+          {
+            "letter": "C",
+            "text": "A estimativa de adultos portadores de diabetes."
+          },
+          {
+            "letter": "D",
+            "text": "O percentual de mortes no mundo."
+          },
+          {
+            "letter": "E",
+            "text": " O percentual de problemas cardíacos."
+          }
+        ],
+        "hasImage": false,
+        "context_id": 4
+      },
+      {
+        "number": 8,
+        "question": "Sobre o texto analisado acima, podemos afirmar corretamente que:",
+        "alternatives": [
+          {
+            "letter": "A",
+            "text": "A importância de se preservar o meio ambiente."
+          },
+          {
+            "letter": "B",
+            "text": "Trata-se um aviso, e, apesar da escrita inadequada, transmite sentido para o leitor."
+          },
+          {
+            "letter": "C",
+            "text": "Não há nenhum problema com a escrita, já que o leitor compreende a mensagem"
+          },
+          {
+            "letter": "D",
+            "text": "A escrita deste texto está de acordo com a situação de comunicação, já que não há nenhum problema de ortografia"
+          },
+          {
+            "letter": "E",
+            "text": "Não há problema com a ortografia, mas por tratar-se de um texto rebuscado dificulta o entendimento do leitor"
+          }
+        ],
+        "hasImage": true,
+        "context_id": 5
+      }
+    ],
+  "context_blocks": [
+    {
+      "id": 1,
+      "type": "text",
+      "source": "Disponível em: Acesso em: 13 mar. 2011",      
+      "enunciado": "Após ler atentamente o texto a seguir, responda as Leia o texto a seguir para responder as duas\ntrês próximas questões. próximas questões.\n",
+      "paragraphs":[
+        {
+          "text": "Reza a lenda que um monge, próximo de se aposentar, precisava encontrar um sucessor. Entre seus discípulos, dois já haviam dado mostras de que eram os mais aptos, mas apenas um o poderia. Para sanar as dúvidas, o mestre lançou um desafio, para pôr a sabedoria dos dois à prova: ambos receberiam alguns grãos de feijão, que deveriam colocar dentro dos sapatos, para então empreender a subida de uma grande montanha."
+        },
+        {
+          "text": "Dia e hora marcados, começa a prova. Nos primeiros quilômetros, um dos discípulos começou a mancar. No meio da subida, parou e tirou os sapatos. As bolhas em seus pés já sangravam, causando imensa dor. Ficou para trás, observando seu oponente sumir de vista."
+        },
+        {
+          "text": "- Antes de colocá-los no sapato, eu os cozinhei."
+        },
+        {
+          "text": "Carregando feijões, ou problemas, há sempre um jeito mais fácil de levar a vida. Problemas são inevitáveis. Já a duração do sofrimento, é você quem determina."
+        }        
+      ],
+      "title": "Feijões ou Problemas?",
+      "hasImage": false
+    },
+    {
+      "id": 2,
+      "type": "text",
+      "source": "Isto é, 22 ago. 1984. In: Compreensão e interpretação de textos. Coleção Concursos públicos vol. 9. Barueri: Gold, 2008.",
+      "enunciado":"Leia o texto a seguir para responder as duas próximas questões.",   
+      "paragraphs": 
+      [
+        {
+          "text": "Saudados por ecologistas como arcas de Noé para o futuro, por serem repositórios de espécies animais e vegetais em extinção acelerada noutras áreas do país, alguns dos 25 parques nacionais do Brasil tiveram, na semana passada, a sua paisagem mutilada pelo fogo. A rigorosa estiagem que acompanha o inverno no Centro Sul ressecou a vegetação e abriu caminho para que as chamas tragassem 6 dos 33 quilômetros quadrados do Parque Nacional da Tijuca, pegado à cidade do Rio de Janeiro, e convertessem em carvão 10% dos 300 quilômetros quadrados do Parque Nacional do Itatiaia, na divisa de Minas Gerais com o Estado do Rio. Contido pelos bombeiros já no fim de semana, na Tijuca, e abafado por uma providencial chuva no Itatiaia, na quarta-feira o fogo pipocou em outro extremo do país. Naquele dia, o incêndio começou no Parque da Serra da Capivara, no sertão do Piauí, calcinado há seis anos pela seca, e avançou pela caatinga, que esconde as pinturas rupestres inscritas na rocha, há pelo menos 31.500 anos, pelo homem brasileiro pré-histórico."
+        }
+      ], 
+      "title": "PARQUES EM CHAMAS",
+      "hasImage": false
+    },
+    {
+      "id": 3,
+      "type": "text",
+      "source": "Disponível em: http://mumdoestranho.abril.com.br/historia/pergunta_285920.shtmal. Acesso em: 27 mar. 2010. Adaptado",
+      "enunciado": "LEIA O TEXTO A SEGUIR",
+      "paragraphs": [
+        {
+          "text": "Não era todo mundo, apenas os aristocratas. A moda começou com Luís XIV (1638-1715), rei da França. Durante seu governo, o monarca adotou a peruca pelo mesmo motivo que muita gente usa o acessório ainda hoje: esconder a calvície. O resto da nobreza gostou da ideia e o costume pegou. A peruca passou a indicar, então, as diferenças sociais entre as classes, tornando se sinal de status e prestígio. Também era comum espalhar talco ou farinha de trigo sobre as cabeleiras falsas para imitar o cabelo branco dos idosos. Mas, por mais elegante que parecesse ao pessoal da época, a moda das perucas também era nojenta. “Proliferava todo tipo de bicho, de baratas a camundongos, nesses cabelos postiços”, afirma o estilista João Braga, professor de História da Moda das Faculdades SENAC, em São Paulo."
+        },
+        {
+          "text": "Em 1789, com a Revolução Francesa, veio a guilhotina, que extirpou a maioria das cabeças com perucas. Símbolo de uma nobreza que se desejava exterminar, elas logo caíram em desuso. Sua origem, porém, era muito mais velha do que a monarquia francesa. No Egito antigo, homens e mulheres de todas as classes sociais já exibiam adornos de fibra de papiro – na verdade, disfarce para as cabeças raspadas por causa de uma epidemia de piolhos. Hoje, as perucas de cachos brancos, típicas da nobreza europeia, sobrevivem apenas nos tribunais ingleses, onde compõem a indumentária oficial dos juízes."
+        }
+      ],
+      "title": "POR QUE TODO MUNDO USAVA PERUCA NA EUROPA DOS SÉCULOS XVII E XVIII?",
+      "hasImage": false
+    },
+    {
+      "id": 4,
+      "type": "text",
+      "source": "Galileu, n. 204, jul. 2008, p. 14.",
+      "enunciado": "Leia este texto",
+      "paragraphs": [
+        {
+          "text": "A respeitada revista médica inglesa “The Lancet” chamou a atenção, em editorial, para o crescimento da epidemia de diabetes no mundo. A estimativa é de que atuais 246 milhões de adultos portadores da doença se transformem em 380 milhões em 2025. O problema é responsável por 6% do total de mortes no mundo, sendo 50% devido a problemas cardíacos – doença associada à diabetes."
+        }        
+      ],
+      "title": "DIABETES SEM FREIO",
+      "hasImage": false
+    },
+    {
+      "id": 5,
+      "type": "image",
+      "source": "",
+      "enunciado": "Analise a imagem abaixo",      
+      "content": "", 
+      "_comment": "Adicionar a imagem em base64 aqui na propriedade 'content'",
+      "hasImage": true
+    }    
+  ]  
+}
