@@ -10,7 +10,7 @@ def extract_alternatives_from_lines(lines: list[str], start_index: int = 0) -> t
     """
     alternatives = []
     current_alternative = ""
-    pattern = re.compile(r"^\([A-Z]\)")
+    pattern = re.compile(r"^\(?[A-E][\)\.\-]?", re.IGNORECASE)
 
     question_lines = []
     i = start_index

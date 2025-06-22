@@ -18,7 +18,10 @@ def match_context_to_questions(
 
     # Localiza a posição dos contextos no texto
     context_positions = [
-        (ctx["id"], text.find(ctx["content"]))
+        (
+            ctx["id"],
+            text.find(ctx.get("raw_content", ctx.get("content", "")))
+        )
         for ctx in contexts
     ]
 
