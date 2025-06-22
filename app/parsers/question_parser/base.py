@@ -9,6 +9,9 @@ class QuestionParser:
         questions = detect_questions(text)
         linked_questions = match_context_to_questions(questions, context_blocks, text)
 
+        for block in context_blocks:
+            block.pop("raw_content", None)
+
         return {
             "context_blocks": context_blocks,
             "questions": linked_questions

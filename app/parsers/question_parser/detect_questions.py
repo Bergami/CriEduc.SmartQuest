@@ -26,13 +26,21 @@ def detect_questions(text: str) -> list[dict]:
         # ✅ Usa a função atualizada que retorna question_text, alternatives e último índice
         question_text, alternatives, _ = extract_alternatives_from_lines(lines)
 
+        alt_list = []
+        for alt in alternatives:
+            match_alt = re.match(r"^\(?([A-E])\)?\s*(.*)", alt.strip())
+            if match_alt:
+                alt_list.append({"letter": match_alt.group(1), "text": match_alt.group(2).strip()})
+            else:
+                alt_list.append({"letter": "", "text": alt.strip()})
+
         # ✅ Detecta presença de imagem com base no texto da questão
         has_image = "imagem" in question_text.lower() or "figura" in question_text.lower()
 
         questions.append({
             "number": number,
             "question": question_text,
-            "alternatives": [alt.strip() for alt in alternatives],
+            "alternatives": alt_list,
             "hasImage": has_image,
             "context_id": None
         })
