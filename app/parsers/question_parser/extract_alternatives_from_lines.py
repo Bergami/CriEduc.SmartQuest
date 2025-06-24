@@ -29,7 +29,7 @@ def extract_alternatives_from_lines(lines: list[str], start_index: int = 0) -> t
         elif found_alternatives:
             if line == "":
                 empty_line_count += 1
-                if empty_line_count >= 1:
+                if empty_line_count >= 2:
                     break
             elif pattern.match(line):
                 # nova alternativa detectada — já tratada no bloco acima
