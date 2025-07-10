@@ -6,10 +6,19 @@ from pydantic import BaseSettings
 try:
     from dotenv import load_dotenv
     
-    # Procurar o arquivo .env na raiz do projeto
-    env_path = Path(__file__).parent.parent.parent / ".env"
+    # Procurar os arquivos .env na raiz do projeto
+    project_root = Path(__file__).parent.parent.parent
+    env_path = project_root / ".env"
+    env_local_path = project_root / ".env-local"
+    
+    # Carregar primeiro o .env (configurações públicas)
     if env_path.exists():
         load_dotenv(env_path)
+    
+    # Carregar depois o .env-local (configurações sensíveis - sobrescreve o .env)
+    if env_local_path.exists():
+        load_dotenv(env_local_path, override=True)
+    
 except ImportError:
     # python-dotenv não instalado, usar variáveis de ambiente do sistema
     pass
