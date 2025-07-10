@@ -1,9 +1,12 @@
+from typing import List, Dict, Any, Optional, Tuple
+
+
 def match_context_to_questions(
-    questions: list[dict],
-    contexts: list[dict],
+    questions: List[Dict[str, Any]],
+    contexts: List[Dict[str, Any]],
     text: str,
     max_distance: int = 1000
-) -> list[dict]:
+) -> List[Dict[str, Any]]:
     """
     Associa cada questão ao contexto mais próximo (antes ou depois),
     desde que dentro de um limite de distância.
@@ -38,9 +41,9 @@ def match_context_to_questions(
 
 def _find_closest_context_id(
     q_pos: int,
-    context_positions: list[tuple[int, int]],
+    context_positions: List[Tuple[int, int]],
     max_distance: int
-) -> int | None:
+) -> Optional[int]:
     """
     Retorna o id do contexto mais próximo da posição da questão,
     se estiver dentro da distância máxima permitida.

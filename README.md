@@ -88,10 +88,10 @@ app/parsers/header_parser/
 
 | ✅ Technology | Description |
 |--------------|------------|
-| **Python 3.13+** | Tested on version 3.13.4 |
+| **Python 3.9+** | Tested on versions 3.9+ |
 | **FastAPI** | High-performance web framework for building RESTful APIs |
-| **pdfplumber / PyMuPDF** | PDF reading and layout extraction |
-| **spaCy / Transformers / Tesseract** | NLP, semantic analysis, OCR (optional) |
+| **Azure AI Document Intelligence** | Cloud-based document processing and extraction |
+| **Azure SDK for Python** | Integration with Azure cognitive services |
 | **Pydantic** | Request validation and data modeling |
 | **Pytest** | Unit testing framework |
 
@@ -114,16 +114,97 @@ source .venv/bin/activate  # Linux/macOS
 .venv\Scripts\activate     # Windows
 ````` 
 
-📌 3. Install Dependencies
+📌 3. Configure Environment Variables
+
+Create a `.env` file in the project root with your Azure AI Document Intelligence credentials:
+
+````` 
+# Azure AI Document Intelligence
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-service.cognitiveservices.azure.com/
+AZURE_DOCUMENT_INTELLIGENCE_KEY=your-api-key
+USE_AZURE_AI=true
+
+AZURE_DOCUMENT_INTELLIGENCE_MODEL=prebuilt-layout
+AZURE_DOCUMENT_INTELLIGENCE_API_VERSION=2023-07-31
+
+# App configuration
+APP_NAME=SmartQuest API
+DEBUG=false
+````` 
+
+📌 4. Install Dependencies
 
 ````` 
 pip install -r requirements.txt
 ````` 
-📌 4. Start the API
 
+📌 5. Start the API
+
+**Option 1: Direct Python**
+````` 
+python start_simple.py
+````` 
+
+**Option 2: Uvicorn**
 ````` 
 uvicorn app.main:app --reload
 ````` 
+
+**Option 3: PowerShell Script**
+````` 
+.\start.ps1
+````` 
+
+## 🧪 Testing
+
+### Available Test Scripts
+| Script | Purpose |
+|--------|---------|
+| `test_azure_only.py` | Complete Azure AI integration test |
+| `tests/test_analyze_service.py` | Unit tests for analyze service |
+
+### Running Tests
+```powershell
+# Test Azure AI integration
+python test_azure_only.py
+
+# Run unit tests
+python -m pytest tests/
+```
+
+## 🐛 Debugging in VS Code
+
+The project includes debug configurations in `.vscode/launch.json`:
+
+- **🚀 SmartQuest API - Direct Run**: Run main.py directly
+- **🔍 FastAPI with Uvicorn**: Run with uvicorn and auto-reload
+- **🐛 Debug Specific Process**: For debugging specific processes
+- **🧪 Test Azure AI**: For testing Azure AI scripts
+
+### Debug Setup
+1. Open VS Code in the project folder
+2. Press `F5` to start debugging
+3. Select the appropriate debug configuration
+4. Set breakpoints as needed
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Azure AI Connection Failed**
+- Verify your credentials in `.env`
+- Check if your Azure service is active
+- Ensure endpoint URL is correct
+
+**Import Errors**
+- Activate virtual environment: `.venv\Scripts\activate`
+- Install dependencies: `pip install -r requirements.txt`
+- Check Python interpreter in VS Code
+
+**PDF Processing Fails**
+- Verify PDF file exists in `tests/modelo-prova.pdf`
+- Check Azure AI quota and limits
+- Review error logs for specific issues
 
 ## 📡 Available Endpoints  
 

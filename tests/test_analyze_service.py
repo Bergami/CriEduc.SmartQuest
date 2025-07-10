@@ -1,3 +1,4 @@
+from typing import Dict, Any
 import json
 import asyncio
 import os
@@ -11,12 +12,12 @@ def load_file_bytes(filepath: str) -> bytes:
         return f.read()
 
 
-def load_expected_result(filepath: str) -> dict:
+def load_expected_result(filepath: str) -> Dict[str, Any]:
     with open(filepath, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def remove_dynamic_fields(data: dict) -> dict:
+def remove_dynamic_fields(data: Dict[str, Any]) -> Dict[str, Any]:
     for key in ["document_id", "email", "filename", "extracted_text"]:
         data.pop(key, None)
     return data

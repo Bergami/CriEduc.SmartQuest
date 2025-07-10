@@ -1,8 +1,8 @@
 import re
-from app.core.subjects import normalize_subject
+from app.data.subjects import normalize_subject
+from typing import List, Optional, Union
 
-
-def parse_subject(header: str) -> str | None:
+def parse_subject(header: str) -> Optional[str]:
     """Extract subject name from the header."""
     match = re.search(r"Professora?:\s+([^\n\r]+)", header)
     if match:

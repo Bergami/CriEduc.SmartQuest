@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import HTTPException
 
 class InvalidDocumentFormatException(HTTPException):
@@ -13,5 +14,11 @@ class InvalidEmailException(HTTPException):
         super().__init__(status_code=422, detail="Invalid email format.")
 
 class MultipleValidationException(HTTPException):
-    def __init__(self, errors: list[str]):
+    def __init__(self, errors: List[str]):
         super().__init__(status_code=422, detail={"errors": errors})
+
+class DocumentProcessingError(Exception):
+    """Exceção para erros no processamento de documentos"""
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)

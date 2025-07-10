@@ -1,6 +1,7 @@
+from typing import List, Dict, Any
 import re
 
-def detect_context_blocks(text: str) -> list[dict]:
+def detect_context_blocks(text: str) -> List[Dict[str, Any]]:
     """
     Detecta blocos de leitura (textos base) antes das questões.
     Retorna uma lista com: id, content, hasImage.

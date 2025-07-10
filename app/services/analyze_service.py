@@ -1,18 +1,23 @@
-import pdfplumber
 import json
-from io import BytesIO
+import os
+from typing import Dict, Any
 from uuid import uuid4
 from fastapi import UploadFile
 from app.parsers.header_parser import HeaderParser
 from app.parsers.question_parser import QuestionParser
+from app.services.azure_document_intelligence_service import AzureDocumentIntelligenceService
+from app.core.exceptions import DocumentProcessingError
 from app.utils.final_result_builder import FinalResultBuilder
 
 class AnalyzeService:
     @staticmethod
-    async def process_document(file: UploadFile, email: str, use_json_fallback: bool = False) -> dict:
+    async def process_document(file: UploadFile, email: str, use_json_fallback: bool = False) -> Dict[str, Any]:
         document_id = str(uuid4())
+        print(f"🔍 DEBUG: Processando documento {file.filename} para {email}")
+        print(f"🔍 DEBUG: Document ID gerado: {document_id}")
 
         if use_json_fallback:
+            print("🔍 DEBUG: Usando fallback JSON...")
             # Carrega resultado_parser.json
             with open("resultado_parser.json", "r", encoding="utf-8") as f:
                 parsed_data = json.load(f)
@@ -24,33 +29,66 @@ class AnalyzeService:
 
             return parsed_data
 
-        extracted_data = await AnalyzeService._extract_text_and_metadata(file)
+        # 🆕 USAR APENAS AZURE AI DOCUMENT INTELLIGENCE
+        try:
+            print("🔍 DEBUG: Processando com Azure AI Document Intelligence...")
+            extracted_data = await AnalyzeService._extract_text_and_metadata_azure(file)
+            print("✅ DEBUG: Azure AI executado com sucesso")
+        except Exception as e:
+            print(f"❌ DEBUG: Erro no Azure AI: {str(e)}")
+            print(f"🔍 DEBUG: Tipo do erro: {type(e).__name__}")
+            
+            # Lança uma exceção customizada para o cliente
+            error_message = f"Falha ao processar documento com Azure AI: {str(e)}"
+            print(f"� DEBUG: Lançando DocumentProcessingError: {error_message}")
+            raise DocumentProcessingError(error_message)
+        
+        print(f"🔍 DEBUG: Texto extraído: {len(extracted_data['text'])} caracteres")
+        print(f"🔍 DEBUG: Header: {extracted_data['header']}")
+        
+        print("🔍 DEBUG: Extraindo questões...")
         question_data = QuestionParser.extract(extracted_data["text"])
+        print(f"🔍 DEBUG: Questões encontradas: {len(question_data['questions'])}")
+        print(f"🔍 DEBUG: Blocos de contexto: {len(question_data['context_blocks'])}")
 
-        return {
+        result = {
             "email": email,
             "document_id": document_id,
             "filename": file.filename,
             "header": extracted_data["header"],
             "questions": question_data["questions"],
             "context_blocks": question_data["context_blocks"],
-            "extracted_text": extracted_data["text"][:500]
+            "extracted_text": extracted_data["text"][:500],
+            "azure_metadata": extracted_data.get("azure_metadata", {})
         }
+        
+        print("✅ DEBUG: Resultado final montado")
+        return result
 
     @staticmethod
-    async def _extract_text_and_metadata(file: UploadFile) -> dict:
-        file_bytes = await file.read()
-        pdf_buffer = BytesIO(file_bytes)
-
-        with pdfplumber.open(pdf_buffer) as pdf:
-            text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-
-        header_text = AnalyzeService._extract_header_block(text)
+    async def _extract_text_and_metadata_azure(file: UploadFile) -> Dict[str, Any]:
+        """
+        🆕 Nova implementação usando Azure AI Document Intelligence
+        Mantém compatibilidade com a estrutura atual
+        """
+        azure_service = AzureDocumentIntelligenceService()
+        
+        # Extrai dados usando Azure AI
+        azure_result = await azure_service.analyze_document(file)
+        
+        # Mantém compatibilidade com parsers existentes
+        header_text = AnalyzeService._extract_header_block(azure_result["text"])
         header_data = AnalyzeService._parse_header(header_text)
 
         return {
             "header": header_data,
-            "text": text
+            "text": azure_result["text"],
+            "azure_metadata": {
+                "confidence": azure_result.get("confidence", 0.0),
+                "page_count": azure_result.get("page_count", 1),
+                "tables": azure_result.get("tables", []),
+                "key_value_pairs": azure_result.get("key_value_pairs", {})
+            }
         }
 
     @staticmethod
@@ -59,5 +97,5 @@ class AnalyzeService:
         return "\n".join(lines[:max_lines])
 
     @staticmethod
-    def _parse_header(header: str) -> dict:
+    def _parse_header(header: str) -> Dict[str, Any]:
         return HeaderParser.parse(header)

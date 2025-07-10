@@ -34,6 +34,6 @@ class FinalResultBuilder:
         return response
 
     @staticmethod
-    def load_from_json(path="resultado_parser.json") -> dict:
+    def load_from_json(path="resultado_parser.json") -> Dict[str, Any]:
         with open(path, encoding="utf-8") as f:
             return json.load(f)

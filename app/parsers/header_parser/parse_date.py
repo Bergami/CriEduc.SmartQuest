@@ -1,7 +1,8 @@
 import re
+from typing import Optional
 
 
-def parse_date(student_line: str | None) -> str | None:
+def parse_date(student_line: Optional[str]) -> Optional[str]:
     """Extract exam date from the student line."""
     if not student_line:
         return None

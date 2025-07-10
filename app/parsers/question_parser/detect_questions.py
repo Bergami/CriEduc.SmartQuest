@@ -1,7 +1,8 @@
+from typing import List, Dict, Any
 import re
 from .extract_alternatives_from_lines import extract_alternatives_from_lines
 
-def detect_questions(text: str) -> list[dict]:
+def detect_questions(text: str) -> List[Dict[str, Any]]:
     """
     Detecta blocos de questões no texto da prova.
     Extrai número, enunciado, alternativas e se há referência a imagem.

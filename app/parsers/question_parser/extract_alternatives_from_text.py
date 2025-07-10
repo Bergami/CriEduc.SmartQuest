@@ -1,6 +1,7 @@
+from ast import List, Tuple
 import re
 
-def extract_alternatives_from_text(text: str) -> tuple[str, list[str]]:
+def extract_alternatives_from_text(text: str) -> Tuple[str, List[str]]:
     """
     Extrai o enunciado e as alternativas de uma questão.
 
@@ -11,7 +12,7 @@ def extract_alternatives_from_text(text: str) -> tuple[str, list[str]]:
     alt_regex = r"\([A-E]\)"
 
     # Procura todas as ocorrências de marcadores (A)...(E)
-    alt_matches = list(re.finditer(alt_regex, text))
+    alt_matches = List(re.finditer(alt_regex, text))
 
     if not alt_matches:
         return text.strip(), []

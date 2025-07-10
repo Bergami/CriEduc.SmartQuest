@@ -1,6 +1,7 @@
 import re
+from typing import List, Tuple
 
-def extract_alternatives_from_lines(lines: list[str], start_index: int = 0) -> tuple[str, list[str], int]:
+def extract_alternatives_from_lines(lines: List[str], start_index: int = 0) -> Tuple[str, List[str], int]:
     """
     Extrai enunciado da questão e alternativas de múltipla escolha a partir das linhas.
     Retorna:

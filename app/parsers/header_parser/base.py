@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Optional, Dict, Any
 
 from .parse_network import parse_network
 from .parse_school import parse_school
@@ -18,10 +19,10 @@ class HeaderParser:
     """Parse metadata fields from an exam header block."""
 
     @staticmethod
-    def parse(header: str) -> dict:
+    def parse(header: str) -> Dict[str, Any]:
         lines = header.splitlines()
 
-        def extract_field_line(label: str) -> str | None:
+        def extract_field_line(label: str) -> Optional[str]:
             for line in lines:
                 if label.lower() in line.lower():
                     return line.strip()

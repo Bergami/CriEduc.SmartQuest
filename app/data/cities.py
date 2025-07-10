@@ -1,5 +1,6 @@
-# Lista oficial dos municípios do Espírito Santo
+from typing import Optional
 
+# Lista oficial dos municípios do Espírito Santo
 CITIES_ES = [
     "Afonso Cláudio",
     "Água Doce do Norte",
@@ -82,8 +83,18 @@ CITIES_ES = [
 ]
 
 
-def extract_city(header: str) -> str | None:
+def extract_city(header: str) -> Optional[str]:
+    """
+    Extrai o nome da cidade do cabeçalho do documento.
+    
+    Args:
+        header: Texto do cabeçalho para buscar a cidade
+        
+    Returns:
+        Nome da cidade encontrada ou None
+    """
+    header_upper = header.upper()
     for city in CITIES_ES:
-        if city in header.upper():
+        if city.upper() in header_upper:
             return city
     return None

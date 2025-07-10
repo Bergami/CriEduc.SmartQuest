@@ -1,7 +1,8 @@
 import re
+from typing import List, Optional, Union
 
-
-def parse_class(student_line: str | None) -> str | None:
+# Define the type for a student line
+def parse_class(student_line: Optional[str]) -> Optional[str]:
     """Extract class identifier from the student line."""
     if not student_line:
         return None

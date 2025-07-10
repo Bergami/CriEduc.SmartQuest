@@ -2,4 +2,10 @@
 fastapi==0.110.2
 uvicorn[standard]==0.29.0
 python-multipart==0.0.9
-pdfplumber == 0.11.7
+pydantic==1.10.15
+
+python-dotenv==1.1.1
+# Azure AI Document Intelligence dependencies
+azure-ai-documentintelligence==1.0.0
+azure-core>=1.30.0
+azure-identity==1.15.0

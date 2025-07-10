@@ -1,7 +1,7 @@
 import re
+from typing import List, Optional, Union
 
-
-def parse_teacher(header: str) -> str | None:
+def parse_teacher(header: str) -> Optional[str]:
     """Extract teacher name from the header."""
     match = re.search(r"Professora?:\s+([^\n\r]+)", header)
     if match:
