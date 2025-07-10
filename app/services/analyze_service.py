@@ -2,6 +2,7 @@ import json
 import os
 from typing import Dict, Any
 from uuid import uuid4
+from pathlib import Path
 from fastapi import UploadFile
 from app.parsers.header_parser import HeaderParser
 from app.parsers.question_parser import QuestionParser
@@ -99,3 +100,56 @@ class AnalyzeService:
     @staticmethod
     def _parse_header(header: str) -> Dict[str, Any]:
         return HeaderParser.parse(header)
+
+    @staticmethod
+    async def process_document_mock(email: str, filename: str = "mock_document.pdf") -> Dict[str, Any]:
+        """
+        Processa documento usando dados mockados do arquivo RetornoProcessamento.json
+        Não requer arquivo físico
+        """
+        document_id = str(uuid4())
+        print(f"🔧 DEBUG: Processando documento MOCK {filename} para {email}")
+        print(f"🔧 DEBUG: Document ID gerado: {document_id}")
+
+        # Caminho para o arquivo JSON
+        json_path = Path("tests/RetornoProcessamento.json")
+        
+        if not json_path.exists():
+            raise DocumentProcessingError(f"Arquivo de mock não encontrado: {json_path}")
+        
+        try:
+            print("🔧 DEBUG: Carregando dados mockados...")
+            with open(json_path, 'r', encoding='utf-8') as f:
+                mock_data = json.load(f)
+            
+            print("✅ DEBUG: Dados mockados carregados com sucesso")
+             # Extrai o conteúdo de texto da estrutura correta do mock
+            text_content = mock_data["analyzeResult"]["content"]
+
+            # Processa os dados do JSON da mesma forma que o método normal
+            header_text = AnalyzeService._extract_header_block(text_content)
+            header_data = AnalyzeService._parse_header(header_text)
+            
+            print(f"🔧 DEBUG: Header extraído do mock: {header_data}")
+            
+            print("🔧 DEBUG: Extraindo questões do mock...")
+            question_data = QuestionParser.extract(text_content)
+            print(f"🔧 DEBUG: Questões encontradas no mock: {len(question_data['questions'])}")
+            print(f"🔧 DEBUG: Blocos de contexto no mock: {len(question_data['context_blocks'])}")
+
+            result = {
+                "email": email,
+                "document_id": document_id,
+                "filename": filename,
+                "header": header_data,
+                "questions": question_data["questions"],
+                "context_blocks": question_data["context_blocks"]                       
+            }
+            
+            print("🔧 DEBUG: Processamento mock concluído")
+            return result
+            
+        except json.JSONDecodeError as e:
+            raise DocumentProcessingError(f"Erro ao decodificar JSON mockado: {str(e)}")
+        except Exception as e:
+            raise DocumentProcessingError(f"Erro ao carregar dados mockados: {str(e)}")

@@ -15,6 +15,14 @@ class EmailValidationModel(BaseModel):
 class AnalyzeValidator:
 
     @staticmethod
+    def validate_email_only(email: str) -> None:
+        """Valida apenas o email (para modo mock)"""
+        try:
+            EmailValidationModel(email=email)
+        except ValidationError:
+            raise InvalidEmailException()
+
+    @staticmethod
     def validate_all(file: UploadFile, email: str) -> List[Dict[str, Any]]:
         errors = []
 
