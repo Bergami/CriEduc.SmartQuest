@@ -20,10 +20,19 @@ def match_context_to_questions(
     ]
 
     # Localiza a posição dos contextos no texto
-    context_positions = [
-        (ctx["id"], text.find(ctx["enunciado"]))
-        for ctx in contexts
-    ]
+    context_positions = []
+    for ctx in contexts:
+        # Support both old format (statement) and new format (content)
+        context_text = ctx.get("statement") or ctx.get("content") or ctx.get("title", "")
+        if context_text:
+            # Use case-insensitive search for better matching
+            import re
+            pattern = re.escape(context_text[:100])  # Escape special regex chars
+            match = re.search(pattern, text, re.IGNORECASE)
+            position = match.start() if match else text.lower().find(context_text[:100].lower())
+            context_positions.append((ctx["id"], position))
+        else:
+            context_positions.append((ctx["id"], -1))
 
     result = []
 

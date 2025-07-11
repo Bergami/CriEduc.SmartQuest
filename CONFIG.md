@@ -2,7 +2,7 @@
 
 ## 📋 Arquivos de Configuração
 
-### `.env` (Público - pode ser commitado)
+### `.env` 
 Contém configurações não sensíveis:
 - Configurações gerais da aplicação
 - Modelos e versões de API

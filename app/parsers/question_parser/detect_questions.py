@@ -20,10 +20,13 @@ def detect_questions(text: str) -> List[Dict[str, Any]]:
             continue
         number = int(match_number.group())
 
+        # Limpar o conteúdo de forma mais inteligente
+        cleaned_content = _smart_clean_question_content(raw_content)
+        
         # Divide o conteúdo em linhas
-        lines = raw_content.strip().splitlines()
+        lines = cleaned_content.strip().splitlines()
 
-        # Novo parser para alternativas que podem estar em uma linha única
+        # Parser para alternativas que podem estar em uma linha única
         question_text, alternatives = _parse_question_and_alternatives(lines)
 
         # ✅ Detecta presença de imagem com base no texto da questão
@@ -40,6 +43,47 @@ def detect_questions(text: str) -> List[Dict[str, Any]]:
     return questions
 
 
+def _smart_clean_question_content(content: str) -> str:
+    """
+    Limpa o conteúdo da questão de forma mais inteligente.
+    Remove apenas parágrafos longos que claramente são textos de contexto.
+    """
+    lines = content.splitlines()
+    cleaned_lines = []
+    
+    # Marcadores que indicam início de novo context_block
+    context_markers = [
+        "Leia o texto a seguir",
+        "Analise o texto a seguir", 
+        "Analise a imagem abaixo",
+        "LEIA O TEXTO A SEGUIR",
+        "Leia este texto",
+        "Leia a crônica"
+    ]
+    
+    for line in lines:
+        line_stripped = line.strip()
+        
+        # Pular linhas vazias
+        if not line_stripped:
+            continue
+            
+        # Se encontrar marcador de context_block, parar aqui
+        if any(marker in line_stripped for marker in context_markers):
+            break
+            
+        # Se é uma linha muito longa (>500 chars) e não contém alternativas, 
+        # provavelmente é parágrafo de contexto
+        if (len(line_stripped) > 500 and 
+            not line_stripped.startswith('(') and 
+            not re.search(r'\([A-E]\)', line_stripped)):
+            break
+            
+        cleaned_lines.append(line)
+    
+    return '\n'.join(cleaned_lines)
+
+
 def _parse_question_and_alternatives(lines: List[str]) -> tuple[str, List[Dict[str, Any]]]:
     """
     Parse question text and alternatives from lines.
@@ -47,6 +91,7 @@ def _parse_question_and_alternatives(lines: List[str]) -> tuple[str, List[Dict[s
     """
     question_parts = []
     alternatives = []
+    found_first_alternative = False
     
     for line in lines:
         line = line.strip()
@@ -56,12 +101,15 @@ def _parse_question_and_alternatives(lines: List[str]) -> tuple[str, List[Dict[s
         # Check if line contains alternatives (has pattern like "(A) ... (B) ... (C) ...")
         if _line_contains_multiple_alternatives(line):
             alternatives.extend(_extract_alternatives_from_single_line(line))
+            found_first_alternative = True
         elif line.startswith('(') and len(line) > 3 and line[2] == ')':
             # Single alternative per line
             alternatives.append(_format_single_alternative(line))
+            found_first_alternative = True
         else:
-            # Part of question text
-            question_parts.append(line)
+            # Se já encontramos a primeira alternativa, não adicionar mais texto de questão
+            if not found_first_alternative:
+                question_parts.append(line)
     
     question_text = ' '.join(question_parts).strip()
     return question_text, alternatives

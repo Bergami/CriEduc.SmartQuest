@@ -1,12 +1,12 @@
-# Document Extraction Abstraction Layer
+# SmartQuest Architecture
 
 ## 🏗️ **Architecture Overview**
 
-This abstraction layer provides a flexible, provider-agnostic approach to document text extraction, making it easy to switch between different OCR/document processing services without changing the core application logic.
+SmartQuest is a microservice designed to intelligently extract, classify, and analyze educational assessments (PDFs) using Azure Document Intelligence and advanced parsing techniques. The system is built with a modular, extensible architecture that allows for easy integration of new document processing providers.
 
-## 📋 **Components**
+## 📋 **Core Components**
 
-### **1. Core Interface**
+### **1. Document Extraction Abstraction Layer**
 - `DocumentExtractionInterface` - Base contract for all extraction providers
 - `TextNormalizer` - Centralized text cleaning and normalization
 - `DocumentExtractionFactory` - Provider management and selection
@@ -15,10 +15,57 @@ This abstraction layer provides a flexible, provider-agnostic approach to docume
 - `AzureExtractionAdapter` - Azure Document Intelligence integration
 - *Future*: `TesseractAdapter`, `GoogleVisionAdapter`, etc.
 
-### **3. Configuration**
-- Environment-based provider selection
-- Automatic fallback mechanisms
-- Provider availability detection
+### **3. Document Analysis Pipeline**
+- `AnalyzeService` - Main orchestration service
+- `HeaderParser` - Exam metadata extraction
+- `QuestionParser` - Question and context block detection
+- `ContextQuestionMapper` - Intelligent question-context association
+
+### **4. Specialized Parsers**
+- **Header Parser**: Modular extraction of exam metadata
+- **Question Parser**: Context blocks and question detection
+- **Context Detection**: Image and text context identification
+
+## 🧱 **Project Structure**
+
+### **Services Layer** (`app/services/`)
+```
+services/
+├── base/                           # Core interfaces and utilities
+│   ├── document_extraction_interface.py # Provider interface
+│   └── text_normalizer.py          # Text cleaning utilities
+├── adapters/                       # Provider implementations
+│   └── azure_extraction_adapter.py # Azure Document Intelligence
+├── analyze_service.py              # Main analysis orchestration
+├── azure_document_intelligence_service.py # Legacy Azure service
+├── document_extraction_factory.py  # Provider factory
+└── health_service.py              # Health check service
+```
+
+### **Parsers Layer** (`app/parsers/`)
+```
+parsers/
+├── header_parser/                  # Exam metadata extraction
+│   ├── base.py                     # Entry point
+│   ├── parse_*.py                  # Individual field parsers
+│   └── ...
+└── question_parser/                # Question and context parsing
+    ├── base.py                     # Entry point
+    ├── detect_context_blocks.py    # Context block detection
+    ├── detect_questions.py         # Question identification
+    ├── match_context_to_questions.py # Context-question mapping
+    └── extract_alternatives_*.py   # Answer choice extraction
+```
+
+### **API Layer** (`app/api/` and `app/controllers/`)
+```
+api/
+└── routers.py                      # FastAPI route definitions
+
+controllers/
+├── analyze.py                      # Document analysis endpoints
+└── health.py                      # Health check endpoints
+```
 
 ## 🔧 **Usage**
 
@@ -65,6 +112,65 @@ All providers return a consistent structure:
     }
 }
 ```
+
+## 📊 **Data Structure**
+
+### **API Response Format**
+```json
+{
+  "document_metadata": {
+    "network": "Prefeitura Municipal",
+    "school": "UMEF Saturnino Rangel Mauro",
+    "city": "Vila Velha",
+    "teacher": "Danielle",
+    "subject": "Língua Portuguesa",
+    "exam_title": "Prova Trimestral",
+    "trimester": "3º TRIMESTRE",
+    "grade": "7º ano",
+    "class": null,
+    "student": null,
+    "grade_value": "12,0",
+    "date": null
+  },
+  "context_blocks": [
+    {
+      "id": 0,
+      "type": ["text"],
+      "statement": "Após ler atentamente o texto a seguir, responda as três próximas questões.",
+      "title": "FEIJÕES OU PROBLEMAS?",
+      "paragraphs": ["Reza a lenda que um monge..."],
+      "hasImage": false
+    },
+    {
+      "id": 1, 
+      "type": ["text", "image"],
+      "statement": "Analise a imagem abaixo",
+      "title": "FAVOR NÃO DEXAR OBIGETOS NO CORREDOR",
+      "paragraphs": [],
+      "hasImage": true
+    }
+  ],
+  "questions": [
+    {
+      "number": 1,
+      "question": "Nesse texto, o discípulo que venceu a prova porque",
+      "alternatives": [
+        {"letter": "A", "text": "colocou o feijão em um sapato."},
+        {"letter": "B", "text": "cozinhou o feijão."},
+        {"letter": "C", "text": "desceu a montanha correndo."},
+        {"letter": "D", "text": "sumiu da vista do oponente."},
+        {"letter": "E", "text": "tirou seu sapato."}
+      ],
+      "context_id": 0
+    }
+  ]
+}
+```
+
+### **Context Block Types**
+- **`["text"]`**: Pure text context blocks
+- **`["image"]`**: Pure image context blocks  
+- **`["text", "image"]`**: Mixed blocks with instruction text and image content
 
 ## 🧹 **Text Normalization**
 
@@ -137,14 +243,22 @@ elif provider_name == "new_provider":
 
 ## 🧪 **Testing**
 
-### **Test Provider Integration**
+### **Available Test Files**
 ```bash
-python test_abstraction.py
+# Test Azure AI integration (detailed)
+python test_azure_detailed.py
+
+# Test Azure AI integration (basic)  
+python test_azure_only.py
 ```
 
-### **Test Complete System**
+### **API Testing**
 ```bash
-python test_integration.py
+# Test API with mock data
+curl -X POST "http://127.0.0.1:8000/analyze/analyze_document?email=test@example.com&use_mock=true"
+
+# Test health endpoint
+curl -X GET "http://127.0.0.1:8000/health"
 ```
 
 ## 📝 **Migration Notes**
@@ -162,10 +276,45 @@ AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT="..."
 AZURE_DOCUMENT_INTELLIGENCE_KEY="..."
 ```
 
-## 🚀 **Future Enhancements**
+## 🚀 **Key Features**
 
-- **Provider Performance Monitoring**: Track response times and accuracy
-- **Intelligent Provider Selection**: Choose provider based on document type
-- **Caching Layer**: Cache extraction results for identical documents
-- **Batch Processing**: Support for multiple document processing
-- **Cost Optimization**: Route to cheaper providers when appropriate
+### **Document Processing Pipeline**
+1. **Document Upload** - FastAPI endpoint receives PDF files
+2. **Text Extraction** - Azure Document Intelligence extracts raw text
+3. **Header Parsing** - Modular extraction of exam metadata
+4. **Context Detection** - Identifies text blocks and image contexts
+5. **Question Detection** - Locates questions and answer choices
+6. **Context Mapping** - Intelligently links questions to contexts
+7. **Response Building** - Structured JSON output
+
+### **Context Block Intelligence**
+- **Dynamic Type Detection**: Automatically identifies `["text"]`, `["image"]`, or `["text", "image"]` blocks
+- **Image Block Grouping**: Groups instruction text with extracted image content
+- **Deduplication**: Removes duplicate context blocks
+- **Smart Ordering**: Orders blocks by position in document
+
+### **Question-Context Mapping**
+- **Pattern Recognition**: Detects introduction patterns like "responda as três próximas questões"
+- **Image Question Handling**: Special logic for image-related questions
+- **Proximity Analysis**: Maps questions to nearest relevant context
+- **Validation**: Ensures all questions have appropriate context assignments
+
+## 🎯 **Current Implementation Status**
+
+### ✅ **Completed Features**
+- Document extraction abstraction layer
+- Azure Document Intelligence integration
+- Modular header parsing (all fields)
+- Context block detection and classification
+- Question detection and parsing
+- Intelligent context-question mapping
+- Image block special handling
+- Mock data support for testing
+- Comprehensive API endpoints
+
+### 🚧 **Architecture Decisions**
+- **Microservice Design**: Single-responsibility service
+- **Provider Abstraction**: Easy integration of new document processors
+- **Modular Parsing**: Each parser handles specific document elements
+- **Intelligent Mapping**: Context-aware question association
+- **Type Safety**: Pydantic models for request/response validation
