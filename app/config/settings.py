@@ -24,9 +24,12 @@ except ImportError:
     pass
 
 class Settings(BaseSettings):
-    # Configurações gerais
+    # General configurations
     app_name: str = "SmartQuest API"
     debug: bool = False
+    
+    # Document extraction provider configuration
+    document_extraction_provider: str = os.getenv("DOCUMENT_EXTRACTION_PROVIDER", "azure")
     
     # Azure AI Document Intelligence
     azure_document_intelligence_endpoint: str = os.getenv("AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT", "")
@@ -39,10 +42,11 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
 
-# Mock settings para quando .env não estiver disponível
+# Mock settings for when .env is not available
 class MockSettings:
     app_name = "SmartQuest API (Mock)"
     debug = True
+    document_extraction_provider = "azure"
     azure_document_intelligence_endpoint = ""
     azure_document_intelligence_key = ""
     azure_document_intelligence_model = "prebuilt-layout"

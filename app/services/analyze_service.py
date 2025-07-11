@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import UploadFile
 from app.parsers.header_parser import HeaderParser
 from app.parsers.question_parser import QuestionParser
-from app.services.azure_document_intelligence_service import AzureDocumentIntelligenceService
+from app.services.document_extraction_factory import DocumentExtractionFactory
 from app.core.exceptions import DocumentProcessingError
 from app.utils.final_result_builder import FinalResultBuilder
 
@@ -30,17 +30,17 @@ class AnalyzeService:
 
             return parsed_data
 
-        # 🆕 USAR APENAS AZURE AI DOCUMENT INTELLIGENCE
+        # 🆕 USAR DOCUMENT EXTRACTION FACTORY (com Azure como padrão)
         try:
-            print("🔍 DEBUG: Processing with Azure AI Document Intelligence...")
-            extracted_data = await AnalyzeService._extract_text_and_metadata_azure(file)
-            print("✅ DEBUG: Azure AI executed successfully")
+            print("🔍 DEBUG: Processing with Document Extraction Factory...")
+            extracted_data = await AnalyzeService._extract_text_and_metadata_with_factory(file)
+            print("✅ DEBUG: Document extraction executed successfully")
         except Exception as e:
-            print(f"❌ DEBUG: Error in Azure AI: {str(e)}")
+            print(f"❌ DEBUG: Error in document extraction: {str(e)}")
             print(f"🔍 DEBUG: Error type: {type(e).__name__}")
             
             # Raise custom exception for client
-            error_message = f"Failed to process document with Azure AI: {str(e)}"
+            error_message = f"Failed to process document: {str(e)}"
             print(f"🚨 DEBUG: Raising DocumentProcessingError: {error_message}")
             raise DocumentProcessingError(error_message)
         
@@ -60,78 +60,51 @@ class AnalyzeService:
             "questions": question_data["questions"],
             "context_blocks": question_data["context_blocks"],
             "extracted_text": extracted_data["text"][:500],
-            "azure_metadata": extracted_data.get("azure_metadata", {})
+            "provider_metadata": extracted_data.get("metadata", {})
         }
         
         print("✅ DEBUG: Resultado final montado")
         return result
 
     @staticmethod
-    async def _extract_text_and_metadata_azure(file: UploadFile) -> Dict[str, Any]:
+    async def _extract_text_and_metadata_with_factory(file: UploadFile) -> Dict[str, Any]:
         """
-        New implementation using Azure AI Document Intelligence
-        Maintains compatibility with current structure
+        Extract text and metadata using the Document Extraction Factory.
+        Supports multiple providers with automatic fallback.
         """
-        azure_service = AzureDocumentIntelligenceService()
+        # Get the configured extraction provider
+        extractor = DocumentExtractionFactory.get_provider()
+        provider_name = extractor.get_provider_name()
         
-        # Extract data using Azure AI
-        azure_result = await azure_service.analyze_document(file)
+        print(f"🔍 DEBUG: Using extraction provider: {provider_name}")
         
-        # Clean Azure selection marks
-        clean_text = AnalyzeService._clean_azure_selection_marks(azure_result["text"])
+        # Extract document data
+        extracted_data = await extractor.extract_document_data(file)
         
-        # Maintain compatibility with existing parsers
-        header_text = AnalyzeService._extract_header_block(clean_text)
-        header_data = AnalyzeService._parse_header(header_text)
-
+        # Parse header information from extracted text
+        header_data = HeaderParser.parse(extracted_data["text"])
+        
+        # Return structured data compatible with current system
         return {
+            "text": extracted_data["text"],
             "header": header_data,
-            "text": clean_text,
-            "azure_metadata": {
-                "confidence": azure_result.get("confidence", 0.0),
-                "page_count": azure_result.get("page_count", 1),
-                "tables": azure_result.get("tables", []),
-                "key_value_pairs": azure_result.get("key_value_pairs", {})
+            "metadata": {
+                **extracted_data.get("metadata", {}),
+                "extraction_provider": provider_name,
+                "confidence": extracted_data.get("confidence", 0.0),
+                "page_count": extracted_data.get("page_count", 1)
             }
         }
 
     @staticmethod
-    def _clean_azure_selection_marks(text: str) -> str:
-        """
-        Remove símbolos de seleção do Azure Document Intelligence como :selected: e :unselected:
-        """
-        import re
-        # Remove símbolos de seleção
-        text = re.sub(r':selected:', '', text)
-        text = re.sub(r':unselected:', '', text)
-        
-        # Remove múltiplos espaços consecutivos mas preserva quebras de linha
-        text = re.sub(r'[ \t]+', ' ', text)  # apenas espaços e tabs, não quebras de linha
-        
-        # Remove espaços no início e fim das linhas
-        lines = [line.strip() for line in text.split('\n')]
-        text = '\n'.join(lines)
-        
-        return text
-
-    @staticmethod
-    def _extract_header_block(text: str, max_lines: int = 12) -> str:
-        lines = text.strip().splitlines()
-        return "\n".join(lines[:max_lines])
-
-    @staticmethod
-    def _parse_header(header: str) -> Dict[str, Any]:
-        return HeaderParser.parse(header)
-
-    @staticmethod
     async def process_document_mock(email: str, filename: str = "mock_document.pdf") -> Dict[str, Any]:
         """
-        Processa documento usando dados mockados do arquivo RetornoProcessamento.json
-        Não requer arquivo físico
+        Process document using mocked data from RetornoProcessamento.json
+        Does not require physical file
         """
         document_id = str(uuid4())
-        print(f"🔧 DEBUG: Processando documento MOCK {filename} para {email}")
-        print(f"🔧 DEBUG: Document ID gerado: {document_id}")
+        print(f"🔧 DEBUG: Processing MOCK document {filename} for {email}")
+        print(f"🔧 DEBUG: Generated Document ID: {document_id}")
 
         # Path to JSON file
         json_path = Path("tests/RetornoProcessamento.json")
@@ -144,23 +117,23 @@ class AnalyzeService:
             with open(json_path, 'r', encoding='utf-8') as f:
                 mock_data = json.load(f)
             
-            print("✅ DEBUG: Dados mockados carregados com sucesso")
-             # Extrai o conteúdo de texto da estrutura correta do mock
+            print("✅ DEBUG: Mock data loaded successfully")
+            # Extract text content from mock structure
             text_content = mock_data["analyzeResult"]["content"]
             
-            # Remove símbolos de seleção do Azure Document Intelligence
-            text_content = AnalyzeService._clean_azure_selection_marks(text_content)
+            # Clean Azure selection marks using TextNormalizer
+            from app.services.base.text_normalizer import TextNormalizer
+            text_content = TextNormalizer.clean_extracted_text(text_content, "azure")
 
-            # Processa os dados do JSON da mesma forma que o método normal
-            header_text = AnalyzeService._extract_header_block(text_content)
-            header_data = AnalyzeService._parse_header(header_text)
+            # Process mock data same as normal method
+            header_data = HeaderParser.parse(text_content)
             
-            print(f"🔧 DEBUG: Header extraído do mock: {header_data}")
+            print(f"🔧 DEBUG: Header extracted from mock: {header_data}")
             
-            print("🔧 DEBUG: Extraindo questões do mock...")
+            print("🔧 DEBUG: Extracting questions from mock...")
             question_data = QuestionParser.extract(text_content)
-            print(f"🔧 DEBUG: Questões encontradas no mock: {len(question_data['questions'])}")
-            print(f"🔧 DEBUG: Blocos de contexto no mock: {len(question_data['context_blocks'])}")
+            print(f"🔧 DEBUG: Questions found in mock: {len(question_data['questions'])}")
+            print(f"🔧 DEBUG: Context blocks in mock: {len(question_data['context_blocks'])}")
 
             result = {
                 "email": email,
@@ -171,7 +144,7 @@ class AnalyzeService:
                 "context_blocks": question_data["context_blocks"]                       
             }
             
-            print("🔧 DEBUG: Processamento mock concluído")
+            print("🔧 DEBUG: Mock processing completed")
             return result
             
         except json.JSONDecodeError as e:
