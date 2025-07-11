@@ -33,37 +33,37 @@ async def analyze_document(
             AnalyzeValidator.validate_all(file, email)
         logger.debug("✅ DEBUG: Validação concluída com sucesso")
 
-        # 🔍 Processamento - BREAKPOINT AQUI
-        logger.debug("🔍 DEBUG: Iniciando processamento do documento...")
+        # 🔍 Processing - BREAKPOINT HERE
+        logger.debug("🔍 DEBUG: Starting document processing...")
         
         if use_mock:
-            logger.debug("🔧 DEBUG: Usando dados mockados...")
+            logger.debug("🔧 DEBUG: Using mock data...")
             extracted_data = await AnalyzeService.process_document_mock(email)
         else:
-            logger.debug("🔧 DEBUG: Usando processamento normal (Azure)...")
+            logger.debug("🔧 DEBUG: Using normal processing (Azure)...")
             extracted_data = await AnalyzeService.process_document(file, email)
-        logger.debug(f"✅ DEBUG: Processamento concluído")
+        logger.debug(f"✅ DEBUG: Processing completed")
 
         return extracted_data
         
     except DocumentProcessingError as e:
-        logger.error(f"❌ DEBUG: Erro no processamento do documento: {str(e)}")
+        logger.error(f"❌ DEBUG: Error in document processing: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail={
                 "error": "Document Processing Error",
-                "message": f"Falha ao processar o documento: {e.message}",
+                "message": f"Failed to process document: {e.message}",
                 "type": "azure_ai_error"
             }
         )
     except Exception as e:
-        logger.error(f"❌ DEBUG: Erro durante análise: {str(e)}")
-        logger.error(f"🔍 DEBUG: Tipo do erro: {type(e).__name__}")
+        logger.error(f"❌ DEBUG: Error during analysis: {str(e)}")
+        logger.error(f"🔍 DEBUG: Error type: {type(e).__name__}")
         raise
 
 def _validate_file_requirement(use_mock: bool, file: UploadFile) -> None:
     """
-    Valida se o arquivo é obrigatório baseado no uso de mock
+    Validates if file is required based on mock usage
     """
     if not use_mock and not file:
         raise HTTPException(

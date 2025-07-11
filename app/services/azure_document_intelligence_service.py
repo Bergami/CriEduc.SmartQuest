@@ -24,14 +24,14 @@ class AzureDocumentIntelligenceService:
 
     async def analyze_document(self, file: UploadFile) -> Dict[str, Any]:
         """
-        Analisa documento usando Azure AI Document Intelligence
-        Retorna dados estruturados compatíveis com o formato atual
+        Analyzes document using Azure AI Document Intelligence
+        Returns structured data compatible with current format
         """
         try:
             file_bytes = await file.read()
             await file.seek(0)
 
-            # Processar documento
+            # Process document
             poller = self.client.begin_analyze_document(
                 model_id=self.model_id,
                 body=file_bytes,
@@ -44,11 +44,11 @@ class AzureDocumentIntelligenceService:
             return structured_data
 
         except Exception as e:
-            logger.error(f"Erro ao processar documento: {str(e)}")
-            raise DocumentProcessingError(f"Erro ao processar documento com Azure AI: {str(e)}")
+            logger.error(f"Error processing document: {str(e)}")
+            raise DocumentProcessingError(f"Error processing document with Azure AI: {str(e)}")
 
     def _structure_document_data(self, result) -> Dict[str, Any]:
-        """Estrutura dados do resultado do Azure AI"""
+        """Structures data from Azure AI result"""
         full_text = result.content if hasattr(result, "content") else ""
         tables = self._extract_tables(result)
         key_value_pairs = self._extract_key_value_pairs(result)

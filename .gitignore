@@ -13,6 +13,12 @@ venv/
 # Logs
 *.log
 
+# Debug and test files
+debug_*.py
+test_*.py
+!tests/test_*.py
+resposta_*.json
+
 # Notebooks checkpoints
 .ipynb_checkpoints/
 

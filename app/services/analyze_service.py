@@ -32,22 +32,22 @@ class AnalyzeService:
 
         # 🆕 USAR APENAS AZURE AI DOCUMENT INTELLIGENCE
         try:
-            print("🔍 DEBUG: Processando com Azure AI Document Intelligence...")
+            print("🔍 DEBUG: Processing with Azure AI Document Intelligence...")
             extracted_data = await AnalyzeService._extract_text_and_metadata_azure(file)
-            print("✅ DEBUG: Azure AI executado com sucesso")
+            print("✅ DEBUG: Azure AI executed successfully")
         except Exception as e:
-            print(f"❌ DEBUG: Erro no Azure AI: {str(e)}")
-            print(f"🔍 DEBUG: Tipo do erro: {type(e).__name__}")
+            print(f"❌ DEBUG: Error in Azure AI: {str(e)}")
+            print(f"🔍 DEBUG: Error type: {type(e).__name__}")
             
-            # Lança uma exceção customizada para o cliente
-            error_message = f"Falha ao processar documento com Azure AI: {str(e)}"
-            print(f"� DEBUG: Lançando DocumentProcessingError: {error_message}")
+            # Raise custom exception for client
+            error_message = f"Failed to process document with Azure AI: {str(e)}"
+            print(f"🚨 DEBUG: Raising DocumentProcessingError: {error_message}")
             raise DocumentProcessingError(error_message)
         
-        print(f"🔍 DEBUG: Texto extraído: {len(extracted_data['text'])} caracteres")
+        print(f"🔍 DEBUG: Text extracted: {len(extracted_data['text'])} characters")
         print(f"🔍 DEBUG: Header: {extracted_data['header']}")
         
-        print("🔍 DEBUG: Extraindo questões...")
+        print("🔍 DEBUG: Extracting questions...")
         question_data = QuestionParser.extract(extracted_data["text"])
         print(f"🔍 DEBUG: Questões encontradas: {len(question_data['questions'])}")
         print(f"🔍 DEBUG: Blocos de contexto: {len(question_data['context_blocks'])}")
@@ -69,21 +69,24 @@ class AnalyzeService:
     @staticmethod
     async def _extract_text_and_metadata_azure(file: UploadFile) -> Dict[str, Any]:
         """
-        🆕 Nova implementação usando Azure AI Document Intelligence
-        Mantém compatibilidade com a estrutura atual
+        New implementation using Azure AI Document Intelligence
+        Maintains compatibility with current structure
         """
         azure_service = AzureDocumentIntelligenceService()
         
-        # Extrai dados usando Azure AI
+        # Extract data using Azure AI
         azure_result = await azure_service.analyze_document(file)
         
-        # Mantém compatibilidade com parsers existentes
-        header_text = AnalyzeService._extract_header_block(azure_result["text"])
+        # Clean Azure selection marks
+        clean_text = AnalyzeService._clean_azure_selection_marks(azure_result["text"])
+        
+        # Maintain compatibility with existing parsers
+        header_text = AnalyzeService._extract_header_block(clean_text)
         header_data = AnalyzeService._parse_header(header_text)
 
         return {
             "header": header_data,
-            "text": azure_result["text"],
+            "text": clean_text,
             "azure_metadata": {
                 "confidence": azure_result.get("confidence", 0.0),
                 "page_count": azure_result.get("page_count", 1),
@@ -91,6 +94,25 @@ class AnalyzeService:
                 "key_value_pairs": azure_result.get("key_value_pairs", {})
             }
         }
+
+    @staticmethod
+    def _clean_azure_selection_marks(text: str) -> str:
+        """
+        Remove símbolos de seleção do Azure Document Intelligence como :selected: e :unselected:
+        """
+        import re
+        # Remove símbolos de seleção
+        text = re.sub(r':selected:', '', text)
+        text = re.sub(r':unselected:', '', text)
+        
+        # Remove múltiplos espaços consecutivos mas preserva quebras de linha
+        text = re.sub(r'[ \t]+', ' ', text)  # apenas espaços e tabs, não quebras de linha
+        
+        # Remove espaços no início e fim das linhas
+        lines = [line.strip() for line in text.split('\n')]
+        text = '\n'.join(lines)
+        
+        return text
 
     @staticmethod
     def _extract_header_block(text: str, max_lines: int = 12) -> str:
@@ -111,20 +133,23 @@ class AnalyzeService:
         print(f"🔧 DEBUG: Processando documento MOCK {filename} para {email}")
         print(f"🔧 DEBUG: Document ID gerado: {document_id}")
 
-        # Caminho para o arquivo JSON
+        # Path to JSON file
         json_path = Path("tests/RetornoProcessamento.json")
         
         if not json_path.exists():
-            raise DocumentProcessingError(f"Arquivo de mock não encontrado: {json_path}")
+            raise DocumentProcessingError(f"Mock file not found: {json_path}")
         
         try:
-            print("🔧 DEBUG: Carregando dados mockados...")
+            print("🔧 DEBUG: Loading mock data...")
             with open(json_path, 'r', encoding='utf-8') as f:
                 mock_data = json.load(f)
             
             print("✅ DEBUG: Dados mockados carregados com sucesso")
              # Extrai o conteúdo de texto da estrutura correta do mock
             text_content = mock_data["analyzeResult"]["content"]
+            
+            # Remove símbolos de seleção do Azure Document Intelligence
+            text_content = AnalyzeService._clean_azure_selection_marks(text_content)
 
             # Processa os dados do JSON da mesma forma que o método normal
             header_text = AnalyzeService._extract_header_block(text_content)
@@ -150,6 +175,6 @@ class AnalyzeService:
             return result
             
         except json.JSONDecodeError as e:
-            raise DocumentProcessingError(f"Erro ao decodificar JSON mockado: {str(e)}")
+            raise DocumentProcessingError(f"Error decoding mock JSON: {str(e)}")
         except Exception as e:
-            raise DocumentProcessingError(f"Erro ao carregar dados mockados: {str(e)}")
+            raise DocumentProcessingError(f"Error loading mock data: {str(e)}")
