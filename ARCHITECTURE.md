@@ -6,25 +6,32 @@ SmartQuest is a microservice designed to intelligently extract, classify, and an
 
 ## 📋 **Core Components**
 
-### **1. Document Extraction Abstraction Layer**
+### **1. Document Provider Layer**
+- `BaseDocumentProvider` - Abstract base class for document analysis providers
+- `AzureDocumentIntelligenceService` - Azure Document Intelligence implementation
+- `DocumentStorageService` - Generic document artifact storage service
+- *Future*: `GoogleVisionProvider`, `TesseractProvider`, etc.
+
+### **2. Document Extraction Abstraction Layer**
 - `DocumentExtractionInterface` - Base contract for all extraction providers
 - `TextNormalizer` - Centralized text cleaning and normalization
 - `DocumentExtractionFactory` - Provider management and selection
 
-### **2. Provider Adapters**
+### **3. Provider Adapters**
 - `AzureExtractionAdapter` - Azure Document Intelligence integration
 - *Future*: `TesseractAdapter`, `GoogleVisionAdapter`, etc.
 
-### **3. Document Analysis Pipeline**
-- `AnalyzeService` - Main orchestration service
-- `HeaderParser` - Exam metadata extraction
+### **4. Document Analysis Pipeline**
+- `AnalyzeService` - Main orchestration service with image categorization
+- `HeaderParser` - Exam metadata extraction with image support
 - `QuestionParser` - Question and context block detection
 - `ContextQuestionMapper` - Intelligent question-context association
 
-### **4. Specialized Parsers**
-- **Header Parser**: Modular extraction of exam metadata
+### **5. Specialized Parsers**
+- **Header Parser**: Modular extraction of exam metadata with image categorization
 - **Question Parser**: Context blocks and question detection
 - **Context Detection**: Image and text context identification
+- **Image Processing**: Header vs content image categorization using PyMuPDF
 
 ## 🧱 **Project Structure**
 
@@ -36,8 +43,12 @@ services/
 │   └── text_normalizer.py          # Text cleaning utilities
 ├── adapters/                       # Provider implementations
 │   └── azure_extraction_adapter.py # Azure Document Intelligence
-├── analyze_service.py              # Main analysis orchestration
-├── azure_document_intelligence_service.py # Legacy Azure service
+├── providers/                      # Document provider implementations
+│   └── base_document_provider.py   # Abstract document provider
+├── storage/                        # Document storage services
+│   └── document_storage_service.py # Generic document artifact storage
+├── analyze_service.py              # Main analysis orchestration with image categorization
+├── azure_document_intelligence_service.py # Azure provider implementation
 ├── document_extraction_factory.py  # Provider factory
 └── health_service.py              # Health check service
 ```
@@ -130,7 +141,19 @@ All providers return a consistent structure:
     "class": null,
     "student": null,
     "grade_value": "12,0",
-    "date": null
+    "date": null,
+    "images": [
+      {
+        "content": "base64_encoded_image_data...",
+        "page": 1,
+        "position": {
+          "x": 100,
+          "y": 50,
+          "width": 200,
+          "height": 150
+        }
+      }
+    ]
   },
   "context_blocks": [
     {
@@ -185,7 +208,55 @@ The `TextNormalizer` handles:
 - **Azure**: Removes `:selected:` and `:unselected:` marks
 - **Future providers**: Add specific cleaning rules as needed
 
-## 🔄 **Adding New Providers**
+## �️ **Storage Architecture**
+
+### **DocumentStorageService**
+Generic storage service that handles document artifacts independently of specific providers:
+
+```python
+from app.services.storage.document_storage_service import DocumentStorageService
+
+# Initialize storage service
+storage_service = DocumentStorageService()
+
+# Save analysis response
+await storage_service.save_analysis_response(document_id, response_data)
+
+# Save extracted images
+await storage_service.save_images(document_id, images)
+
+# Save extracted text
+await storage_service.save_text(document_id, text_content)
+
+# Save original document
+await storage_service.save_original_document(document_id, file_content)
+```
+
+### **BaseDocumentProvider**
+Abstract base class for document analysis providers with integrated storage:
+
+```python
+from app.services.providers.base_document_provider import BaseDocumentProvider
+
+class CustomDocumentProvider(BaseDocumentProvider):
+    def __init__(self, storage_service: DocumentStorageService):
+        super().__init__(storage_service)
+    
+    async def analyze_document(self, file: UploadFile, document_id: str) -> Dict[str, Any]:
+        # Implement document analysis
+        result = await self._analyze_document_content(file)
+        
+        # Storage is handled automatically by base class
+        return result
+```
+
+### **Benefits of Storage Architecture**
+- **Provider Independence**: Storage logic is separated from document analysis
+- **Future-Ready**: Easy migration to database storage systems
+- **Consistent Interface**: All providers use the same storage methods
+- **Artifact Management**: Organized storage of responses, images, text, and original documents
+
+## �🔄 **Adding New Providers**
 
 ### **1. Create Adapter**
 ```python
@@ -281,11 +352,23 @@ AZURE_DOCUMENT_INTELLIGENCE_KEY="..."
 ### **Document Processing Pipeline**
 1. **Document Upload** - FastAPI endpoint receives PDF files
 2. **Text Extraction** - Azure Document Intelligence extracts raw text
-3. **Header Parsing** - Modular extraction of exam metadata
-4. **Context Detection** - Identifies text blocks and image contexts
-5. **Question Detection** - Locates questions and answer choices
-6. **Context Mapping** - Intelligently links questions to contexts
-7. **Response Building** - Structured JSON output
+3. **Image Extraction** - PyMuPDF extracts images with positional data
+4. **Header Parsing** - Modular extraction of exam metadata with image categorization
+5. **Context Detection** - Identifies text blocks and image contexts
+6. **Question Detection** - Locates questions and answer choices
+7. **Context Mapping** - Intelligently links questions to contexts
+8. **Response Building** - Structured JSON output with images
+
+### **Image Processing Features**
+- **Header Image Categorization**: Automatically identifies images in document headers
+- **Position-Based Classification**: Uses Y-coordinate positioning for image categorization
+- **Base64 Encoding**: Images are encoded for API transmission
+- **Metadata Preservation**: Maintains image position and size information
+
+### **Storage Architecture**
+- **Provider-Agnostic Storage**: Generic `DocumentStorageService` supports multiple backends
+- **Artifact Management**: Stores analysis responses, images, text, and original documents
+- **Future-Ready**: Prepared for database migration from current filesystem approach
 
 ### **Context Block Intelligence**
 - **Dynamic Type Detection**: Automatically identifies `["text"]`, `["image"]`, or `["text", "image"]` blocks
@@ -305,16 +388,28 @@ AZURE_DOCUMENT_INTELLIGENCE_KEY="..."
 - Document extraction abstraction layer
 - Azure Document Intelligence integration
 - Modular header parsing (all fields)
+- **Header image categorization and extraction**
 - Context block detection and classification
 - Question detection and parsing
 - Intelligent context-question mapping
 - Image block special handling
+- **Provider-agnostic storage architecture**
+- **Document artifact storage service**
 - Mock data support for testing
 - Comprehensive API endpoints
 
 ### 🚧 **Architecture Decisions**
 - **Microservice Design**: Single-responsibility service
 - **Provider Abstraction**: Easy integration of new document processors
+- **Storage Abstraction**: Generic storage service for future database migration
+- **Image Processing**: Position-based header image categorization
 - **Modular Parsing**: Each parser handles specific document elements
 - **Intelligent Mapping**: Context-aware question association
 - **Type Safety**: Pydantic models for request/response validation
+
+### 🔧 **Recent Updates (December 2024)**
+- **Added header image support**: Images are now categorized and included in header metadata
+- **Implemented storage service**: Created provider-agnostic storage architecture
+- **Refactored Azure service**: Now inherits from `BaseDocumentProvider`
+- **Enhanced image processing**: Added position-based categorization logic
+- **Cleaned up unused code**: Removed unused schemas and obsolete files

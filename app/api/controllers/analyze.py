@@ -1,7 +1,13 @@
 from fastapi import APIRouter, UploadFile, File, Query, HTTPException
 from app.services.analyze_service import AnalyzeService
 from app.validators.analyze_validator import AnalyzeValidator
-from app.core.exceptions import DocumentProcessingError
+from app.core.exceptions import (
+    DocumentProcessingError,
+    InvalidEmailException,
+    MissingFileException,
+    InvalidDocumentFormatException,
+    MultipleValidationException
+)
 import logging
 
 # Configurar logging para debug
@@ -13,7 +19,7 @@ router = APIRouter()
 async def analyze_document(
     email: str = Query(..., description="User email for document analysis"),
     file: UploadFile = File(None),
-    use_mock: bool = Query(False, description="Use mock data from RetornoProcessamento.json")
+    use_mock: bool = Query(False, description="Use mock data from Azure Document Intelligence response")
 ):
     # Validar se file é obrigatório quando não usar mock
     _validate_file_requirement(use_mock, file)
@@ -46,6 +52,16 @@ async def analyze_document(
 
         return extracted_data
         
+    except (InvalidEmailException, MissingFileException, InvalidDocumentFormatException, MultipleValidationException) as e:
+        logger.error(f"❌ DEBUG: Validation error: {str(e)}")
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "Validation Error",
+                "message": str(e),
+                "type": "validation_error"
+            }
+        )
     except DocumentProcessingError as e:
         logger.error(f"❌ DEBUG: Error in document processing: {str(e)}")
         raise HTTPException(
@@ -59,7 +75,14 @@ async def analyze_document(
     except Exception as e:
         logger.error(f"❌ DEBUG: Error during analysis: {str(e)}")
         logger.error(f"🔍 DEBUG: Error type: {type(e).__name__}")
-        raise
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "Internal Server Error",
+                "message": f"An unexpected error occurred: {str(e)}",
+                "type": "internal_error"
+            }
+        )
 
 def _validate_file_requirement(use_mock: bool, file: UploadFile) -> None:
     """

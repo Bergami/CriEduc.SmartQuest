@@ -6,6 +6,17 @@ pydantic==1.10.15
 
 python-dotenv==1.1.1
 # Azure AI Document Intelligence dependencies
-azure-ai-documentintelligence==1.0.0
+azure-ai-documentintelligence==1.0.0b4
 azure-core>=1.30.0
 azure-identity==1.15.0
+
+# PDF processing dependencies
+PyMuPDF==1.23.25  # fitz
+Pillow==10.3.0   # Para processamento de imagem
+
+# Testing dependencies
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+httpx==0.28.1  # Para testes de API com TestClient

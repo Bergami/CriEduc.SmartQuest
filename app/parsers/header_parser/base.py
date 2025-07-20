@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from .parse_network import parse_network
 from .parse_school import parse_school
@@ -19,7 +19,7 @@ class HeaderParser:
     """Parse metadata fields from an exam header block."""
 
     @staticmethod
-    def parse(header: str) -> Dict[str, Any]:
+    def parse(header: str, header_images: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
         lines = header.splitlines()
 
         def extract_field_line(label: str) -> Optional[str]:
@@ -30,7 +30,7 @@ class HeaderParser:
 
         student_line = extract_field_line("Estudante:")
 
-        return {
+        result = {
             "network": parse_network(header, lines),
             "school": parse_school(header),
             "city": parse_city(header),
@@ -41,6 +41,14 @@ class HeaderParser:
             "grade": parse_grade(header),
             "class": parse_class(student_line),
             "student": parse_student(student_line),
-            "grade_value": parse_grade_value(student_line),
+            "grade_value": parse_grade_value(header),
             "date": parse_date(student_line),
         }
+        
+        # Add images array if header_images are provided
+        if header_images:
+            result["images"] = header_images
+        else:
+            result["images"] = []
+
+        return result

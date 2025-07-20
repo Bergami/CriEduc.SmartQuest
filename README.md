@@ -1,6 +1,9 @@
 ## 🏗️ SmartQuest
 
-SmartQuest is a microservice within the CriEduc ecosystem, designed to intelligently extract, classify, and analyze educational assessments (exams, tests, quizzes) provided in PDF format. Its goal is to provide automated insights into the structure and content of educational materials using natural language processing and artificial intelligence
+SmartQuest is a microservice within the CriEduc ecosystem, designe│   ├── 📊 schemas/                  # Request/Response DTOs
+│   │   └── 📂 analyze_document/
+│   │       └── 📄 upload.py         # Upload schemas (deprecated)
+│   │ intelligently extract, classify, and analyze educational assessments (exams, tests, quizzes) provided in PDF format. Its goal is to provide automated insights into the structure and content of educational materials using natural language processing and artificial intelligence
 
 
 ## 📌 Features
@@ -9,8 +12,10 @@ SmartQuest is a microservice within the CriEduc ecosystem, designed to intellige
 |-----------|------------|
 | **Upload assessments** | Process educational assessments in **PDF format** |
 | **Extract questions & answers** | Identify and extract **questions & answer choices** from documents |
+| **Extract header images** | Automatically categorize and extract **images from document headers** |
 | **Detect subjects/topics** | Recognize relevant **subjects and topics** covered in each question |
 | **Classify question types** | Identify question formats like **multiple-choice, open-ended**, etc. |
+| **Provider-agnostic storage** | Generic storage system supporting **multiple document providers** |
 | **Generate feedback** *(future feature)* | Provide **potential commentary or analysis** based on content |
 | **Machine-readable results** | Output structured **JSON-formatted data** for automation |
 
@@ -89,9 +94,13 @@ SmartQuest is a microservice within the CriEduc ecosystem, designed to intellige
 │   │
 │   ├── 🧠 services/                 # Business logic services
 │   │   ├── 📦 __init__.py
-│   │   ├── 🧠 analyze_service.py    # Main analysis orchestration
-│   │   ├── ☁️ azure_document_intelligence_service.py # Azure AI integration
-│   │   └── ❤️ health_service.py     # Health check service
+│   │   ├── 🧠 analyze_service.py    # Main analysis orchestration with image processing
+│   │   ├── ☁️ azure_document_intelligence_service.py # Azure AI provider implementation
+│   │   ├── ❤️ health_service.py     # Health check service
+│   │   ├── 📂 providers/           # Document provider implementations
+│   │   │   └── 🔧 base_document_provider.py # Abstract document provider
+│   │   └── 📂 storage/             # Document storage services
+│   │       └── 🗄️ document_storage_service.py # Generic artifact storage
 │   │
 │   ├── �️ utils/                    # Utility modules
 │   │   ├── 📦 __init__.py
@@ -109,8 +118,11 @@ SmartQuest is a microservice within the CriEduc ecosystem, designed to intellige
 │
 ├── 🌐 venv/                         # Virtual environment (local)
 ├── 📦 requirements.txt              # Project dependencies
+├── 📚 docs/                         # Technical documentation
+│   └── 📄 azure_document_intelligence_coordinates.md # Azure coordinates guide
 ├── 🏗️ ARCHITECTURE.md               # Architecture documentation
 ├── ⚙️ CONFIG.md                     # Configuration guide
+├── 📋 CHANGELOG.md                  # Change log
 ├── 📘 README.md                     # Main documentation
 ├── 🚀 start_simple.py               # Simple startup script
 ├── 🔧 start.ps1                     # PowerShell startup script
@@ -128,9 +140,11 @@ functions located under `app/parsers/header_parser/`. Each file is
 responsible for extracting a single field, making the code easy to test
 and extend.
 
+**New**: Header parsing now includes automatic image categorization and extraction. Images found in the header area are automatically included in the `document_metadata.images` array.
+
 ```
 app/parsers/header_parser/
-├── base.py            # Entry point used by services
+├── base.py            # Entry point with image support
 ├── parse_network.py   # Detects the education network
 ├── parse_school.py    # Extracts the school name
 ├── parse_city.py      # Matches city names
@@ -145,6 +159,16 @@ app/parsers/header_parser/
 └── parse_date.py      # Exam date
 ```
 
+## 🗄️ Storage Architecture
+
+SmartQuest now features a provider-agnostic storage architecture:
+
+- **DocumentStorageService**: Generic storage service for document artifacts
+- **BaseDocumentProvider**: Abstract base class for document analysis providers
+- **Future-Ready**: Prepared for easy migration to database storage systems
+
+This architecture separates storage concerns from document analysis, making it easier to integrate new storage backends in the future.
+
 ## 🛠️ Tech Stack
 
 
@@ -153,6 +177,7 @@ app/parsers/header_parser/
 | **Python 3.9+** | Tested on versions 3.9+ |
 | **FastAPI** | High-performance web framework for building RESTful APIs |
 | **Azure AI Document Intelligence** | Cloud-based document processing and extraction |
+| **PyMuPDF (fitz)** | PDF image extraction and processing library |
 | **Azure SDK for Python** | Integration with Azure cognitive services |
 | **Pydantic** | Request validation and data modeling |
 | **Pytest** | Unit testing framework |
@@ -219,25 +244,83 @@ uvicorn app.main:app --reload
 
 ## 🧪 Testing
 
-### Available Test Files
-| File | Purpose |
-|------|---------|
-| `test_azure_detailed.py` | Detailed Azure AI integration testing |
-| `test_azure_only.py` | Basic Azure AI integration test |
-| `tests/modelo-completo-prova.pdf` | Complete exam test document |
-| `tests/RetornoProcessamento.json` | Mock response data for testing |
+### 📊 **Test Statistics**
+| Métrica | Valor | Status |
+|---------|-------|--------|
+| **Total de Testes** | 119 | ✅ 100% Passando |
+| **Cobertura de Código** | 50.58% | ✅ Meta alcançada |
+| **Testes Unitários** | 74 | ✅ Completos |
+| **Testes de Integração** | 29 | ✅ Completos |
+| **Arquivos 100% Cobertos** | 19 | ✅ Excelente |
 
-### Running Tests
+### 🏗️ **Estrutura de Testes**
+```
+tests/
+├── unit/                    # Testes unitários (74 testes)
+│   ├── test_parsers/        # HeaderParser, QuestionParser, etc.
+│   ├── test_services/       # Serviços de negócio
+│   ├── test_validators/     # Validadores de entrada
+│   └── test_utils/          # Utilitários (extract_city, etc.)
+├── integration/             # Testes de integração (29 testes)
+│   ├── test_api/            # Endpoints da API
+│   └── test_azure/          # Integração com Azure
+├── fixtures/                # Dados de teste reutilizáveis
+└── debug_scripts/           # Scripts de depuração (16 testes)
+```
+
+### 🚀 **Executando Testes**
+
+#### **Comando Principal (Recomendado)**
+```bash
+# Executa todos os testes com cobertura
+python run_tests.py --coverage
+```
+
+#### **Comandos Específicos**
+```bash
+# Apenas testes unitários
+python -m pytest tests/unit/ -v
+
+# Apenas testes de integração  
+python -m pytest tests/integration/ -v
+
+# Teste específico com cobertura
+python -m pytest tests/unit/test_parsers/test_parse_student.py --cov=app
+
+# Relatório HTML de cobertura
+python -m pytest --cov=app --cov-report=html
+```
+
+#### **Testes Legacy (Azure)**
 ```powershell
 # Test Azure AI integration (detailed)
 python test_azure_detailed.py
 
 # Test Azure AI integration (basic)
 python test_azure_only.py
-
-# Test API with mock data
-curl -X POST "http://127.0.0.1:8000/analyze/analyze_document?email=test@example.com&use_mock=true"
 ```
+
+### 🎯 **Testes com 100% de Cobertura**
+| Módulo | Testes | Status |
+|--------|--------|--------|
+| `parse_student.py` | 20 | ✅ 100% |
+| `extract_city.py` | 5 | ✅ 100% |
+| `parse_date.py` | 5 | ✅ 100% |
+| `HeaderParser` | 15 | ✅ 100% |
+| `QuestionParser` | 15 | ✅ 100% |
+| `API Endpoints` | 14 | ✅ 100% |
+| `Azure Integration` | 15 | ✅ 100% |
+
+### 📈 **Relatórios de Cobertura**
+- **Terminal**: Relatório resumido após execução
+- **HTML**: `tests/coverage/html/index.html` (navegador)
+- **XML**: `tests/coverage/coverage.xml` (CI/CD)
+
+### 🔧 **Configuração**
+A configuração de testes está otimizada em `pyproject.toml`:
+- Exclui arquivos `__init__.py` da cobertura
+- Foca apenas no código de negócio
+- Relatórios limpos e úteis
 
 ## 🐛 Debugging in VS Code
 
@@ -280,16 +363,71 @@ The project includes debug configurations in `.vscode/launch.json`:
 | **GET** | `/health` | Checks API health status |
 | **POST** | `/analyze_document` | Uploads and analyzes a document |
 
+### **Enhanced API Response Format**
+
+The API now returns header images along with document metadata:
+
+```json
+{
+  "document_metadata": {
+    "network": "Prefeitura Municipal",
+    "school": "UMEF Saturnino Rangel Mauro",
+    "city": "Vila Velha",
+    "teacher": "Danielle",
+    "subject": "Língua Portuguesa",
+    "exam_title": "Prova Trimestral",
+    "trimester": "3º TRIMESTRE",
+    "grade": "7º ano",
+    "class": null,
+    "student": null,
+    "grade_value": "12,0",
+    "date": null,
+    "images": [
+      {
+        "content": "base64_encoded_image_data...",
+        "page": 1,
+        "position": {
+          "x": 100,
+          "y": 50,
+          "width": 200,
+          "height": 150
+        }
+      }
+    ]
+  },
+  "context_blocks": [...],
+  "questions": [...]
+}
+```
+
 
 ## 📚 Future Roadmap
 
-🔹 Short-Term Improvements
+🔹 **Short-Term Improvements**
 - [ ] Integrate SmartQuest with the CriEduc core platform (REST API)
 - [ ] Develop a dashboard for previewing parsed content
-🔹 Long-Term Vision
+- [ ] Implement database storage backend for document artifacts
+- [ ] Add support for additional image formats in header extraction
+
+🔹 **Long-Term Vision**
 - [ ] Classify question topics using LLMs (Large Language Models)
 - [ ] Support scanned PDFs with OCR fallback
-- [ ] Implement automatic difficulty level detectio
+- [ ] Implement automatic difficulty level detection
+- [ ] Add support for multiple document analysis providers
+
+## 🔄 Recent Updates (December 2024)
+
+### ✅ **New Features**
+- **Header Image Support**: Automatic categorization and extraction of images from document headers
+- **Storage Architecture**: Provider-agnostic storage service for future database migration
+- **Enhanced Image Processing**: Position-based image categorization using PyMuPDF
+- **Code Cleanup**: Removed unused schemas and obsolete code
+
+### 🛠️ **Technical Improvements**
+- Refactored Azure service to use new provider architecture
+- Added `BaseDocumentProvider` abstract class for extensibility
+- Implemented `DocumentStorageService` for generic artifact storage
+- Enhanced `AnalyzeService` with image categorization logic
 
 ## 💡 Background
 

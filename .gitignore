@@ -13,10 +13,14 @@ venv/
 # Logs
 *.log
 
-# Debug and test files
+# Debug and test files (na raiz - devem ir para tests/debug_scripts/)
 debug_*.py
+check_*.py
+analyze_*.py
+!tests/debug_scripts/**/*.py
 test_*.py
 !tests/test_*.py
+!tests/**/test_*.py
 resposta_*.json
 
 # Notebooks checkpoints

@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     azure_document_intelligence_endpoint: str = os.getenv("AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT", "")
     azure_document_intelligence_key: str = os.getenv("AZURE_DOCUMENT_INTELLIGENCE_KEY", "")
     azure_document_intelligence_model: str = os.getenv("AZURE_DOCUMENT_INTELLIGENCE_MODEL", "prebuilt-layout")
-    azure_document_intelligence_api_version: str = os.getenv("AZURE_DOCUMENT_INTELLIGENCE_API_VERSION", "2023-07-31")
+    azure_document_intelligence_api_version: str = os.getenv("AZURE_DOCUMENT_INTELLIGENCE_API_VERSION", "2024-11-30")
     use_azure_ai: bool = os.getenv("USE_AZURE_AI", "true").lower() == "true"
     
     class Config:
@@ -50,7 +50,7 @@ class MockSettings:
     azure_document_intelligence_endpoint = ""
     azure_document_intelligence_key = ""
     azure_document_intelligence_model = "prebuilt-layout"
-    azure_document_intelligence_api_version = "2023-07-31"
+    azure_document_intelligence_api_version = "2024-11-30"
     use_azure_ai = False
 
 try:

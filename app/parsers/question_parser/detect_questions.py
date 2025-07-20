@@ -3,8 +3,8 @@ import re
 
 def detect_questions(text: str) -> List[Dict[str, Any]]:
     """
-    Detecta blocos de questões no texto da prova.
-    Extrai número, enunciado, alternativas e se há referência a imagem.
+    Detects question blocks in the exam text.
+    Extracts number, statement, alternatives, and checks for image references.
     """
     pattern = r"(QUEST[ÃA]O\s+\d+\.?)"
     blocks = re.split(pattern, text)
@@ -20,16 +20,16 @@ def detect_questions(text: str) -> List[Dict[str, Any]]:
             continue
         number = int(match_number.group())
 
-        # Limpar o conteúdo de forma mais inteligente
+        # Clean the content in a smarter way
         cleaned_content = _smart_clean_question_content(raw_content)
         
-        # Divide o conteúdo em linhas
+        # Split the content into lines
         lines = cleaned_content.strip().splitlines()
 
-        # Parser para alternativas que podem estar em uma linha única
+        # Parser for alternatives that may be in a single line
         question_text, alternatives = _parse_question_and_alternatives(lines)
 
-        # ✅ Detecta presença de imagem com base no texto da questão
+        # Check for image references in the question text
         has_image = "imagem" in question_text.lower() or "figura" in question_text.lower()
 
         questions.append({
@@ -45,13 +45,13 @@ def detect_questions(text: str) -> List[Dict[str, Any]]:
 
 def _smart_clean_question_content(content: str) -> str:
     """
-    Limpa o conteúdo da questão de forma mais inteligente.
-    Remove apenas parágrafos longos que claramente são textos de contexto.
+    Cleans the question content in a smarter way.
+    Removes only long paragraphs that are clearly context texts.
     """
     lines = content.splitlines()
     cleaned_lines = []
     
-    # Marcadores que indicam início de novo context_block
+    # Markers that indicate the start of a new context block
     context_markers = [
         "Leia o texto a seguir",
         "Analise o texto a seguir", 
@@ -64,16 +64,16 @@ def _smart_clean_question_content(content: str) -> str:
     for line in lines:
         line_stripped = line.strip()
         
-        # Pular linhas vazias
+        # Skip empty lines
         if not line_stripped:
             continue
             
-        # Se encontrar marcador de context_block, parar aqui
+        # If a context block marker is found, stop here
         if any(marker in line_stripped for marker in context_markers):
             break
             
-        # Se é uma linha muito longa (>500 chars) e não contém alternativas, 
-        # provavelmente é parágrafo de contexto
+        # If it's a very long line (>500 chars) and doesn't contain alternatives,
+        # it's probably a context paragraph
         if (len(line_stripped) > 500 and 
             not line_stripped.startswith('(') and 
             not re.search(r'\([A-E]\)', line_stripped)):
@@ -107,7 +107,7 @@ def _parse_question_and_alternatives(lines: List[str]) -> tuple[str, List[Dict[s
             alternatives.append(_format_single_alternative(line))
             found_first_alternative = True
         else:
-            # Se já encontramos a primeira alternativa, não adicionar mais texto de questão
+            # If we've already found the first alternative, don't add more question text
             if not found_first_alternative:
                 question_parts.append(line)
     

@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run with mock response",
+			"type": "shell",
+			"command": "cd d:/Git/CriEduc.SmartQuest && python start_simple.py --use-mock",
+			"group": "test",
+			"isBackground": false
+		}
+	]
+}

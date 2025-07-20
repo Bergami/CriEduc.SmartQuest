@@ -103,12 +103,15 @@ class TextNormalizer:
                 ),
                 "confidence": raw_data.get("confidence", 0.0),
                 "page_count": raw_data.get("page_count", 1),
+                # Adicionar dados de imagens se disponíveis
+                "image_data": raw_data.get("images", {}),
                 "metadata": {
                     "provider": provider_name,
                     "raw_metadata": {
                         "tables": raw_data.get("tables", []),
                         "key_value_pairs": raw_data.get("key_value_pairs", {}),
-                        "paragraphs": raw_data.get("paragraphs", [])
+                        "paragraphs": raw_data.get("paragraphs", []),
+                        "images_info": raw_data.get("images_info", [])  # Informações das imagens
                     }
                 }
             })

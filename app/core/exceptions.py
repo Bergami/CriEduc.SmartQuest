@@ -18,7 +18,7 @@ class MultipleValidationException(HTTPException):
         super().__init__(status_code=422, detail={"errors": errors})
 
 class DocumentProcessingError(Exception):
-    """Exceção para erros no processamento de documentos"""
+    """Exception for errors in document processing"""
     def __init__(self, message: str):
         self.message = message
         super().__init__(self.message)

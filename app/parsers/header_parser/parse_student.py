@@ -3,9 +3,9 @@ from typing import Optional
 
 
 def parse_student(student_line: Optional[str]) -> Optional[str]:
-    """Extrai o nome do estudante a partir da linha de metadados da prova.
+    """Extracts the student's name from the exam metadata line.
 
-    Retorna None caso o campo esteja em branco ou contenha palavras-chave como 'Data'.
+    Returns None if the field is blank or contains keywords like 'Data'.
     """
     if not student_line:
         return None
@@ -16,7 +16,7 @@ def parse_student(student_line: Optional[str]) -> Optional[str]:
 
     result = match.group(1).strip()
 
-    # Evita retornar valores inválidos
+    # Avoid returning invalid values
     if result.lower() in ["data", "valor", "nota", "-"]:
         return None
 

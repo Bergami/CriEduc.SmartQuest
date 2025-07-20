@@ -1,0 +1,53 @@
+# SmartQuest Coverage Configuration
+
+[run]
+source = app
+omit = 
+    app/api/__init__.py
+    app/api/controllers/__init__.py
+    app/config/__init__.py
+    app/data/__init__.py
+    app/parsers/header_parser/__init__.py
+    app/parsers/question_parser/__init__.py
+    app/services/adapters/__init__.py
+    app/services/base/__init__.py
+    app/services/providers/__init__.py
+    app/services/storage/__init__.py
+    app/services/utils/__init__.py
+    */tests/*
+    */test_*
+    */conftest.py
+    */__pycache__/*
+    */venv/*
+    */env/*
+    */.venv/*
+branch = True
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    def __str__
+    if self\.debug:
+    if settings\.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if False:
+    if __name__ == .__main__.:
+    pass
+    except ImportError:
+    except ModuleNotFoundError:
+
+skip_covered = True
+skip_empty = True
+precision = 2
+show_missing = True
+
+[html]
+directory = tests/coverage/html
+skip_covered = False
+skip_empty = True
+
+[xml]
+output = tests/coverage/coverage.xml

@@ -3,45 +3,45 @@ import re
 
 def detect_context_blocks(text: str) -> List[Dict[str, Any]]:
     """
-    Detecta blocos de leitura (textos base) antes das questões.
-    Retorna uma lista com: id, type, source, enunciado, paragraphs, title, hasImage.
+    Detects reading blocks (base texts) before questions.
+    Returns a list with: id, type, source, statement, paragraphs, title, hasImage.
     """
     blocks = []
     block_id = 1
 
-    # Marcadores típicos de introdução de texto
+    # Typical text introduction markers
     start_patterns = [
-        r"Leia o texto a seguir",
-        r"Analise o texto a seguir", 
-        r"Analise a imagem abaixo",
-        r"Observe (a|o) (imagem|gráfico|tabela)",
-        r"Texto \d?:?",
-        r"Baseando-se no texto",
-        r"Com base no texto",
-        r"Leia a crônica",
-        r"Leia este texto"
+        r"Leia o texto a seguir",  # Read the following text
+        r"Analise o texto a seguir",  # Analyze the following text
+        r"Analise a imagem abaixo",  # Analyze the image below
+        r"Observe (a|o) (imagem|gráfico|tabela)",  # Observe the image/graph/table
+        r"Texto \d?:?",  # Text #:
+        r"Baseando-se no texto",  # Based on the text
+        r"Com base no texto",  # Based on the text
+        r"Leia a crônica",  # Read the chronicle
+        r"Leia este texto"  # Read this text
     ]
     start_regex = re.compile("|".join(start_patterns), re.IGNORECASE)
 
-    # Regex para detectar questões (NÃO devem ser blocos de contexto)
+    # Regex to detect questions (should NOT be context blocks)
     question_regex = re.compile(r"^QUEST[ÃA]O\s+\d+", re.IGNORECASE)
 
     lines = text.splitlines()
     
-    # Primeiro detectar todos os marcadores de início na ordem que aparecem
+    # First detect all start markers in the order they appear
     all_blocks = []
     
-    # Detectar blocos normais
+    # Detect normal blocks
     current_block = []
     inside_block = False
 
     for i, line in enumerate(lines):
         line_stripped = line.strip()
         
-        # Se encontrou uma questão, pare de capturar o bloco atual
+        # If a question is found, stop capturing the current block
         if question_regex.match(line_stripped):
             if inside_block and current_block:
-                # Finalizar bloco atual antes da questão
+                # Finalize current block before the question
                 content = "\n".join(current_block).strip()
                 has_image = any("imagem" in l.lower() for l in current_block)
                 
@@ -49,7 +49,7 @@ def detect_context_blocks(text: str) -> List[Dict[str, Any]]:
                 if has_image and "analise a imagem" in content.lower():
                     image_text = _find_image_text_nearby(lines, i - len(current_block), max_distance=20)
                     if image_text:
-                        # Criar bloco especial de imagem com texto encontrado
+                        # Create special image block with found text
                         parsed_block = {
                             "id": block_id,
                             "type": ["text", "image"],
@@ -58,7 +58,7 @@ def detect_context_blocks(text: str) -> List[Dict[str, Any]]:
                             "paragraphs": [image_text["text"]],
                             "title": image_text["text"],
                             "hasImage": True,
-                            "_line_position": i - len(current_block)  # Para ordenação
+                            "_line_position": i - len(current_block)  # For sorting
                         }
                     else:
                         parsed_block = _parse_context_block_content(content, block_id, has_image)
@@ -75,10 +75,10 @@ def detect_context_blocks(text: str) -> List[Dict[str, Any]]:
                 inside_block = False
             continue
 
-        # Se encontrou marcador de início de texto
+        # If a text start marker is found
         if start_regex.search(line_stripped):
             if inside_block and current_block:
-                # Finalizar bloco anterior
+                # Finalize previous block
                 content = "\n".join(current_block).strip()
                 has_image = any("imagem" in l.lower() for l in current_block)
                 
@@ -113,11 +113,11 @@ def detect_context_blocks(text: str) -> List[Dict[str, Any]]:
             current_block.append(line)
             continue
 
-        # Se estamos dentro de um bloco, adicionar linha
+        # If we're inside a block, add the line
         if inside_block:
             current_block.append(line)
 
-    # Último bloco (caso não encerrado por questão)
+    # Last block (in case not ended by a question)
     if inside_block and current_block:
         content = "\n".join(current_block).strip()
         has_image = any("imagem" in l.lower() for l in current_block)
@@ -146,10 +146,10 @@ def detect_context_blocks(text: str) -> List[Dict[str, Any]]:
         if _is_valid_context_block(parsed_block):
             all_blocks.append(parsed_block)
 
-    # Ordenar blocos pela posição no texto e reajustar IDs
+    # Sort blocks by position in text and readjust IDs
     all_blocks.sort(key=lambda x: x.get("_line_position", 0))
     
-    # Reajustar IDs e remover campo temporário
+    # Readjust IDs and remove temporary field
     for i, block in enumerate(all_blocks, 1):
         block["id"] = i
         if "_line_position" in block:
@@ -160,22 +160,22 @@ def detect_context_blocks(text: str) -> List[Dict[str, Any]]:
 
 def _is_valid_context_block(block: Dict[str, Any]) -> bool:
     """
-    Valida se um bloco é realmente um contexto de leitura, não uma questão.
+    Validates if a block is really a reading context, not a question.
     """
     title = block.get("title", "").lower()
     statement = block.get("statement", "").lower()
     
-    # Filtrar blocos que são questões
+    # Filter blocks that are questions
     if "questão" in title or "questão" in statement:
         return False
     
-    # Filtrar blocos que são alternativas (começam com (A), (B), etc.)
+    # Filter blocks that are alternatives (starting with (A), (B), etc.)
     if title.startswith("(") and len(title) > 1 and title[1] in "abcde":
         return False
     if statement.startswith("(") and len(statement) > 1 and statement[1] in "abcde":
         return False
         
-    # Deve ter conteúdo significativo no título
+    # Must have significant content in the title
     if len(title) < 3:
         return False
         
@@ -184,36 +184,36 @@ def _is_valid_context_block(block: Dict[str, Any]) -> bool:
 
 def _determine_context_type(paragraphs: List[str], has_image: bool, instruction: str) -> List[str]:
     """
-    Determina o tipo do context_block baseado no conteúdo e presença de imagem.
-    Retorna uma lista com os tipos: ["text"], ["image"], ou ["text", "image"]
+    Determines the type of context_block based on content and presence of image.
+    Returns a list with types: ["text"], ["image"], or ["text", "image"]
     """
     types = []
     
-    # Verificar se há conteúdo textual significativo
+    # Check if there is significant textual content
     has_meaningful_text = False
     for paragraph in paragraphs:
         paragraph = paragraph.strip()
-        # Considerar texto significativo se tiver mais de 20 caracteres e não for só uma instrução
+        # Consider text significant if it has more than 20 characters and is not just an instruction
         if (len(paragraph) > 20 and 
             not paragraph.lower().startswith(('analise a imagem', 'observe a imagem', 'veja a imagem'))):
             has_meaningful_text = True
             break
     
-    # Se não há parágrafos significativos, verificar a instrução
+    # If there are no significant paragraphs, check the instruction
     if not has_meaningful_text and instruction:
         instruction_lower = instruction.lower()
-        # Se a instrução não é apenas sobre imagem, considerar como texto
+        # If the instruction is not just about an image, consider it as text
         if not any(word in instruction_lower for word in ['imagem', 'figura', 'gráfico', 'analise a imagem']):
             has_meaningful_text = True
     
-    # Adicionar tipos baseado no conteúdo
+    # Add types based on content
     if has_meaningful_text:
         types.append("text")
     
     if has_image:
         types.append("image")
     
-    # Se não há nem texto nem imagem, considerar como texto por padrão
+    # If there's neither text nor image, consider it as text by default
     if not types:
         types.append("text")
     
@@ -278,23 +278,23 @@ def _parse_context_block_content(content: str, block_id: int, has_image: bool) -
 
 def _find_image_text_nearby(lines: List[str], instruction_line: int, max_distance: int = 20) -> Dict[str, Any]:
     """
-    Procura por texto que parece ser extraído de imagem nas linhas próximas.
+    Looks for text that appears to be extracted from an image in nearby lines.
     """
-    # Padrões específicos para texto extraído de imagem
+    # Specific patterns for text extracted from images
     specific_patterns = [
         r"FAVOR.*NÃO.*DEXAR",
         r"FAVOR.*NAO.*DEXAR", 
     ]
     
-    # Padrões gerais para texto de imagem (mais restritivos)
+    # General patterns for image text (more restrictive)
     general_patterns = [
-        r"^[A-Z\s]{15,}$",  # Linha só com maiúsculas, pelo menos 15 chars
-        r"^[A-Z][A-Z\s]*[A-Z]$",  # Começa e termina com maiúscula, só maiúsculas/espaços no meio
+        r"^[A-Z\s]{15,}$",  # Line with only uppercase, at least 15 chars
+        r"^[A-Z][A-Z\s]*[A-Z]$",  # Starts and ends with uppercase, only uppercase/spaces in between
     ]
     
     question_regex = re.compile(r"^QUEST[ÃA]O\s+\d+", re.IGNORECASE)
     
-    # Primeiro procurar por padrões específicos conhecidos
+    # First look for known specific patterns
     for i in range(instruction_line + 1, min(len(lines), instruction_line + max_distance + 1)):
         line = lines[i].strip()
         
@@ -322,7 +322,7 @@ def _find_image_text_nearby(lines: List[str], instruction_line: int, max_distanc
                     "distance": i - instruction_line
                 }
     
-    # Se não encontrou padrões específicos, procurar por padrões gerais
+    # If no specific patterns were found, look for general patterns
     for i in range(instruction_line + 1, min(len(lines), instruction_line + max_distance + 1)):
         line = lines[i].strip()
         
