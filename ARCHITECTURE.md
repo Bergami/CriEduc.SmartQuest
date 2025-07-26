@@ -50,7 +50,11 @@ services/
 ├── analyze_service.py              # Main analysis orchestration with image categorization
 ├── azure_document_intelligence_service.py # Azure provider implementation
 ├── document_extraction_factory.py  # Provider factory
-└── health_service.py              # Health check service
+├── adapters/                       # Provider adapters
+├── base/                          # Base interfaces and utilities
+├── providers/                     # Document provider implementations
+├── storage/                       # Document storage services
+└── utils/                         # Service utilities
 ```
 
 ### **Parsers Layer** (`app/parsers/`)

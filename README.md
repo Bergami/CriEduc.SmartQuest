@@ -100,11 +100,12 @@ SmartQuest is a microservice wit   ├── 🛠️ core/                     #
 │   │   ├── 📦 __init__.py
 │   │   ├── 🧠 analyze_service.py    # Main analysis orchestration with image processing
 │   │   ├── ☁️ azure_document_intelligence_service.py # Azure AI provider implementation
-│   │   ├── ❤️ health_service.py     # Health check service
+│   │   ├── 🏗️ document_extraction_factory.py # Provider factory service
+│   │   ├── 📂 adapters/            # Provider adapters
+│   │   ├── � base/                # Base interfaces and utilities
 │   │   ├── 📂 providers/           # Document provider implementations
-│   │   │   └── 🔧 base_document_provider.py # Abstract document provider
-│   │   └── 📂 storage/             # Document storage services
-│   │       └── 🗄️ document_storage_service.py # Generic artifact storage
+│   │   ├── 📂 storage/             # Document storage services
+│   │   └── � utils/               # Service utilities
 │   │
 │   ├── �️ utils/                    # Utility modules
 │   │   ├── 📦 __init__.py
