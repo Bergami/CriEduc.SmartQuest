@@ -29,7 +29,7 @@ class TestAPIIntegration(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertIn("message", data)
-        self.assertIn("azure_ai_enabled", data)
+        self.assertIn("status", data)
         self.assertIn("version", data)
     
     def test_health_endpoint(self):
@@ -48,7 +48,7 @@ class TestAPIIntegration(unittest.TestCase):
         
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(data["status"], "SmartQuest is alive!")
+        self.assertEqual(data["status"], "healthy")
     
     def test_analyze_document_missing_email(self):
         """Test analyze_document endpoint without email"""
@@ -100,7 +100,7 @@ class TestAPIIntegration(unittest.TestCase):
             params={"email": "test@example.com", "use_mock": False}
         )
         
-        self.assertEqual(response.status_code, 400)  # Bad request
+        self.assertEqual(response.status_code, 422)  # Validation error
         data = response.json()
         self.assertIn("error", data["detail"])
     
@@ -159,7 +159,7 @@ class TestAPIIntegration(unittest.TestCase):
             self.assertEqual(response.status_code, 500)
             data = response.json()
             self.assertIn("error", data["detail"])
-            self.assertEqual(data["detail"]["error"], "Document Processing Error")
+            self.assertEqual(data["detail"]["error"], "document_processing_error")
     
     def test_analyze_document_generic_error(self):
         """Test analyze_document endpoint with generic error"""

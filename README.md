@@ -1,6 +1,10 @@
 ## 🏗️ SmartQuest
 
-SmartQuest is a microservice within the CriEduc ecosystem, designe│   ├── 📊 schemas/                  # Request/Response DTOs
+SmartQuest is a microservice wit   ├── 🛠️ core/                     # Core utilities and configurations
+│   │   ├── 🛠️ config.py             # Core configuration
+│   │   ├── ⚠️ exceptions.py         # Professional exception handling system
+│   │   ├── 📝 logging.py            # Structured logging system
+│   │   └── 🛠️ utils.py              # Utility functions and decoratorsthe CriEduc ecosystem, designe│   ├── 📊 schemas/                  # Request/Response DTOs
 │   │   └── 📂 analyze_document/
 │   │       └── 📄 upload.py         # Upload schemas (deprecated)
 │   │ intelligently extract, classify, and analyze educational assessments (exams, tests, quizzes) provided in PDF format. Its goal is to provide automated insights into the structure and content of educational materials using natural language processing and artificial intelligence
@@ -181,6 +185,44 @@ This architecture separates storage concerns from document analysis, making it e
 | **Azure SDK for Python** | Integration with Azure cognitive services |
 | **Pydantic** | Request validation and data modeling |
 | **Pytest** | Unit testing framework |
+
+
+## 🛡️ Professional Exception Handling
+
+SmartQuest features a **professional-grade exception handling system** designed for enterprise applications:
+
+### 🎯 **Exception Hierarchy**
+- **SmartQuestException**: Base class for all custom exceptions
+- **ValidationException**: Input validation errors (422 status)
+- **DocumentProcessingError**: Document analysis failures (500 status)
+- **Specialized Exceptions**: InvalidEmailException, MissingFileException, etc.
+
+### 📝 **Structured Logging**
+```python
+# Automatic structured logs with context
+structured_logger.info("Document analysis started", context={
+    "email": "user@example.com",
+    "filename": "exam.pdf",
+    "use_mock": False
+})
+```
+
+### 🎭 **Exception Decorator**
+Controllers use the `@handle_exceptions` decorator for automatic error handling:
+```python
+@router.post("/analyze_document")
+@handle_exceptions("document_analysis")
+async def analyze_document(...):
+    # Clean business logic without try/catch blocks
+    return await process_document()
+```
+
+### ✅ **Benefits**
+- **Automatic error logging** with request context
+- **Consistent HTTP responses** with structured error details
+- **Request timing** and performance monitoring
+- **Clean controller code** without repetitive error handling
+- **Enterprise-grade reliability** with comprehensive error coverage
 
 
 

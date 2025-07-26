@@ -78,6 +78,15 @@ controllers/
 └── health.py                      # Health check endpoints
 ```
 
+### **Core Infrastructure** (`app/core/`)
+```
+core/
+├── config.py                       # Application configuration
+├── exceptions.py                   # Professional exception handling system
+├── logging.py                      # Structured logging implementation
+└── utils.py                        # Utilities and exception decorator
+```
+
 ## 🔧 **Usage**
 
 ### **Basic Usage**
@@ -295,6 +304,67 @@ elif provider_name == "new_provider":
     pass
 ```
 
+## 🛡️ **Professional Exception Handling System**
+
+The SmartQuest application implements a comprehensive, enterprise-grade exception handling system designed for production reliability and maintainability.
+
+### **Exception Hierarchy**
+```python
+SmartQuestException (Base)
+├── ValidationException          # Input validation errors
+├── DocumentProcessingError      # Document processing failures
+├── AzureServiceError           # Azure service specific errors
+├── InvalidEmailException       # Email validation errors
+├── FileProcessingError         # File operation errors
+└── ConfigurationError          # Configuration issues
+```
+
+### **Structured Logging**
+The system uses JSON-formatted structured logging for enterprise monitoring:
+
+```python
+# Automatic request context tracking
+{
+    "timestamp": "2024-01-15T10:30:00Z",
+    "level": "ERROR",
+    "message": "Document processing failed",
+    "request_id": "req_12345",
+    "user_email": "user@example.com",
+    "exception_type": "DocumentProcessingError",
+    "exception_details": {...},
+    "stack_trace": "..."
+}
+```
+
+### **Automatic Exception Handling**
+Controllers use the `@handle_exceptions` decorator for clean, consistent error handling:
+
+```python
+from app.core.utils import handle_exceptions
+
+@handle_exceptions
+async def analyze_document(file: UploadFile, email: str):
+    # Business logic only - exceptions handled automatically
+    return await service.process_document(file, email)
+```
+
+### **Benefits**
+- **Consistent Error Responses**: All errors return standardized HTTP responses
+- **Automatic Logging**: Exceptions are logged with full context automatically
+- **Clean Controllers**: Business logic separated from error handling
+- **Production Ready**: Structured logs for monitoring and debugging
+- **Type Safety**: Custom exceptions provide clear error semantics
+
+### **Usage Example**
+```python
+# Raising business exceptions
+if not email_validator.is_valid(email):
+    raise InvalidEmailException(f"Invalid email format: {email}")
+
+# Automatic conversion to HTTP response
+# Returns: {"detail": "Invalid email format: user@invalid", "error_code": "INVALID_EMAIL"}
+```
+
 ## 🎯 **Benefits**
 
 ### **Flexibility**
@@ -304,13 +374,20 @@ elif provider_name == "new_provider":
 
 ### **Maintainability**
 - Centralized text processing logic
-- Consistent error handling
+- Professional exception handling with structured logging
 - Clear separation of concerns
+- Clean controller code with automatic error handling
 
 ### **Extensibility**
 - Simple process to add new providers
 - Standardized interface contract
 - Provider-specific optimizations
+
+### **Enterprise Reliability**
+- Comprehensive exception hierarchy for all error scenarios
+- Structured JSON logging for monitoring and debugging
+- Automatic error handling with consistent HTTP responses
+- Production-ready error management system
 
 ## 🧪 **Testing**
 
@@ -395,6 +472,9 @@ AZURE_DOCUMENT_INTELLIGENCE_KEY="..."
 - Image block special handling
 - **Provider-agnostic storage architecture**
 - **Document artifact storage service**
+- **Professional exception handling system**
+- **Structured logging with JSON formatting**
+- **Automatic error handling decorators**
 - Mock data support for testing
 - Comprehensive API endpoints
 
@@ -402,6 +482,8 @@ AZURE_DOCUMENT_INTELLIGENCE_KEY="..."
 - **Microservice Design**: Single-responsibility service
 - **Provider Abstraction**: Easy integration of new document processors
 - **Storage Abstraction**: Generic storage service for future database migration
+- **Exception Handling**: Enterprise-grade exception system with structured logging
+- **Error Management**: Automatic exception handling with consistent responses
 - **Image Processing**: Position-based header image categorization
 - **Modular Parsing**: Each parser handles specific document elements
 - **Intelligent Mapping**: Context-aware question association
@@ -412,4 +494,7 @@ AZURE_DOCUMENT_INTELLIGENCE_KEY="..."
 - **Implemented storage service**: Created provider-agnostic storage architecture
 - **Refactored Azure service**: Now inherits from `BaseDocumentProvider`
 - **Enhanced image processing**: Added position-based categorization logic
+- **Professional exception handling**: Implemented enterprise-grade exception system
+- **Structured logging**: Added JSON-formatted logging with request context
+- **Automatic error handling**: Created decorators for clean controller code
 - **Cleaned up unused code**: Removed unused schemas and obsolete files

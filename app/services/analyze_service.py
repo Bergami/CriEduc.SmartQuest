@@ -9,6 +9,7 @@ from app.parsers.question_parser import QuestionParser
 from app.services.document_extraction_factory import DocumentExtractionFactory
 from app.core.exceptions import DocumentProcessingError
 from app.utils.final_result_builder import FinalResultBuilder
+from app.core.constants import MockDataConstants, GeneralConstants
 
 class AnalyzeService:
     @staticmethod
@@ -103,38 +104,48 @@ class AnalyzeService:
         }
 
     @staticmethod
-    async def process_document_mock(email: str, filename: str = "mock_document.pdf") -> Dict[str, Any]:
+    async def process_document_mock(email: str, filename: str = None) -> Dict[str, Any]:
         """
         Process document using mocked data from RetornoProcessamento.json
         Does not require physical file
         """
+        if filename is None:
+            filename = MockDataConstants.DEFAULT_MOCK_FILENAME
+            
         document_id = str(uuid4())
-        print(f"🔧 DEBUG: Processing MOCK document {filename} for {email}")
-        print(f"🔧 DEBUG: Generated Document ID: {document_id}")
+        debug_prefix = GeneralConstants.get_debug_prefix("info")
+        print(f"{debug_prefix} Processing MOCK document {filename} for {email}")
+        print(f"{debug_prefix} Generated Document ID: {document_id}")
 
-        # Path to JSON file - use the new format
-        json_path = Path("tests/azure_response_3Tri_20250716_215103.json")
+        # Use mock data constants for file paths with fallback logic
+        fallback_chain = MockDataConstants.get_mock_response_fallback_chain()
+        json_path = None
         
-        # Fallback to old format if new one doesn't exist
-        if not json_path.exists():
-            json_path = Path("tests/RetornoProcessamento.json")
-            if not json_path.exists():
-                raise DocumentProcessingError(f"Mock files not found in tests directory")
+        for potential_path in fallback_chain:
+            if potential_path.exists():
+                json_path = potential_path
+                break
+        
+        if json_path is None:
+            mock_status = MockDataConstants.validate_mock_files_exist()
+            missing_files = ", ".join(mock_status["missing_files"])
+            raise DocumentProcessingError(f"Mock response files not found. Missing: {missing_files}")
         
         try:
-            print(f"🔧 DEBUG: Loading mock data from {json_path.name}...")
-            with open(json_path, 'r', encoding='utf-8') as f:
+            success_prefix = GeneralConstants.get_debug_prefix("success")
+            print(f"{debug_prefix} Loading mock data from {json_path.name}...")
+            with open(json_path, 'r', encoding=GeneralConstants.TEXT_PROCESSING["default_encoding"]) as f:
                 mock_data = json.load(f)
             
-            print("✅ DEBUG: Mock data loaded successfully")
+            print(f"{success_prefix} Mock data loaded successfully")
             # Extract text content from mock structure - handle different JSON structures
             if "analyzeResult" in mock_data:
                 # Formato antigo
-                print("🔧 DEBUG: Using old format JSON structure")
+                print(f"{debug_prefix} Using old format JSON structure")
                 text_content = mock_data["analyzeResult"]["content"]
             else:
                 # Novo formato (sem analyzeResult como chave raiz)
-                print("🔧 DEBUG: Using new format JSON structure")
+                print(f"{debug_prefix} Using new format JSON structure")
                 text_content = mock_data.get("content", "")
             
             # Clean Azure selection marks using TextNormalizer
@@ -162,16 +173,16 @@ class AnalyzeService:
                 has_figures = True
                 
             if has_figures:
-                print(f"🔧 DEBUG: Found {len(figures)} figures in mock data")
+                print(f"{debug_prefix} Found {len(figures)} figures in mock data")
                 
                 # Usar o PDF real para extrair as imagens
-                pdf_path = "tests/modelo-prova.pdf"
-                if os.path.exists(pdf_path):
+                pdf_path = MockDataConstants.get_primary_mock_pdf_path()
+                if pdf_path.exists():
                     try:
                         # Extrair imagens do PDF real usando PDFImageExtractor
                         from app.services.utils.pdf_image_extractor import PDFImageExtractor
                         
-                        print(f"🔧 DEBUG: Extracting real images from {pdf_path}")
+                        print(f"{debug_prefix} Extracting real images from {pdf_path}")
                         for figure in figures:
                             figure_id = figure.get("id", f"mock_figure_{len(image_data)}")
                             
@@ -184,7 +195,7 @@ class AnalyzeService:
                                 if polygon:
                                     # Extrair a imagem
                                     image_bytes = PDFImageExtractor.extract_figure_from_pdf(
-                                        pdf_path=pdf_path,
+                                        pdf_path=str(pdf_path),
                                         page_number=page_number,
                                         coordinates=polygon
                                     )
@@ -198,10 +209,10 @@ class AnalyzeService:
                                             header_images.append({
                                                 "content": base64_image
                                             })
-                                            print(f"🔧 DEBUG: Figure {figure_id} categorized as HEADER image")
+                                            print(f"{debug_prefix} Figure {figure_id} categorized as HEADER image")
                                         else:
                                             content_images[figure_id] = base64_image
-                                            print(f"🔧 DEBUG: Figure {figure_id} categorized as CONTENT image")
+                                            print(f"{debug_prefix} Figure {figure_id} categorized as CONTENT image")
                                     else:
                                         # Fallback para imagem mock se extração falhar
                                         mock_image = AnalyzeService._generate_mock_image_base64()
@@ -211,7 +222,7 @@ class AnalyzeService:
                                             })
                                         else:
                                             content_images[figure_id] = mock_image
-                                        print(f"🔧 DEBUG: Failed to extract real image, using mock for figure {figure_id}")
+                                        print(f"{debug_prefix} Failed to extract real image, using mock for figure {figure_id}")
                                 else:
                                     # Sem polígono, usar imagem mock
                                     mock_image = AnalyzeService._generate_mock_image_base64()
@@ -221,7 +232,7 @@ class AnalyzeService:
                                         })
                                     else:
                                         content_images[figure_id] = mock_image
-                                    print(f"🔧 DEBUG: No polygon data, using mock for figure {figure_id}")
+                                    print(f"{debug_prefix} No polygon data, using mock for figure {figure_id}")
                             else:
                                 # Sem boundingRegions, usar imagem mock
                                 mock_image = AnalyzeService._generate_mock_image_base64()
@@ -231,9 +242,9 @@ class AnalyzeService:
                                     })
                                 else:
                                     content_images[figure_id] = mock_image
-                                print(f"🔧 DEBUG: No boundingRegions, using mock for figure {figure_id}")
+                                print(f"{debug_prefix} No boundingRegions, using mock for figure {figure_id}")
                     except Exception as e:
-                        print(f"🔧 DEBUG: Error extracting real images: {str(e)}")
+                        print(f"{debug_prefix} Error extracting real images: {str(e)}")
                         # Fallback para imagens mock
                         for figure in figures:
                             figure_id = figure.get("id", f"mock_figure_{len(content_images)}")
@@ -245,7 +256,7 @@ class AnalyzeService:
                             else:
                                 content_images[figure_id] = mock_image
                 else:
-                    print(f"🔧 DEBUG: PDF file {pdf_path} not found, using mock images")
+                    print(f"{debug_prefix} PDF file {pdf_path} not found, using mock images")
                     # Fallback para imagens mock
                     for figure in figures:
                         figure_id = figure.get("id", f"mock_figure_{len(content_images)}")
@@ -257,19 +268,19 @@ class AnalyzeService:
                         else:
                             content_images[figure_id] = mock_image
                     
-                print(f"🔧 DEBUG: Categorized {len(header_images)} header images and {len(content_images)} content images")
+                print(f"{debug_prefix} Categorized {len(header_images)} header images and {len(content_images)} content images")
             
             # Now create header_data with categorized header images
             header_data = HeaderParser.parse(text_content, header_images)
-            print(f"🔧 DEBUG: Header extracted from mock with {len(header_images)} images: {header_data}")
-            print(f"🔧 DEBUG: Header has images key: {'images' in header_data}")
+            print(f"{debug_prefix} Header extracted from mock with {len(header_images)} images: {header_data}")
+            print(f"{debug_prefix} Header has images key: {'images' in header_data}")
             if 'images' in header_data:
-                print(f"🔧 DEBUG: Header images content: {header_data['images']}")
+                print(f"{debug_prefix} Header images content: {header_data['images']}")
             
-            print("🔧 DEBUG: Extracting questions from mock...")
+            print(f"{debug_prefix} Extracting questions from mock...")
             question_data = QuestionParser.extract(text_content, content_images)
-            print(f"🔧 DEBUG: Questions found in mock: {len(question_data['questions'])}")
-            print(f"🔧 DEBUG: Context blocks in mock: {len(question_data['context_blocks'])}")
+            print(f"{debug_prefix} Questions found in mock: {len(question_data['questions'])}")
+            print(f"{debug_prefix} Context blocks in mock: {len(question_data['context_blocks'])}")
 
             result = {
                 "email": email,
@@ -280,7 +291,8 @@ class AnalyzeService:
                 "context_blocks": question_data["context_blocks"]
             }
             
-            print("🔧 DEBUG: Mock processing completed")
+            success_prefix = GeneralConstants.get_debug_prefix("success")
+            print(f"{success_prefix} Mock processing completed")
             return result
             
         except json.JSONDecodeError as e:
@@ -298,21 +310,24 @@ class AnalyzeService:
         from PIL import Image, ImageDraw, ImageFont
         import io
         
+        # Usar configurações das constantes
+        config = MockDataConstants.MOCK_IMAGE_CONFIG
+        
         # Criar uma imagem simples com texto
-        width, height = 400, 300
-        image = Image.new("RGB", (width, height), color=(240, 240, 240))
+        width, height = config["width"], config["height"]
+        image = Image.new("RGB", (width, height), color=config["background_color"])
         draw = ImageDraw.Draw(image)
         
         # Desenhar um retângulo
-        draw.rectangle([(50, 50), (350, 250)], outline=(0, 0, 0), width=2)
+        draw.rectangle([(50, 50), (350, 250)], outline=config["border_color"], width=2)
         
         # Adicionar texto
-        draw.text((150, 130), "Imagem Mock", fill=(0, 0, 0))
-        draw.text((130, 170), "Apenas para teste", fill=(0, 0, 0))
+        draw.text((150, 130), "Imagem Mock", fill=config["text_color"])
+        draw.text((130, 170), "Apenas para teste", fill=config["text_color"])
         
         # Converter para base64
         buffer = io.BytesIO()
-        image.save(buffer, format="JPEG")
+        image.save(buffer, format=config["format"])
         img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
         
         return img_str
@@ -336,7 +351,8 @@ class AnalyzeService:
             
         # Pegar a primeira região (normalmente só existe uma)
         region = figure["boundingRegions"][0]
-        if region.get("pageNumber", 0) != 1:
+        max_page = MockDataConstants.HEADER_DETECTION["max_page_for_header"]
+        if region.get("pageNumber", 0) != max_page:
             # Imagens de cabeçalho geralmente estão na primeira página
             return False
         
@@ -351,7 +367,7 @@ class AnalyzeService:
         # Se não houver elementos de cabeçalho, usar uma heurística baseada na posição vertical
         if not header_elements:
             # Considerar imagens no topo da primeira página como parte do cabeçalho
-            # (primeiros 20% da altura da página)
+            # (primeiros X% da altura da página - configurado nas constantes)
             polygon = region.get("polygon", [])
             if polygon and len(polygon) >= 2:
                 # Pegar coordenada Y (a segunda em cada par de coordenadas)
@@ -360,7 +376,8 @@ class AnalyzeService:
                 
                 # Se a posição vertical média da imagem estiver no topo da página
                 # (considerando que as coordenadas são normalizadas de 0 a 1)
-                return avg_y < 0.3  # Aumentado de 0.2 para 0.3 para incluir mais imagens de header
+                threshold = MockDataConstants.HEADER_DETECTION["vertical_threshold"]
+                return avg_y < threshold
         else:
             # Verificar se a figura está próxima ou sobreposta a algum elemento do cabeçalho
             figure_spans = figure.get("spans", [])
@@ -388,6 +405,7 @@ class AnalyzeService:
             if polygon and len(polygon) >= 2:
                 y_values = [polygon[i+1] for i in range(0, len(polygon), 2)]
                 avg_y = sum(y_values) / len(y_values)
-                return avg_y < 0.3
+                threshold = MockDataConstants.HEADER_DETECTION["vertical_threshold"]
+                return avg_y < threshold
         
         return False

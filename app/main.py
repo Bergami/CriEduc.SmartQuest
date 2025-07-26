@@ -20,18 +20,7 @@ logging.basicConfig(
     ]
 )
 
-try:
-    from app.config import settings
-except ImportError:
-    # Fallback caso config não esteja disponível
-    class MockSettings:
-        use_azure_ai = True
-        azure_document_intelligence_endpoint = ""
-        azure_document_intelligence_key = ""
-        azure_document_intelligence_model = "prebuilt-layout"
-        azure_document_intelligence_api_version = "2023-07-31"
-    settings = MockSettings()
-
+# Inicializar FastAPI
 app = FastAPI(
     title="SmartQuest API",
     version="0.1.0",
@@ -48,22 +37,6 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
-
-@app.get("/")
-async def root():
-    return {
-        "message": "SmartQuest API está funcionando!",
-        "azure_ai_enabled": settings.use_azure_ai,
-        "version": "0.1.0"
-    }
-
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "azure_ai_configured": bool(settings.azure_document_intelligence_endpoint and settings.azure_document_intelligence_key),
-        "azure_ai_enabled": settings.use_azure_ai
-    }
 
 # Para debug direto
 if __name__ == "__main__":
