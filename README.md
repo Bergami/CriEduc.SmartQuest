@@ -1,13 +1,6 @@
 ## 🏗️ SmartQuest
 
-SmartQuest is a microservice wit   ├── 🛠️ core/                     # Core utilities and configurations
-│   │   ├── 🛠️ config.py             # Core configuration
-│   │   ├── ⚠️ exceptions.py         # Professional exception handling system
-│   │   ├── 📝 logging.py            # Structured logging system
-│   │   └── 🛠️ utils.py              # Utility functions and decoratorsthe CriEduc ecosystem, designe│   ├── 📊 schemas/                  # Request/Response DTOs
-│   │   └── 📂 analyze_document/
-│   │       └── 📄 upload.py         # Upload schemas (deprecated)
-│   │ intelligently extract, classify, and analyze educational assessments (exams, tests, quizzes) provided in PDF format. Its goal is to provide automated insights into the structure and content of educational materials using natural language processing and artificial intelligence
+SmartQuest is a microservice within the CriEduc ecosystem, designed to intelligently extract, classify, and analyze educational assessments (exams, tests, quizzes) provided in PDF format. Its goal is to provide automated insights into the structure and content of educational materials using natural language processing and artificial intelligence.
 
 
 ## 📌 Features
@@ -293,48 +286,48 @@ uvicorn app.main:app --reload
 | **Total de Testes** | 119 | ✅ 100% Passando |
 | **Cobertura de Código** | 50.58% | ✅ Meta alcançada |
 | **Testes Unitários** | 74 | ✅ Completos |
-| **Testes de Integração** | 29 | ✅ Completos |
+| **Integration Tests** | 29 | ✅ Complete |
 | **Arquivos 100% Cobertos** | 19 | ✅ Excelente |
 
 ### 🏗️ **Estrutura de Testes**
 ```
 tests/
-├── unit/                    # Testes unitários (74 testes)
+├── unit/                    # Unit tests (74 tests)
 │   ├── test_parsers/        # HeaderParser, QuestionParser, etc.
-│   ├── test_services/       # Serviços de negócio
-│   ├── test_validators/     # Validadores de entrada
-│   └── test_utils/          # Utilitários (extract_city, etc.)
-├── integration/             # Testes de integração (29 testes)
-│   ├── test_api/            # Endpoints da API
-│   └── test_azure/          # Integração com Azure
-├── fixtures/                # Dados de teste reutilizáveis
-└── debug_scripts/           # Scripts de depuração (16 testes)
+│   ├── test_services/       # Business services
+│   ├── test_validators/     # Input validators
+│   └── test_utils/          # Utilities (extract_city, etc.)
+├── integration/             # Integration tests (29 tests)
+│   ├── test_api/            # API endpoints
+│   └── test_azure/          # Azure integration
+├── fixtures/                # Reusable test data
+└── debug_scripts/           # Debug scripts (16 tests)
 ```
 
-### 🚀 **Executando Testes**
+### 🚀 **Running Tests**
 
-#### **Comando Principal (Recomendado)**
+#### **Main Command (Recommended)**
 ```bash
-# Executa todos os testes com cobertura
+# Run all tests with coverage
 python run_tests.py --coverage
 ```
 
-#### **Comandos Específicos**
+#### **Specific Commands**
 ```bash
-# Apenas testes unitários
+# Unit tests only
 python -m pytest tests/unit/ -v
 
-# Apenas testes de integração  
+# Integration tests only
 python -m pytest tests/integration/ -v
 
-# Teste específico com cobertura
+# Specific test with coverage
 python -m pytest tests/unit/test_parsers/test_parse_student.py --cov=app
 
-# Relatório HTML de cobertura
+# HTML coverage report
 python -m pytest --cov=app --cov-report=html
 ```
 
-#### **Testes Legacy (Azure)**
+#### **Legacy Tests (Azure)**
 ```powershell
 # Test Azure AI integration (detailed)
 python test_azure_detailed.py
@@ -343,7 +336,7 @@ python test_azure_detailed.py
 python test_azure_only.py
 ```
 
-### 🎯 **Testes com 100% de Cobertura**
+### 🎯 **Tests with 100% Coverage**
 | Módulo | Testes | Status |
 |--------|--------|--------|
 | `parse_student.py` | 20 | ✅ 100% |
@@ -354,16 +347,16 @@ python test_azure_only.py
 | `API Endpoints` | 14 | ✅ 100% |
 | `Azure Integration` | 15 | ✅ 100% |
 
-### 📈 **Relatórios de Cobertura**
-- **Terminal**: Relatório resumido após execução
+### 📈 **Coverage Reports**
+- **Terminal**: Summary report after execution
 - **HTML**: `tests/coverage/html/index.html` (navegador)
 - **XML**: `tests/coverage/coverage.xml` (CI/CD)
 
-### 🔧 **Configuração**
-A configuração de testes está otimizada em `pyproject.toml`:
+### 🔧 **Configuration**
+Test configuration is optimized in `pyproject.toml`:
 - Exclui arquivos `__init__.py` da cobertura
 - Foca apenas no código de negócio
-- Relatórios limpos e úteis
+- Clean and useful reports
 
 ## 🐛 Debugging in VS Code
 
@@ -458,19 +451,21 @@ The API now returns header images along with document metadata:
 - [ ] Implement automatic difficulty level detection
 - [ ] Add support for multiple document analysis providers
 
-## 🔄 Recent Updates (December 2024)
+## 🔄 Recent Updates (July 2025)
 
 ### ✅ **New Features**
-- **Header Image Support**: Automatic categorization and extraction of images from document headers
-- **Storage Architecture**: Provider-agnostic storage service for future database migration
-- **Enhanced Image Processing**: Position-based image categorization using PyMuPDF
-- **Code Cleanup**: Removed unused schemas and obsolete code
+- **Professional Exception Handling**: Enterprise-grade exception system with custom hierarchy
+- **Structured Logging**: JSON-formatted logging with request context tracking
+- **Automatic Error Handling**: `@handle_exceptions` decorator for clean controller code
+- **Project Cleanup**: Removed unused files and standardized documentation
 
 ### 🛠️ **Technical Improvements**
-- Refactored Azure service to use new provider architecture
-- Added `BaseDocumentProvider` abstract class for extensibility
-- Implemented `DocumentStorageService` for generic artifact storage
-- Enhanced `AnalyzeService` with image categorization logic
+- Implemented `SmartQuestException` hierarchy with automatic HTTP response conversion
+- Added `StructuredLogger` with JSON formatting and request context
+- Reorganized project structure and removed empty/unused files
+- Standardized all documentation in English
+- Enhanced test coverage with 169 passing tests (100% success rate)
+- Improved code maintainability with clean separation of concerns
 
 ## 💡 Background
 
