@@ -10,6 +10,23 @@ venv/
 *.env.local
 .env.*.local
 
+# Azure credentials and sensitive config files
+.env-*
+**/secrets.json
+**/credentials.json
+**/*credentials*
+**/*secrets*
+**/*keys*
+
+# Additional security patterns
+*.key
+*.pem
+*.p12
+*.pfx
+.azure/
+config/local.py
+config/production.py
+
 # Logs
 *.log
 
