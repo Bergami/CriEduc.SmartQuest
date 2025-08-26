@@ -1,5 +1,0 @@
-Figura ID: 2.1
-Página: 2
-Polígono: [4.783, 0.7453, 7.5413, 0.7457, 7.5403, 2.8879, 4.782, 2.8874]
-Spans: [{'offset': 7482, 'length': 36}]
-Elements: ['/paragraphs/71']

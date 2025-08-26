@@ -26,5 +26,20 @@ resposta_*.json
 # Notebooks checkpoints
 .ipynb_checkpoints/
 
+# Test directories - generated content should not be versioned
+tests/images/
+tests/responses/
+tests/extracted_text/
+tests/extracted_images/
+
+# Debug scripts - only artifacts, preserve code and docs
+tests/debug_scripts/**/extracted_images/
+tests/debug_scripts/**/*.jpg
+tests/debug_scripts/**/*.jpeg
+tests/debug_scripts/**/*.png
+tests/debug_scripts/**/*.json
+tests/debug_scripts/**/*.txt
+tests/debug_scripts/**/*.log
+
 # macOS
 .DS_Store
