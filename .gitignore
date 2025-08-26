@@ -44,10 +44,12 @@ resposta_*.json
 .ipynb_checkpoints/
 
 # Test directories - generated content should not be versioned
+tests/documents/
 tests/images/
 tests/responses/
 tests/extracted_text/
 tests/extracted_images/
+
 
 # Debug scripts - only artifacts, preserve code and docs
 tests/debug_scripts/**/extracted_images/
@@ -60,3 +62,4 @@ tests/debug_scripts/**/*.log
 
 # macOS
 .DS_Store
+tests/documents/7c36b9bd-1d8d-464e-a681-7f3e21a28fd2_Recuperacao

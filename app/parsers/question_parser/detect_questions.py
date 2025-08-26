@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 import re
+from .extract_alternatives_from_text import extract_alternatives_from_question_text
 
 def detect_questions(text: str) -> List[Dict[str, Any]]:
     """
@@ -23,11 +24,16 @@ def detect_questions(text: str) -> List[Dict[str, Any]]:
         # Clean the content in a smarter way
         cleaned_content = _smart_clean_question_content(raw_content)
         
-        # Split the content into lines
-        lines = cleaned_content.strip().splitlines()
-
-        # Parser for alternatives that may be in a single line
-        question_text, alternatives = _parse_question_and_alternatives(lines)
+        # Use improved alternative extraction
+        question_text, alternatives_list = extract_alternatives_from_question_text(cleaned_content)
+        
+        # Convert to the expected format
+        alternatives = []
+        for i, alt_text in enumerate(alternatives_list):
+            alternatives.append({
+                "letter": chr(65 + i),  # A, B, C, D, E
+                "text": alt_text
+            })
 
         # Check for image references in the question text
         has_image = "imagem" in question_text.lower() or "figura" in question_text.lower()

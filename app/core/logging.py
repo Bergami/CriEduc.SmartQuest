@@ -121,3 +121,6 @@ class StructuredLogger:
 
 # Instância global do logger
 structured_logger = StructuredLogger()
+
+# Export for compatibility
+logger = structured_logger

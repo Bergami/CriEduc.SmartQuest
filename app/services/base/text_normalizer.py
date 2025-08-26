@@ -1,5 +1,6 @@
 import re
 from typing import Dict, Any
+from app.core.logging import logger
 
 class TextNormalizer:
     """
@@ -96,9 +97,15 @@ class TextNormalizer:
         }
         
         if provider_name.lower() == "azure":
+            # Debug: verificar se raw_response está presente
+            raw_response = raw_data.get("raw_response", {})
+            logger.debug(f"raw_data keys = {list(raw_data.keys())}")
+            logger.debug(f"raw_response type = {type(raw_response)}")
+            logger.debug(f"raw_response figures = {len(raw_response.get('figures', []))}")
+            
             normalized.update({
                 "text": TextNormalizer.clean_extracted_text(
-                    raw_data.get("text", ""), 
+                    raw_data.get("text", ""),
                     provider_name
                 ),
                 "confidence": raw_data.get("confidence", 0.0),
@@ -107,13 +114,17 @@ class TextNormalizer:
                 "image_data": raw_data.get("images", {}),
                 "metadata": {
                     "provider": provider_name,
+                    "raw_response": raw_response,  # PRESERVAR resposta original do Azure
                     "raw_metadata": {
                         "tables": raw_data.get("tables", []),
                         "key_value_pairs": raw_data.get("key_value_pairs", {}),
                         "paragraphs": raw_data.get("paragraphs", []),
-                        "images_info": raw_data.get("images_info", [])  # Informações das imagens
+                        "images_info": raw_data.get("images_info", [])  # Informações das imagens     
                     }
                 }
             })
+            
+            logger.debug(f"normalized metadata keys = {list(normalized['metadata'].keys())}")
+            logger.debug(f"normalized raw_response figures = {len(normalized['metadata']['raw_response'].get('figures', []))}")
         
         return normalized

@@ -46,6 +46,15 @@ class AzureExtractionAdapter(DocumentExtractionInterface):
             # Normalize the output using TextNormalizer
             normalized_data = TextNormalizer.normalize_output_format(raw_data, self.get_provider_name())
             
+            
+            # DEBUG: Check what's being returned by adapter
+            logger.debug(f"normalized_data metadata keys = {list(normalized_data.get('metadata', {}).keys())}")
+            if 'raw_response' in normalized_data.get('metadata', {}):
+                raw_response = normalized_data['metadata']['raw_response']
+                logger.debug(f"raw_response figures = {len(raw_response.get('figures', []))}")
+            else:
+                logger.debug("NO raw_response in metadata!")
+            
             logger.info(f"Successfully extracted {len(normalized_data['text'])} characters from document")
             return normalized_data
             

@@ -12,7 +12,8 @@ class ContextBlockImageProcessor:
     @staticmethod
     def enrich_context_blocks_with_images(
         context_blocks: List[Dict[str, Any]], 
-        image_data: Dict[str, str],
+        image_data: Any,  # Aceita dict ou list
+       # image_data: Dict[str, str],
         page_mapping: Optional[Dict[int, List[Dict[str, Any]]]] = None
     ) -> List[Dict[str, Any]]:
         """
@@ -28,6 +29,13 @@ class ContextBlockImageProcessor:
         """
         if not image_data:
             # Nenhuma imagem disponível
+            return context_blocks
+        
+        # Ajuste: converte lista para dict se necessário
+        if isinstance(image_data, list):
+            image_data = {str(i): img for i, img in enumerate(image_data)}
+        elif not isinstance(image_data, dict):
+            logger.error(f"image_data should be dict or list, got {type(image_data).__name__}")
             return context_blocks
             
         logger.info(f"Enriching context blocks with {len(image_data)} available images")
@@ -76,6 +84,13 @@ class ContextBlockImageProcessor:
         
         if not image_data:
             logger.info("No images to save")
+            return
+        
+        # Converter lista para dict se necessário
+        if isinstance(image_data, list):
+            image_data = {str(i): img for i, img in enumerate(image_data)}
+        elif not isinstance(image_data, dict):
+            logger.error(f"image_data should be dict or list, got {type(image_data).__name__}")
             return
             
         # Criar o diretório se não existir

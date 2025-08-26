@@ -2,6 +2,7 @@ import logging
 import os
 import tempfile
 import json
+import io
 from typing import Dict, Any, List, Optional
 from fastapi import UploadFile
 from azure.ai.documentintelligence import DocumentIntelligenceClient
@@ -44,9 +45,9 @@ class AzureDocumentIntelligenceService(BaseDocumentProvider):
         """
         try:
             poller = self.client.begin_analyze_document(
-                model_id="prebuilt-read",
-                analyze_request=pdf_bytes,
-                **{"content_type": "application/pdf"}
+                "prebuilt-read",
+                io.BytesIO(pdf_bytes),
+                content_type="application/pdf"
             )
             
             result = poller.result()
@@ -62,9 +63,9 @@ class AzureDocumentIntelligenceService(BaseDocumentProvider):
         """
         try:
             poller = self.client.begin_analyze_document(
-                model_id=self.model_id,
-                analyze_request=pdf_bytes,
-                **{"content_type": "application/pdf"}
+                self.model_id,
+                io.BytesIO(pdf_bytes),
+                content_type="application/pdf"
             )
             
             result = poller.result()
@@ -113,9 +114,9 @@ class AzureDocumentIntelligenceService(BaseDocumentProvider):
 
             # Process document
             poller = self.client.begin_analyze_document(
-                model_id=self.model_id,
-                analyze_request=file_bytes,
-                **{"content_type": "application/pdf"}
+                self.model_id,
+                io.BytesIO(file_bytes),
+                content_type="application/pdf"
             )
             
             result = poller.result()
@@ -127,9 +128,21 @@ class AzureDocumentIntelligenceService(BaseDocumentProvider):
             structured_data = self._structure_document_data(result)
             
             # Extrair imagens se houver figuras detectadas
+            logger.info("🔍 Verificando figuras para extração de imagens...")
             image_base64_dict = await self.extract_document_images(file, result)
+            
             if image_base64_dict:
+                logger.info(f"✅ {len(image_base64_dict)} imagens extraídas com sucesso")
                 structured_data["image_data"] = image_base64_dict
+                
+                # Log das imagens extraídas
+                for figure_id, base64_img in image_base64_dict.items():
+                    preview = base64_img[:50] + "..." if len(base64_img) > 50 else base64_img
+                    logger.info(f"   📷 Figura {figure_id}: {len(base64_img)} chars base64 - {preview}")
+            else:
+                logger.warning("⚠️  Nenhuma imagem foi extraída do documento")
+                # Adicionar dados vazios para evitar problemas downstream
+                structured_data["image_data"] = {}
             
             # Salvar artefatos do documento
             await self._save_document_artifacts(file, document_id, raw_response, structured_data)
@@ -168,7 +181,8 @@ class AzureDocumentIntelligenceService(BaseDocumentProvider):
             "paragraphs": paragraphs,
             "images": images,
             "page_count": page_count,
-            "confidence": confidence
+            "confidence": confidence,
+            "raw_response": result.as_dict() if hasattr(result, 'as_dict') else {}
         }
 
     def _extract_tables(self, result) -> List[Dict[str, Any]]:
@@ -317,25 +331,48 @@ class AzureDocumentIntelligenceService(BaseDocumentProvider):
         Returns:
             Dicionário com IDs das figuras e strings base64 das imagens
         """
+        logger.info("🖼️  Iniciando extração de imagens do documento...")
+        
         # Salvar o PDF em um arquivo temporário
         temp_file = None
         try:
             # Reposicionar o ponteiro do arquivo
             await file.seek(0)
+            file_content = await file.read()
+            
+            logger.info(f"📄 Arquivo PDF lido: {len(file_content)} bytes")
+            
+            if not file_content:
+                logger.error("❌ Arquivo PDF está vazio!")
+                return {}
             
             # Criar arquivo temporário
             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                 temp_file = tmp.name
-                tmp.write(await file.read())
+                tmp.write(file_content)
+            
+            logger.info(f"📁 Arquivo temporário criado: {temp_file}")
+            
+            # Verificar se o arquivo temporário foi criado corretamente
+            if not os.path.exists(temp_file):
+                logger.error(f"❌ Arquivo temporário não foi criado: {temp_file}")
+                return {}
+                
+            temp_file_size = os.path.getsize(temp_file)
+            logger.info(f"📊 Tamanho do arquivo temporário: {temp_file_size} bytes")
             
             # Extrair imagens do PDF
             extracted_images = {}
             
             # Converter o resultado para um dicionário para processamento
+            logger.info("🔄 Convertendo resultado Azure para dicionário...")
+            
             if hasattr(result, "as_dict"):
                 result_dict = result.as_dict()
+                logger.info("✅ Resultado convertido usando as_dict()")
             else:
                 # Se não tiver as_dict, usar a serialização que já temos
+                logger.info("⚠️  as_dict() não disponível, usando serialização alternativa...")
                 serializer = AzureResponseSerializer()
                 saved_path = serializer.save_response_to_json(result, file.filename)
                 
@@ -343,25 +380,47 @@ class AzureDocumentIntelligenceService(BaseDocumentProvider):
                 if saved_path:
                     with open(saved_path, "r", encoding="utf-8") as f:
                         result_dict = json.load(f)
+                    logger.info(f"✅ Resultado carregado de arquivo salvo: {saved_path}")
                 else:
-                    logger.error("Não foi possível serializar o resultado para extração de imagens")
+                    logger.error("❌ Não foi possível serializar o resultado para extração de imagens")
                     return {}
             
+            # Verificar se há figuras no resultado
+            figures = result_dict.get("figures", [])
+            logger.info(f"🎯 Figuras encontradas no resultado: {len(figures)}")
+            
+            if not figures:
+                logger.warning("⚠️  Nenhuma figura encontrada no resultado Azure")
+                return {}
+            
+            for figure in figures:
+                figure_id = figure.get("id", "unknown")
+                logger.info(f"   📷 Figura {figure_id}: {len(figure.get('boundingRegions', []))} regiões")
+            
             # Extrair imagens usando o PDFImageExtractor
+            logger.info("🔧 Iniciando extração com PDFImageExtractor...")
+            
             image_bytes_dict = PDFImageExtractor.extract_figures_from_azure_result(
                 pdf_path=temp_file,
                 azure_result=result_dict
             )
             
+            logger.info(f"📸 PDFImageExtractor retornou {len(image_bytes_dict)} imagens")
+            
             # Converter para base64
             for figure_id, img_bytes in image_bytes_dict.items():
-                base64_img = PDFImageExtractor.get_base64_image(img_bytes)
-                extracted_images[figure_id] = base64_img
+                if img_bytes:
+                    base64_img = PDFImageExtractor.get_base64_image(img_bytes)
+                    extracted_images[figure_id] = base64_img
+                    logger.info(f"✅ Figura {figure_id}: {len(img_bytes)} bytes → {len(base64_img)} chars base64")
+                else:
+                    logger.warning(f"⚠️  Figura {figure_id}: bytes vazios ou nulos")
             
+            logger.info(f"🎉 Extração concluída: {len(extracted_images)} imagens convertidas para base64")
             return extracted_images
             
         except Exception as e:
-            logger.error(f"Erro ao extrair imagens do documento: {str(e)}")
+            logger.error(f"❌ Erro ao extrair imagens do documento: {str(e)}", exc_info=True)
             return {}
             
         finally:
@@ -369,5 +428,6 @@ class AzureDocumentIntelligenceService(BaseDocumentProvider):
             if temp_file and os.path.exists(temp_file):
                 try:
                     os.unlink(temp_file)
+                    logger.debug(f"🗑️  Arquivo temporário removido: {temp_file}")
                 except Exception as e:
-                    logger.error(f"Erro ao remover arquivo temporário: {str(e)}")
+                    logger.error(f"❌ Erro ao remover arquivo temporário: {str(e)}")
