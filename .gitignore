@@ -47,6 +47,7 @@ baseline_*.json
 image_quality_*.json
 analysis_*.json
 comparison_*.json
+azure_response_test_*.json
 
 # Notebooks checkpoints
 .ipynb_checkpoints/
@@ -73,6 +74,25 @@ tests/debug_scripts/**/*.log
 
 # Documentation (arquivos internos de projeto - não versionados)
 documentation/
+
+# Additional patterns to prevent root cleanup files
+test_*.py
+cleanup_*.py
+comparison_*.py
+demonstrate_*.py
+demo_*.py
+diagnostic_*.py
+check_*.py
+IMPLEMENTACAO_*.py
+
+# Documentation files that should be in documentation/ folder
+AZURE_*.md
+PHASE_*.md
+DTO_*.md
+OOP_*.md
+REFACTORING_*.md
+FEATURE_FLAG_*.md
+RELATORIO_LIMPEZA_*.md
 
 # macOS
 .DS_Store
