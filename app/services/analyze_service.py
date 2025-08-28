@@ -23,6 +23,7 @@ from app.services.document_extraction_factory import DocumentExtractionFactory
 from app.services.mock_document_service import MockDocumentService
 from app.services.image_categorization_service import ImageCategorizationService
 from app.services.azure_figure_processor import AzureFigureProcessor
+from app.models.internal import InternalDocumentResponse, InternalDocumentMetadata
 from app.services.refactored_context_builder import RefactoredContextBlockBuilder
 from app.core.exceptions import DocumentProcessingError
 import logging
@@ -50,7 +51,7 @@ class AnalyzeService:
         use_refactored: bool = False
     ) -> Dict[str, Any]:
         """
-        Processa documento usando Azure Document Intelligence
+        Processa documento usando Azure Document Intelligence com extração de imagens otimizada
         
         Args:
             file: Arquivo para processamento
@@ -86,11 +87,15 @@ class AnalyzeService:
         
         logger.info(f"Text extracted: {len(extracted_data['text'])} characters")
         
-        # Use categorized content images from the factory method
-        image_data = extracted_data.get("images", {})
+        # 🆕 NOVA LÓGICA: Usar extratores isolados com fallback automático
+        image_data = await AnalyzeService._extract_images_with_fallback(
+            file=file,
+            extracted_data=extracted_data,
+            document_id=f"{email}_{file.filename}"
+        )
         
         if image_data:
-            logger.info(f"{len(image_data)} categorized content images available")
+            logger.info(f"{len(image_data)} images extracted using optimized extractors")
         
         # Extrair questões usando parser padrão
         question_data = QuestionParser.extract(extracted_data["text"], image_data)
@@ -148,6 +153,204 @@ class AnalyzeService:
         
         logger.info("Document processing completed successfully")
         return result
+
+    @staticmethod
+    async def process_document_with_models(
+        file: UploadFile, 
+        email: str, 
+        use_refactored: bool = True
+    ) -> InternalDocumentResponse:
+        """
+        🆕 VERSÃO REFATORADA: Processa documento usando modelos Pydantic tipados
+        
+        Args:
+            file: Arquivo para processamento
+            email: Email do usuário 
+            use_refactored: Flag para usar versão refatorada (sempre True por padrão)
+            
+        Returns:
+            InternalDocumentResponse: Response completo com tipagem forte
+        """
+        document_id = str(uuid4())
+        logger.info(f"🔧 Processing document with models: {file.filename} for {email}")
+
+        # Usar Document Extraction Factory (Azure)
+        try:
+            logger.info("Processing with Document Extraction Factory")
+            extracted_data = await AnalyzeService._extract_text_and_metadata_with_factory(file)
+            logger.info("Document extraction completed successfully")
+        except Exception as e:
+            logger.error(f"Document extraction failed: {str(e)}")
+            error_message = f"Failed to process document: {str(e)}"
+            raise DocumentProcessingError(error_message)
+        
+        logger.info(f"Text extracted: {len(extracted_data['text'])} characters")
+        
+        # Extração de imagens com fallback automático
+        image_data = await AnalyzeService._extract_images_with_fallback(
+            file=file,
+            extracted_data=extracted_data,
+            document_id=f"{email}_{file.filename}"
+        )
+        
+        if image_data:
+            logger.info(f"{len(image_data)} images extracted using optimized extractors")
+        
+        # Processar header usando modelo tipado
+        legacy_header = HeaderParser.parse(extracted_data["text"])
+        header_metadata = InternalDocumentMetadata.from_legacy_header(legacy_header)
+        
+        # Extrair questões usando parser padrão
+        question_data = QuestionParser.extract(extracted_data["text"], image_data)
+        
+        # Processar versão refatorada com melhorias
+        if use_refactored:
+            logger.info("Using REFACTORED version with improvements")
+            
+            azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
+            if azure_result and "figures" in azure_result:
+                processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_result)
+                logger.info(f"{len(processed_figures)} figures processed from Azure")
+                
+                from app.services.refactored_context_builder import RefactoredContextBlockBuilder
+                context_builder = RefactoredContextBlockBuilder()
+                enhanced_context_blocks = context_builder.analyze_azure_figures_dynamically(
+                    azure_result, image_data
+                )
+                
+                logger.info(f"{len(enhanced_context_blocks)} enhanced context blocks created")
+                
+                if enhanced_context_blocks:
+                    question_data["context_blocks"] = enhanced_context_blocks
+                
+                enhanced_questions = AzureFigureProcessor.associate_figures_to_questions(
+                    processed_figures, question_data["questions"]
+                )
+                question_data["questions"] = enhanced_questions
+                
+                logger.info("Questions enhanced with figure associations")
+        
+        logger.info(f"Questions found: {len(question_data['questions'])}")
+        logger.info(f"Context blocks: {len(question_data['context_blocks'])}")
+
+        # Criar response usando modelo tipado
+        response = InternalDocumentResponse(
+            email=email,
+            document_id=document_id,
+            filename=file.filename,
+            document_metadata=header_metadata,
+            questions=question_data["questions"],
+            context_blocks=question_data["context_blocks"],
+            extracted_text=extracted_data["text"],
+            provider_metadata=extracted_data.get("metadata", {}),
+            all_images=[]  # TODO: converter image_data para InternalImageData
+        )
+        
+        logger.info("✅ Document processing completed successfully with models")
+        return response
+
+    @staticmethod
+    async def _extract_images_with_fallback(
+        file: UploadFile,
+        extracted_data: Dict[str, Any],
+        document_id: str
+    ) -> Dict[str, str]:
+        """
+        Extrai imagens usando estratégia de fallback automático:
+        1. Tenta método Manual PDF (rápido e alta qualidade)
+        2. Se falhar, usa Azure Figures (mais lento mas confiável)
+        
+        Args:
+            file: Arquivo PDF para extração
+            extracted_data: Dados extraídos do documento
+            document_id: ID único do documento
+            
+        Returns:
+            Dicionário com figure_id -> base64_string das imagens extraídas
+        """
+        from app.services.image_extraction import ImageExtractionOrchestrator, ImageExtractionMethod
+        
+        logger.info("Starting image extraction with automatic fallback")
+        
+        # Resetar ponteiro do arquivo
+        await file.seek(0)
+        
+        # Inicializar orquestrador
+        orchestrator = ImageExtractionOrchestrator()
+        
+        # Obter raw_response do Azure para coordenadas
+        azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
+        
+        try:
+            # STEP 1: Tentar método Manual PDF (rápido e alta qualidade)
+            logger.info("STEP 1: Attempting Manual PDF extraction (primary method)")
+            
+            manual_images = await orchestrator.extract_images_single_method(
+                method=ImageExtractionMethod.MANUAL_PDF,
+                file=file,
+                document_analysis_result=azure_result,
+                document_id=document_id
+            )
+            
+            if manual_images and len(manual_images) > 0:
+                manual_metrics = orchestrator._extractors[ImageExtractionMethod.MANUAL_PDF].get_performance_metrics()
+                logger.info(
+                    f"✅ Manual PDF extraction successful: {len(manual_images)} images extracted in {manual_metrics.get('total_processing_time', 0):.2f}s"
+                )
+                return manual_images
+            
+            logger.warning("⚠️ Manual PDF extraction returned no images, attempting fallback")
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Manual PDF extraction failed: {str(e)}, attempting fallback")
+        
+        # Reset file pointer for fallback
+        await file.seek(0)
+        
+        try:
+            # STEP 2: Fallback para Azure Figures (mais lento mas confiável)
+            logger.info("STEP 2: Using Azure Figures fallback (secondary method)")
+            
+            azure_images = await orchestrator.extract_images_single_method(
+                method=ImageExtractionMethod.AZURE_FIGURES,
+                file=file,
+                document_analysis_result=azure_result,
+                document_id=document_id
+            )
+            
+            if azure_images and len(azure_images) > 0:
+                azure_metrics = orchestrator._extractors[ImageExtractionMethod.AZURE_FIGURES].get_performance_metrics()
+                logger.info(
+                    f"✅ Azure Figures fallback successful: {len(azure_images)} images extracted in {azure_metrics.get('total_processing_time', 0):.2f}s"
+                )
+                return azure_images
+                
+            logger.warning("⚠️ Azure Figures fallback also returned no images")
+            
+        except Exception as e:
+            logger.error(f"❌ Azure Figures fallback failed: {str(e)}")
+        
+        # STEP 3: Fallback para método legado se ambos falharem
+        logger.info("STEP 3: Using legacy image extraction method (final fallback)")
+        
+        try:
+            # Usar método legado do sistema atual
+            legacy_images = extracted_data.get("images", {})
+            
+            if not legacy_images:
+                # Tentar carregar de arquivos salvos
+                legacy_images = await AnalyzeService._try_load_saved_images(extracted_data)
+            
+            if legacy_images:
+                logger.info(f"✅ Legacy extraction successful: {len(legacy_images)} images loaded")
+                return legacy_images
+            
+        except Exception as e:
+            logger.error(f"❌ Legacy extraction failed: {str(e)}")
+        
+        # Se todos os métodos falharam
+        logger.warning("❌ All image extraction methods failed, returning empty result")
+        return {}
 
     @staticmethod
     async def process_document_mock(email: str, filename: str = None) -> Dict[str, Any]:

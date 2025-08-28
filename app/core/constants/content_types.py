@@ -4,7 +4,7 @@ Defines standardized content types and figure categories
 """
 from enum import Enum, auto
 
-class ContentType(Enum):
+class ContentType(str, Enum):
     """Enum for different types of content in documents"""
     
     # Text content types
@@ -14,6 +14,7 @@ class ContentType(Enum):
     TITLE = "title"
     SUBTITLE = "subtitle"
     DIALOGUE = "dialogue"
+    TEXT = "text"  # Generic text content
     
     # Visual content types
     IMAGE = "image"
@@ -23,6 +24,13 @@ class ContentType(Enum):
     DIAGRAM = "diagram"
     CHART = "chart"
     PHOTO = "photo"
+    TABLE = "table"
+    GRAPH = "graph"
+    MAP = "map"
+    
+    # Technical content
+    FORMULA = "formula"
+    CODE = "code"
     
     # Educational content types
     QUESTION = "question"
@@ -33,6 +41,7 @@ class ContentType(Enum):
     # Mixed content
     TEXT_WITH_IMAGE = "text_with_image"
     MIXED_CONTENT = "mixed_content"
+    MIXED = "mixed"  # Simplified mixed content
     
     # Special content
     WATERMARK = "watermark"
@@ -41,6 +50,117 @@ class ContentType(Enum):
     
     # Unknown/unclassified
     UNKNOWN = "unknown"
+    
+    @classmethod
+    def from_legacy_type(cls, legacy_type: str) -> "ContentType":
+        """
+        Convert legacy type strings to ContentType enum.
+        
+        Args:
+            legacy_type: Legacy type string
+            
+        Returns:
+            ContentType enum value
+        """
+        # Normalize the input
+        normalized = legacy_type.lower().strip()
+        
+        # Direct mappings
+        type_mappings = {
+            "text": cls.TEXT,
+            "image": cls.IMAGE,
+            "table": cls.TABLE,
+            "figure": cls.FIGURE,
+            "diagram": cls.DIAGRAM,
+            "chart": cls.CHART,
+            "graph": cls.GRAPH,
+            "map": cls.MAP,
+            "formula": cls.FORMULA,
+            "code": cls.CODE,
+            "mixed": cls.MIXED,
+            "charge": cls.CHARGE,
+            "propaganda": cls.PROPAGANDA,
+            "photo": cls.PHOTO,
+            "header": cls.HEADER,
+            "footer": cls.FOOTER,
+            "title": cls.TITLE,
+            "subtitle": cls.SUBTITLE,
+            "dialogue": cls.DIALOGUE,
+            "paragraph": cls.PARAGRAPH,
+            
+            # Common variations
+            "texto": cls.TEXT,
+            "imagem": cls.IMAGE,
+            "tabela": cls.TABLE,
+            "figura": cls.FIGURE,
+            "diagrama": cls.DIAGRAM,
+            "gráfico": cls.GRAPH,
+            "mapa": cls.MAP,
+            "fórmula": cls.FORMULA,
+            "código": cls.CODE,
+            "misto": cls.MIXED,
+            "tirinha": cls.CHARGE,
+            "anúncio": cls.PROPAGANDA,
+            "publicidade": cls.PROPAGANDA,
+            "diálogo": cls.DIALOGUE,
+            
+            # English variations
+            "picture": cls.IMAGE,
+            "illustration": cls.FIGURE,
+            "drawing": cls.FIGURE,
+        }
+        
+        return type_mappings.get(normalized, cls.UNKNOWN)
+    
+    def to_legacy_format(self) -> str:
+        """
+        Convert to legacy format string.
+        
+        Returns:
+            Legacy format string
+        """
+        return self.value
+    
+    def is_visual_content(self) -> bool:
+        """
+        Check if this content type represents visual content.
+        
+        Returns:
+            True if visual content, False otherwise
+        """
+        visual_types = {
+            self.IMAGE,
+            self.FIGURE,
+            self.DIAGRAM,
+            self.CHART,
+            self.GRAPH,
+            self.MAP,
+            self.TABLE,
+            self.CHARGE,
+            self.PROPAGANDA,
+            self.PHOTO
+        }
+        return self in visual_types
+    
+    def is_textual_content(self) -> bool:
+        """
+        Check if this content type represents textual content.
+        
+        Returns:
+            True if textual content, False otherwise
+        """
+        textual_types = {
+            self.TEXT,
+            self.CODE,
+            self.FORMULA,
+            self.PARAGRAPH,
+            self.TITLE,
+            self.SUBTITLE,
+            self.DIALOGUE,
+            self.HEADER,
+            self.FOOTER
+        }
+        return self in textual_types
 
 class FigureType(Enum):
     """Enum for figure types based on positioning and content"""
@@ -229,3 +349,40 @@ def get_figure_type_from_content(content_type: ContentType, position_info: dict 
     
     # Default to content figure
     return FigureType.CONTENT
+
+
+class ProcessingStatus(str, Enum):
+    """
+    Status of content processing.
+    """
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    REQUIRES_REVIEW = "requires_review"
+
+
+class ExtractionMethod(str, Enum):
+    """
+    Methods used for content extraction.
+    """
+    AZURE_DOCUMENT_INTELLIGENCE = "azure_document_intelligence"
+    OCR_TESSERACT = "ocr_tesseract"
+    PDF_TEXT_EXTRACTION = "pdf_text_extraction"
+    PATTERN_MATCHING = "pattern_matching"
+    MANUAL_ENTRY = "manual_entry"
+    LEGACY_CONVERSION = "legacy_conversion"
+    HYBRID = "hybrid"
+    UNKNOWN = "unknown"
+
+
+class ValidationLevel(str, Enum):
+    """
+    Levels of content validation.
+    """
+    NONE = "none"
+    BASIC = "basic"
+    STANDARD = "standard"
+    STRICT = "strict"
+    MANUAL = "manual"

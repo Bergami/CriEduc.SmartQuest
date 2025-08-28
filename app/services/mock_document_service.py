@@ -398,3 +398,87 @@ class MockDocumentService:
         
         print(f"🔍 DEBUG: Figure {figure_id} final decision - categorized as CONTENT")
         return False
+
+    @staticmethod
+    async def process_document_mock_text_only(email: str = "test@mock.com", filename: str = None) -> Dict[str, Any]:
+        """
+        Processa documento mock apenas para texto e metadados, sem extração de imagens.
+        Usado quando queremos processar imagens separadamente com classes isoladas.
+        """
+        if filename is None:
+            filename = MockDataConstants.DEFAULT_MOCK_FILENAME
+            
+        document_id = str(uuid4())
+        debug_prefix = GeneralConstants.get_debug_prefix("info")
+        logger.info(f"Processing MOCK document (text only) {filename} for {email}")
+
+        # Carregar dados mock
+        mock_data = MockDocumentService._load_mock_data()
+        
+        # Extrair apenas conteúdo de texto
+        text_content = MockDocumentService._extract_text_content(mock_data, debug_prefix)
+        
+        # Processar header
+        header_parser = HeaderParser()
+        header_result = header_parser.parse(text_content)
+        
+        # Processar perguntas
+        question_parser = QuestionParser()
+        question_result = question_parser.extract(text_content)
+        questions = question_result.get("questions", [])
+        
+        return {
+            "document_id": document_id,
+            "text_content": text_content,
+            "header": header_result,
+            "questions": questions,
+            "images": [],  # Sem imagens neste método
+            "metadata": {
+                "email": email,
+                "filename": filename,
+                "processing_mode": "mock_text_only",
+                "raw_response": mock_data
+            }
+        }
+
+    @staticmethod
+    async def process_document_mock_images_only(pdf_path: Path) -> List[Dict]:
+        """
+        Extrai apenas imagens do PDF usando classe isolada ManualPDFImageExtractor.
+        Usado quando queremos centralizar a lógica de extração manual nas classes isoladas.
+        """
+        from app.services.image_extraction.manual_pdf_extractor import ManualPDFImageExtractor
+        
+        logger.info(f"Extracting images from PDF using isolated ManualPDFImageExtractor: {pdf_path}")
+        
+        # Carregar resposta mock para coordenadas
+        mock_data = MockDocumentService._load_mock_data()
+        
+        # Usar extrator isolado
+        extractor = ManualPDFImageExtractor()
+        
+        # Simular UploadFile-like object do Path
+        with open(pdf_path, 'rb') as file:
+            file_content = file.read()
+        
+        # Criar mock file object
+        import io
+        from fastapi import UploadFile
+        
+        mock_file_obj = io.BytesIO(file_content)
+        mock_file = UploadFile(
+            filename=pdf_path.name,
+            file=mock_file_obj,
+            size=len(file_content),
+            headers={"content-type": "application/pdf"}
+        )
+        
+        # Extrair imagens usando classe isolada
+        images = await extractor.extract_images(
+            file=mock_file,
+            document_analysis_result=mock_data,
+            document_id="mock_manual_extraction"
+        )
+        
+        logger.info(f"Manual extraction completed: {len(images)} images extracted")
+        return images

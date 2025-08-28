@@ -38,7 +38,15 @@ analyze_*.py
 test_*.py
 !tests/test_*.py
 !tests/**/test_*.py
+
+# Result files from tests and analysis (should not be in repository)
 resposta_*.json
+debug_*.json
+diagnostic_*.json
+baseline_*.json
+image_quality_*.json
+analysis_*.json
+comparison_*.json
 
 # Notebooks checkpoints
 .ipynb_checkpoints/
@@ -50,6 +58,9 @@ tests/responses/
 tests/extracted_text/
 tests/extracted_images/
 
+# Debug scripts - entire debug directory excluded from repository
+tests/debug/
+tests/debug/**
 
 # Debug scripts - only artifacts, preserve code and docs
 tests/debug_scripts/**/extracted_images/
@@ -59,6 +70,9 @@ tests/debug_scripts/**/*.png
 tests/debug_scripts/**/*.json
 tests/debug_scripts/**/*.txt
 tests/debug_scripts/**/*.log
+
+# Documentation (arquivos internos de projeto - não versionados)
+documentation/
 
 # macOS
 .DS_Store

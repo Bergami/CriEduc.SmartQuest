@@ -6,22 +6,36 @@ import os
 from pathlib import Path
 
 def load_env_file():
-    """Carrega variáveis do arquivo .env manualmente"""
-    env_path = Path(__file__).parent / ".env"
+    """Carrega variáveis dos arquivos .env e .env-local manualmente"""
+    project_root = Path(__file__).parent
+    env_path = project_root / ".env"
+    env_local_path = project_root / ".env-local"
     
-    if not env_path.exists():
-        print(f"⚠️  Arquivo .env não encontrado: {env_path}")
+    # Carregar primeiro o .env (configurações públicas)
+    if env_path.exists():
+        print(f"📄 Carregando {env_path}")
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key.strip()] = value.strip()
+                    print(f"  ✅ {key.strip()}")
+    
+    # Carregar depois o .env-local (configurações sensíveis - sobrescreve o .env)
+    if env_local_path.exists():
+        print(f"📄 Carregando {env_local_path}")
+        with open(env_local_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    os.environ[key.strip()] = value.strip()
+                    print(f"  ✅ {key.strip()}")
+    
+    if not env_path.exists() and not env_local_path.exists():
+        print(f"⚠️  Nenhum arquivo .env encontrado")
         return False
-    
-    print(f"📄 Carregando {env_path}")
-    
-    with open(env_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                key, value = line.split('=', 1)
-                os.environ[key.strip()] = value.strip()
-                print(f"  ✅ {key.strip()}")
     
     return True
 

@@ -1,6 +1,38 @@
 ## 🏗️ SmartQuest
 
-SmartQuest is a microservice within the CriEduc ecosystem, designed to intelligently extract, classify, and analyze educational assessments (exams, tests, quizzes) provided in PDF format. Its goal is to provide automated insights into the structure and content of educational materials using natural language processing and artificial intelligence.
+SmartQuest is a microse│   ├── ⚙️ config/                   # Application configuration
+││   ├── 🧠 services/                 # Business logic services
+│   │   ├── 📦 __init__.py
+│   │   ├── 🧠 analyze_service.py    # Main analysis orchestration (with Pydantic models)
+│   │   ├── ☁️ azure_document_intelligence_service.py # Azure AI provider implementation
+│   │   ├── 🏗️ document_extraction_factory.py # Provider factory service
+│   │   ├── 🔧 mock_document_service.py # Mock service with refactored methods
+│   │   ├── 📂 adapters/            # Provider adapters
+│   │   ├── 🔧 base/                # Base interfaces and utilities
+│   │   ├── 📂 providers/           # Document provider implementations
+│   │   ├── 📂 storage/             # Document storage services
+│   │   └── 🔧 utils/               # Service utilities 📦 __init__.py
+│   │   └── ⚙️ settings.py           # App settings and configuration
+│   │
+│   ├── 🔧 core/                     # Core utilities and configurations
+│   │   ├── 🔧 config.py             # Core configuration
+│   │   ├── ⚠️ exceptions.py         # Custom exceptions
+│   │   ├── 📋 logging.py            # Structured logging system
+│   │   └── 🛠️ utils.py              # Utility functions
+│   │
+│   ├── 📊 data/                     # Static data and reference files
+│   │   ├── 📦 __init__.py
+│   │   ├── 🏙️ cities.py             # Brazilian cities data
+│   │   ├── 🏫 institution_prefixes.py # Educational institution prefixes
+│   │   └── 📚 subjects.py           # Academic subjects data
+│   │
+│   ├── 🏗️ models/                   # Data models and schemas
+│   │   └── 📂 internal/             # Internal Pydantic models
+│   │       ├── 📄 document_response.py # InternalDocumentResponse
+│   │       └── 📄 document_metadata.py # InternalDocumentMetadata
+│   │
+│   ├── 🔄 adapters/                 # Response adapters
+│   │   └── 📄 document_response_adapter.py # API response conversionhe CriEduc ecosystem, designed to intelligently extract, classify, and analyze educational assessments (exams, tests, quizzes) provided in PDF format. Its goal is to provide automated insights into the structure and content of educational materials using natural language processing and artificial intelligence.
 
 
 ## 📌 Features
@@ -37,12 +69,10 @@ SmartQuest is a microservice within the CriEduc ecosystem, designed to intellige
 │
 │   ├── 🌐 api/                      # API routes and controllers
 │   │   ├── 📦 __init__.py
-│   │   └── 🗂️ routers.py            # API routes and endpoints
-│   │
-│   ├── 🎛️ controllers/              # Request handlers and business logic
-│   │   ├── 📦 __init__.py
-│   │   ├── 🧠 analyze.py            # Document analysis controller
-│   │   └── ❤️ health.py             # Health check controller
+│   │   ├── 🗂️ routers.py            # API routes and endpoints
+│   │   └── 📂 controllers/          # Request handlers and business logic
+│   │       ├── 📦 __init__.py
+│   │       └── 🧠 analyze.py        # Document analysis controller (simplified)
 │   │
 │   ├── ⚙️ config/                   # Application configuration
 │   │   ├── 📦 __init__.py
@@ -108,22 +138,62 @@ SmartQuest is a microservice within the CriEduc ecosystem, designed to intellige
 │       ├── � __init__.py
 │       └── 🔍 analyze_validator.py  # Document analysis validation
 │
-├── 🧪 tests/                        # Test files and test data
-│   ├── 📄 modelo-completo-prova.pdf # Complete exam test file
-│   ├── 📄 modelo-prova-completa.pdf # Alternative test file
-│   ├── 📄 modelo-prova.pdf          # Basic test file
-│   └── 📋 RetornoProcessamento.json # Mock response data
+├── 🧪 tests/                        # Test files organized by category
+│   ├── 📋 conftest.py               # Pytest configuration
+│   ├── 📄 pytest.ini               # Test settings
+│   ├── 📚 COVERAGE_CONFIGURATION.md # Coverage setup guide
+│   ├── 📚 QUICK_GUIDE.md            # Quick testing guide
+│   ├── 📚 README.md                 # Testing documentation
+│   ├── 📚 REORGANIZATION_SUMMARY.md # Test reorganization summary
+│   ├── 📚 TEST_IMPROVEMENTS.md      # Test improvement notes
+│   │
+│   ├── 📂 unit/                     # Unit tests (organized & clean)
+│   │   ├── 📂 test_adapters/        # DocumentResponseAdapter tests
+│   │   ├── 📂 test_exceptions/      # Exception handling tests
+│   │   ├── � test_models/          # Pydantic models tests
+│   │   ├── 📂 test_parsers/         # Header & question parser tests
+│   │   ├── 📂 test_services/        # Business service tests
+│   │   ├── 📂 test_utils/           # Utility function tests
+│   │   └── 📂 test_validators/      # Input validation tests
+│   │
+│   ├── 📂 integration/              # Integration tests
+│   │   ├── 📂 test_api/            # API endpoint tests
+│   │   └── 📂 test_azure/          # Azure integration tests
+│   │
+│   ├── 📂 debug_scripts/           # Organized debug scripts
+│   │   ├── 📂 analysis_tools/      # Analysis and comparison tools
+│   │   ├── 📂 azure_figure_extraction/ # Azure figure extraction tests
+│   │   ├── 📂 data_validation/     # Data validation scripts
+│   │   ├── 📂 figure_enumeration/  # Figure enumeration tests
+│   │   └── 📂 parser_analysis/     # Parser analysis tools
+│   │
+│   ├── 📂 coverage/                # Coverage reports
+│   │   ├── 📄 coverage.xml         # XML coverage report
+│   │   └── 📂 html/                # HTML coverage report
+│   │
+│   ├── 📂 documents/               # Test documents
+│   ├── 📂 extracted_images/        # Extracted test images
+│   ├── � extracted_text/          # Extracted test text
+│   ├── 📂 fixtures/                # Test fixtures
+│   ├── 📂 images/                  # Test images
+│   └── 📂 responses/               # Mock responses
 │
 ├── 🌐 venv/                         # Virtual environment (local)
 ├── 📦 requirements.txt              # Project dependencies
+├── ⚙️ pyproject.toml                # Project configuration
 ├── 📚 docs/                         # Technical documentation
 │   └── 📄 azure_document_intelligence_coordinates.md # Azure coordinates guide
 ├── 🏗️ ARCHITECTURE.md               # Architecture documentation
 ├── ⚙️ CONFIG.md                     # Configuration guide
 ├── 📋 CHANGELOG.md                  # Change log
-├── 📘 README.md                     # Main documentation
+├── � CONSTANTS_SYSTEM.md           # System constants documentation
+├── 📋 MIGRATION_EXAMPLES.md         # Migration examples
+├── 📋 RELATORIO_LIMPEZA_TESTES.md   # Test cleanup report
+├── �📘 README.md                     # Main documentation (this file)
 ├── 🚀 start_simple.py               # Simple startup script
 ├── 🔧 start.ps1                     # PowerShell startup script
+├── 🧪 run_tests.py                  # Test execution script
+├── 🧪 run_tests.ps1                 # PowerShell test script
 ├── 🔐 .env                          # Environment variables (local)
 ├── 📋 .env.example                  # Environment template
 ├── 📋 .env-local.example            # Local environment template
@@ -283,25 +353,34 @@ uvicorn app.main:app --reload
 ### 📊 **Test Statistics**
 | Métrica | Valor | Status |
 |---------|-------|--------|
-| **Total de Testes** | 119 | ✅ 100% Passando |
+| **Total de Testes** | 117 | ✅ 110 Passando, 7 Para Corrigir |
 | **Cobertura de Código** | 50.58% | ✅ Meta alcançada |
-| **Testes Unitários** | 74 | ✅ Completos |
-| **Integration Tests** | 29 | ✅ Complete |
+| **Testes Unitários** | 85+ | ✅ Expandidos com novos componentes |
+| **Integration Tests** | 29 | ✅ Completos |
 | **Arquivos 100% Cobertos** | 19 | ✅ Excelente |
 
-### 🏗️ **Estrutura de Testes**
+### 🏗️ **Estrutura de Testes (ATUALIZADA)**
 ```
 tests/
-├── unit/                    # Unit tests (74 tests)
+├── unit/                    # Unit tests (85+ tests, expandido)
+│   ├── test_adapters/       # DocumentResponseAdapter (NOVO)
+│   ├── test_models/         # Pydantic models (NOVO)
 │   ├── test_parsers/        # HeaderParser, QuestionParser, etc.
-│   ├── test_services/       # Business services
+│   ├── test_services/       # Business services (expandido)
 │   ├── test_validators/     # Input validators
+│   ├── test_exceptions/     # Exception handling
 │   └── test_utils/          # Utilities (extract_city, etc.)
 ├── integration/             # Integration tests (29 tests)
 │   ├── test_api/            # API endpoints
 │   └── test_azure/          # Azure integration
+├── debug_scripts/           # Organized debug scripts (LIMPO)
+│   ├── analysis_tools/      # Analysis and comparison
+│   ├── azure_figure_extraction/ # Azure extraction tests
+│   ├── data_validation/     # Data validation
+│   ├── figure_enumeration/  # Figure enumeration
+│   └── parser_analysis/     # Parser analysis
 ├── fixtures/                # Reusable test data
-└── debug_scripts/           # Debug scripts (16 tests)
+└── coverage/                # Coverage reports (HTML/XML)
 ```
 
 ### 🚀 **Running Tests**
@@ -397,7 +476,33 @@ The project includes debug configurations in `.vscode/launch.json`:
 | Method | Endpoint | Description |
 |--------|---------|------------|
 | **GET** | `/health` | Checks API health status |
-| **POST** | `/analyze_document` | Uploads and analyzes a document |
+| **POST** | `/analyze_document` | **SIMPLIFIED**: Clean document analysis with Pydantic models and automatic image extraction |
+
+### **🆕 Simplified Document Analysis with Modern Architecture**
+
+The main `/analyze_document` endpoint has been completely refactored with a modern, clean architecture:
+
+#### **🏗️ New Architecture Features:**
+- **Pydantic Models**: Type-safe internal processing with `InternalDocumentResponse` and `InternalDocumentMetadata`
+- **Adapter Pattern**: Clean separation between internal models and API responses via `DocumentResponseAdapter`
+- **Simplified Interface**: Removed complex parameters (`use_mock`, `use_refactored`, `image_extraction_method`)
+- **Automatic Behavior**: Intelligent document processing with built-in fallback strategies
+
+#### **📋 Simplified Request Format:**
+```bash
+POST /analyze_document
+Content-Type: multipart/form-data
+
+# Parameters:
+# - file: PDF document (required)
+# - Optional query parameters handled automatically
+```
+
+#### **🎯 Key Improvements:**
+- **Type Safety**: Full Pydantic validation throughout the processing pipeline
+- **Clean Code**: Separation of concerns with adapters and internal models
+- **Maintainability**: Easier to test, modify, and extend
+- **Backward Compatibility**: Same API response format maintained
 
 ### **Enhanced API Response Format**
 
@@ -436,6 +541,78 @@ The API now returns header images along with document metadata:
 }
 ```
 
+## 🖼️ **Image Extraction Performance Analysis**
+
+### **📊 Performance Comparison: Azure Figures vs Manual PDF Extraction**
+
+We conducted a comprehensive analysis comparing two image extraction methods using a real educational document with 7 figures. The results reveal significant performance and quality differences:
+
+#### **🚀 Performance Metrics**
+
+| Method | Processing Time | Speed Comparison | Extraction Success |
+|--------|----------------|------------------|-------------------|
+| **Azure Figures** | 49.26 seconds | Baseline | ✅ 7/7 images |
+| **Manual PDF** | 0.13 seconds | **379x faster** | ✅ 7/7 images |
+
+#### **🎯 Quality Analysis**
+
+Both methods successfully extract all 7 figures, but with different quality characteristics:
+
+| Aspect | Azure Figures | Manual PDF | Advantage |
+|--------|---------------|------------|-----------|
+| **Average Resolution** | ~414×232 pixels | ~596×334 pixels | **Manual PDF (+107%)**|
+| **File Format** | PNG (lossless) | JPEG (compressed) | Azure Figures |
+| **File Size** | Larger (~0.12MB avg) | Smaller (~0.08MB avg) | Manual PDF |
+| **Color Quality** | RGB (full color) | RGB (full color) | Equal |
+
+#### **📈 Detailed Resolution Comparison**
+
+| Image | Azure Dimensions | Manual Dimensions | Manual Advantage |
+|-------|-----------------|-------------------|------------------|
+| Figure 1 | 142×48 | 203×69 | +105.5% pixels |
+| Figure 2 | 414×232 | 596×334 | +107.3% pixels |
+| Figure 3 | 405×218 | 584×314 | +107.7% pixels |
+| Figure 4 | 411×271 | 592×391 | +107.8% pixels |
+| Figure 5 | 334×405 | 480×582 | +106.5% pixels |
+| Figure 6 | 400×305 | 576×440 | +107.7% pixels |
+| Figure 7 | 533×219 | 767×316 | +107.6% pixels |
+
+#### **🏆 Key Findings**
+
+✅ **Manual PDF Method Advantages:**
+- **379x faster** processing time (0.13s vs 49.26s)
+- **~107% higher resolution** on average
+- **Smaller file sizes** due to JPEG compression
+- **Same extraction success rate** (100%)
+
+⚠️ **Azure Figures Method Advantages:**
+- **PNG format** preserves image quality without compression
+- **Official Azure API** with guaranteed support
+- **Consistent formatting** across different document types
+
+#### **🎯 Recommendations**
+
+**For Production Use:**
+- **Primary Method**: Manual PDF extraction for speed and higher resolution
+- **Fallback Method**: Azure Figures for documents where manual extraction fails
+- **Best Practice**: Implement both methods with automatic fallback strategy
+
+**Performance vs Quality Trade-off:**
+```
+Manual PDF: ⚡ Ultra-fast + 📈 Higher resolution + 💾 Smaller files
+Azure API: 🔄 Slower + 🎨 Lossless quality + 🛡️ Enterprise support
+```
+
+#### **🧪 Test Methodology**
+
+This analysis was conducted using:
+- **Test Document**: Real educational PDF with 7 figures
+- **Measurement Tools**: Python PIL for image analysis, MD5 hashing for comparison
+- **Metrics Collected**: Dimensions, file sizes, processing time, pixel count
+- **Environment**: Local development environment with Azure AI Document Intelligence
+
+> **Note**: Results may vary based on document complexity, network latency, and Azure service performance. The manual method consistently shows superior performance for typical educational documents.
+
 
 ## 📚 Future Roadmap
 
@@ -451,21 +628,31 @@ The API now returns header images along with document metadata:
 - [ ] Implement automatic difficulty level detection
 - [ ] Add support for multiple document analysis providers
 
-## 🔄 Recent Updates (July 2025)
+## 🔄 Recent Updates (August 2025)
 
-### ✅ **New Features**
-- **Professional Exception Handling**: Enterprise-grade exception system with custom hierarchy
-- **Structured Logging**: JSON-formatted logging with request context tracking
-- **Automatic Error Handling**: `@handle_exceptions` decorator for clean controller code
-- **Project Cleanup**: Removed unused files and standardized documentation
+### ✅ **Major Architectural Refactoring**
+- **Simplified API**: Removed complex parameters from `/analyze_document` endpoint
+- **Pydantic Models**: Full type safety with `InternalDocumentResponse` and `InternalDocumentMetadata`
+- **Adapter Pattern**: Clean separation via `DocumentResponseAdapter` for API responses
+- **MockDocumentService**: Refactored with specialized methods (`process_document_mock_text_only`, `process_document_mock_images_only`)
 
-### 🛠️ **Technical Improvements**
-- Implemented `SmartQuestException` hierarchy with automatic HTTP response conversion
-- Added `StructuredLogger` with JSON formatting and request context
-- Reorganized project structure and removed empty/unused files
-- Standardized all documentation in English
-- Enhanced test coverage with 169 passing tests (100% success rate)
-- Improved code maintainability with clean separation of concerns
+### 🧹 **Project Cleanup (15 obsolete files removed)**
+- **Test Structure**: Reorganized tests into clear categories (`unit/`, `integration/`, `debug_scripts/`)
+- **Code Quality**: Removed obsolete debug scripts and temporary test files
+- **Coverage**: Expanded unit tests for new components (adapters, models, refactored services)
+- **Documentation**: Updated all documentation to reflect new architecture
+
+### 🏗️ **New Components**
+- `DocumentResponseAdapter`: Converts internal models to API responses
+- `InternalDocumentResponse`/`InternalDocumentMetadata`: Type-safe internal processing
+- Enhanced `AnalyzeService` with `process_document_with_models()` method
+- Organized debug scripts in `tests/debug_scripts/` with clear categorization
+
+### 📊 **Test Infrastructure**
+- **110 passing tests** (7 require updates for removed methods)
+- **Organized structure**: `test_adapters/`, `test_models/`, expanded service tests
+- **Clean debug scripts**: Properly categorized in `tests/debug_scripts/`
+- **Coverage reports**: HTML and XML formats available
 
 ## 💡 Background
 
