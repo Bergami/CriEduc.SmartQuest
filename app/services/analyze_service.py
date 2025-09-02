@@ -17,8 +17,8 @@ from typing import Dict, Any
 from uuid import uuid4
 from pathlib import Path
 from fastapi import UploadFile
-from app.parsers.header_parser import HeaderParser
-from app.parsers.question_parser import QuestionParser
+from app.parsers.header_parser import PydanticHeaderParser
+from app.parsers.question_parser import QuestionParser, PydanticQuestionParser
 from app.services.document_extraction_factory import DocumentExtractionFactory
 from app.services.mock_document_service import MockDocumentService
 from app.services.image_categorization_service import ImageCategorizationService
@@ -51,7 +51,9 @@ class AnalyzeService:
         use_refactored: bool = False
     ) -> Dict[str, Any]:
         """
-        Processa documento usando Azure Document Intelligence com extração de imagens otimizada
+        🚨 MÉTODO LEGACY: Processa documento usando Azure Document Intelligence
+        
+        ⚠️ DEPRECADO: Use process_document_with_models() para nova implementação Pydantic
         
         Args:
             file: Arquivo para processamento
@@ -196,12 +198,15 @@ class AnalyzeService:
         if image_data:
             logger.info(f"{len(image_data)} images extracted using optimized extractors")
         
-        # Processar header usando modelo tipado
-        legacy_header = HeaderParser.parse(extracted_data["text"])
-        header_metadata = InternalDocumentMetadata.from_legacy_header(legacy_header)
+        # Processar header usando PydanticHeaderParser
+        logger.info("🆕 Using PydanticHeaderParser for metadata extraction")
+        header_metadata = PydanticHeaderParser.parse(extracted_data["text"])
         
-        # Extrair questões usando parser padrão
-        question_data = QuestionParser.extract(extracted_data["text"], image_data)
+        # 🆕 MIGRAÇÃO PYDANTIC: Extrair questões e contextos usando PydanticQuestionParser
+        logger.info("🆕 Using PydanticQuestionParser for questions and contexts extraction")
+        context_blocks_pydantic, questions_pydantic = PydanticQuestionParser.parse(
+            extracted_data["text"], image_data
+        )
         
         # Processar versão refatorada com melhorias
         if use_refactored:
@@ -212,35 +217,21 @@ class AnalyzeService:
                 processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_result)
                 logger.info(f"{len(processed_figures)} figures processed from Azure")
                 
-                from app.services.refactored_context_builder import RefactoredContextBlockBuilder
-                context_builder = RefactoredContextBlockBuilder()
-                enhanced_context_blocks = context_builder.analyze_azure_figures_dynamically(
-                    azure_result, image_data
-                )
-                
-                logger.info(f"{len(enhanced_context_blocks)} enhanced context blocks created")
-                
-                if enhanced_context_blocks:
-                    question_data["context_blocks"] = enhanced_context_blocks
-                
-                enhanced_questions = AzureFigureProcessor.associate_figures_to_questions(
-                    processed_figures, question_data["questions"]
-                )
-                question_data["questions"] = enhanced_questions
-                
-                logger.info("Questions enhanced with figure associations")
+                # 🚨 SIMPLIFICAÇÃO TEMPORÁRIA: Desabilitar RefactoredContextBuilder
+                # TODO: Integrar RefactoredContextBuilder Pydantic na FASE 2
+                logger.warning("RefactoredContextBuilder integration temporarily disabled - using basic Pydantic version")
         
-        logger.info(f"Questions found: {len(question_data['questions'])}")
-        logger.info(f"Context blocks: {len(question_data['context_blocks'])}")
+        logger.info(f"Questions found: {len(questions_pydantic)}")
+        logger.info(f"Context blocks: {len(context_blocks_pydantic)}")
 
-        # Criar response usando modelo tipado
+        # 🆕 CRIAR RESPONSE USANDO MODELOS PYDANTIC DIRETAMENTE
         response = InternalDocumentResponse(
             email=email,
             document_id=document_id,
             filename=file.filename,
             document_metadata=header_metadata,
-            questions=question_data["questions"],
-            context_blocks=question_data["context_blocks"],
+            questions=questions_pydantic,
+            context_blocks=context_blocks_pydantic,
             extracted_text=extracted_data["text"],
             provider_metadata=extracted_data.get("metadata", {}),
             all_images=[]  # TODO: converter image_data para InternalImageData
@@ -405,8 +396,11 @@ class AnalyzeService:
             logger.info("Skipping categorization - no valid image data available")
             header_images, content_images = [], {}
         
-        # Fazer parse das informações do header com imagens categorizadas
-        header_data = HeaderParser.parse(extracted_data["text"], header_images)
+        # Fazer parse das informações do header com imagens categorizadas usando PydanticHeaderParser
+        logger.info("🆕 Using PydanticHeaderParser for header extraction")
+        header_metadata = PydanticHeaderParser.parse(extracted_data["text"], header_images)
+        # Convert back to legacy format for compatibility with current return structure
+        header_data = header_metadata.to_legacy_format()
         
         # Retornar dados estruturados compatíveis com o sistema atual
         return {
@@ -528,3 +522,217 @@ class AnalyzeService:
         except Exception as e:
             logger.error(f"Error loading images with metadata: {str(e)}")
             return {}
+
+    @staticmethod
+    async def process_document_with_azure_response(
+        azure_response: Dict[str, Any],
+        email: str,
+        filename: str,
+        use_refactored: bool = True
+    ) -> InternalDocumentResponse:
+        """
+        Processa um documento usando response já obtido do Azure Document Intelligence.
+        
+        Args:
+            azure_response: Response completo do Azure já processado
+            email: Email do usuário
+            filename: Nome do arquivo para referência
+            use_refactored: Se deve usar versão refatorada (Pydantic pipeline)
+        
+        Returns:
+            InternalDocumentResponse com dados processados
+        """
+        logger.info(f"🔧 Processing document with saved Azure response: {filename} for {email}")
+        
+        try:
+            # Gerar ID único para este processamento
+            document_id = str(uuid4())
+            
+            # Extrair texto do Azure response
+            extracted_text = azure_response.get("content", "")
+            
+            # Processar figuras do Azure response
+            processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_response)
+            logger.info(f"{len(processed_figures)} figures processed from Azure response")
+            
+            # Categorizar imagens (se houver)
+            header_images, content_images = [], []
+            if processed_figures:
+                header_images, content_images = ImageCategorizationService.categorize_extracted_images(
+                    processed_figures, azure_response
+                )
+                logger.info(f"Categorization complete: {len(header_images)} header images, {len(content_images)} content images")
+            
+            if use_refactored:
+                # 🆕 PIPELINE PYDANTIC COMPLETO
+                logger.info("🆕 Using PydanticHeaderParser for header extraction")
+                document_metadata = PydanticHeaderParser.parse(extracted_text, header_images)
+                
+                # 🔧 EXTRAIR IMAGENS REAIS usando PDF mais recente + MANUAL_PDF PRIMEIRO
+                logger.info("� Extracting images using last processed PDF + MANUAL_PDF strategy")
+                extracted_images = {}  # Initialize with empty dict
+                all_images = []
+                
+                if processed_figures:
+                    try:
+                        from app.services.image_extraction.image_extraction_orchestrator import ImageExtractionOrchestrator, ImageExtractionMethod
+                        from app.services.utils.last_pdf_finder import LastPDFFinder
+                        from fastapi import UploadFile
+                        import io
+                        
+                        # Encontrar o PDF mais recente
+                        last_pdf_path = LastPDFFinder.get_last_processed_pdf()
+                        
+                        if last_pdf_path:
+                            logger.info(f"📄 Using last processed PDF: {last_pdf_path}")
+                            
+                            # Ler o PDF e criar UploadFile mock
+                            with open(last_pdf_path, 'rb') as pdf_file:
+                                pdf_content = pdf_file.read()
+                            
+                            # Criar UploadFile mock para compatibilidade
+                            mock_file = UploadFile(
+                                filename=os.path.basename(last_pdf_path),
+                                file=io.BytesIO(pdf_content),
+                                size=len(pdf_content)
+                            )
+                            
+                            orchestrator = ImageExtractionOrchestrator()
+                            
+                            # Usar estratégia MANUAL_PDF com o último PDF
+                            extracted_images = await orchestrator.extract_images_single_method(
+                                method=ImageExtractionMethod.MANUAL_PDF,
+                                file=mock_file,
+                                document_analysis_result=azure_response,
+                                document_id=document_id
+                            )
+                            
+                            logger.info(f"✅ MANUAL_PDF extraction completed: {len(extracted_images)} images")
+                        else:
+                            logger.warning("❌ No processed PDF found - cannot extract images")
+                            extracted_images = {}
+                            
+                    except Exception as e:
+                        logger.error(f"❌ Failed to extract images with MANUAL_PDF: {str(e)}")
+                        extracted_images = {}
+                
+                # Agora que temos extracted_images, usar no PydanticQuestionParser
+                logger.info("�🆕 Using PydanticQuestionParser for questions and contexts extraction")
+                
+                # 🔧 CORREÇÃO: Usar extracted_images ao invés de processed_figures
+                # extracted_images contém as imagens reais extraídas
+                raw_image_data = extracted_images  # Dict[figure_id, base64_string]
+                
+                logger.info(f"📸 Passing {len(raw_image_data)} images to PydanticQuestionParser")
+                
+                # Usar PydanticQuestionParser
+                context_blocks, questions = PydanticQuestionParser.parse(extracted_text, raw_image_data)
+                
+                logger.info("Using REFACTORED version with improvements")
+                
+                # Aplicar melhorias com RefactoredContextBlockBuilder (temporariamente simplificado)
+                logger.warning("RefactoredContextBuilder integration temporarily disabled - using basic Pydantic version")
+                
+                logger.info(f"Questions found: {len(questions)}")
+                logger.info(f"Context blocks: {len(context_blocks)}")
+                
+                # Converter extracted_images para InternalImageData
+                if extracted_images:
+                    try:
+                        from app.models.internal.image_models import InternalImageData, ImageCategory, ImagePosition
+                        
+                        for figure in processed_figures:
+                            figure_id = str(figure.get('id', f"fig_{len(all_images)}"))
+                            
+                            # Calcular posição
+                            position = None
+                            required_position_keys = ['x_position', 'y_position', 'width', 'height']
+                            if all(key in figure for key in required_position_keys):
+                                position = ImagePosition(
+                                    x=figure.get('x_position', 0),
+                                    y=figure.get('y_position', 0),
+                                    width=figure.get('width', 0),
+                                    height=figure.get('height', 0)
+                                )
+                            
+                            # Usar imagem extraída se disponível, senão usar placeholder
+                            base64_data = extracted_images.get(figure_id, "")
+                            file_path = f"temp/figure_{figure_id}.png" if base64_data else ""
+                            
+                            image_data = InternalImageData(
+                                id=figure_id,
+                                file_path=file_path,
+                                base64_data=base64_data,
+                                page=figure.get('page_number', 1),
+                                position=position,
+                                azure_coordinates=figure.get('polygon'),
+                                category=ImageCategory.FIGURE,
+                                extracted_text=figure.get('caption', ''),
+                                confidence_score=0.9 if base64_data else 0.0
+                            )
+                            
+                            all_images.append(image_data)
+                        
+                        logger.info(f"✅ Created {len(all_images)} InternalImageData objects with real images")
+                        
+                    except Exception as e:
+                        logger.error(f"❌ Failed to extract images with MANUAL_PDF: {str(e)}")
+                        logger.info("🔄 Falling back to metadata-only placeholders")
+                        
+                        # Fallback: criar placeholders apenas com metadados
+                        from app.models.internal.image_models import InternalImageData, ImageCategory, ImagePosition
+                        
+                        all_images = []  # Reset array for fallback
+                        for figure in processed_figures:
+                            figure_id = str(figure.get('id', f"fig_{len(all_images)}"))
+                            
+                            position = None
+                            required_position_keys = ['x_position', 'y_position', 'width', 'height']
+                            if all(key in figure for key in required_position_keys):
+                                position = ImagePosition(
+                                    x=figure.get('x_position', 0),
+                                    y=figure.get('y_position', 0),
+                                    width=figure.get('width', 0),
+                                    height=figure.get('height', 0)
+                                )
+                            
+                            image_data = InternalImageData(
+                                id=figure_id,
+                                file_path="",
+                                base64_data="",
+                                page=figure.get('page_number', 1),
+                                position=position,
+                                azure_coordinates=figure.get('polygon'),
+                                category=ImageCategory.FIGURE,
+                                extracted_text=figure.get('caption', ''),
+                                confidence_score=0.0
+                            )
+                            
+                            all_images.append(image_data)
+                        
+                        logger.warning(f"⚠️ Using {len(all_images)} placeholder images without base64 data")
+                else:
+                    logger.info("ℹ️ No figures found in Azure response")
+                
+                internal_response = InternalDocumentResponse(
+                    email=email,
+                    filename=filename,
+                    document_id=document_id,
+                    document_metadata=document_metadata,
+                    questions=questions,
+                    context_blocks=context_blocks,
+                    all_images=all_images,  # ✅ CORRIGIDO: Usar imagens convertidas
+                    extracted_text=extracted_text,
+                    provider_metadata={"azure_response": azure_response}
+                )
+                
+                logger.info("✅ Document processing completed successfully with saved Azure response")
+                return internal_response
+            
+            else:
+                # Pipeline legado (não recomendado)
+                raise NotImplementedError("Legacy pipeline not supported for Azure response processing")
+                
+        except Exception as e:
+            logger.error(f"Error processing document with Azure response: {str(e)}")
+            raise DocumentProcessingError(f"Failed to process document with Azure response: {str(e)}")

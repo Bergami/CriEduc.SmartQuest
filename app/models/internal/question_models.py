@@ -65,7 +65,7 @@ class InternalAnswerOption(BaseModel):
             InternalAnswerOption instance
         """
         return cls(
-            label=legacy_option.get("label", ""),
+            label=legacy_option.get("label") or legacy_option.get("letter", ""),
             text=legacy_option.get("text", ""),
             is_correct=legacy_option.get("isCorrect", False),
             raw_text=str(legacy_option),
@@ -244,14 +244,13 @@ class InternalQuestion(BaseModel):
         Returns:
             InternalQuestion instance
         """
-        # Extract content
-        content = InternalQuestionContent.from_legacy_content(
-            legacy_question.get("content", "")
-        )
+        # Extract content - pode vir como "content" ou "question"
+        content_text = legacy_question.get("content") or legacy_question.get("question", "")
+        content = InternalQuestionContent.from_legacy_content(content_text)
         
-        # Extract options
+        # Extract options - formato correto é "alternatives"
         options = []
-        legacy_options = legacy_question.get("options", [])
+        legacy_options = legacy_question.get("alternatives", [])
         for opt in legacy_options:
             options.append(InternalAnswerOption.from_legacy_option(opt))
         
@@ -267,7 +266,7 @@ class InternalQuestion(BaseModel):
             number=legacy_question.get("number", 0),
             content=content,
             options=options,
-            context_id=legacy_question.get("contextId"),
+            context_id=legacy_question.get("context_id"),
             answer_type=answer_type,
             has_image=legacy_question.get("hasImage", False),
             subject=legacy_question.get("subject"),

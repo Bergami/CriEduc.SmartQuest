@@ -182,13 +182,13 @@ class DocumentResponseDTO(BaseModel):
             Optimized DocumentResponseDTO for API response
         """
         # Convert metadata
-        metadata_dto = DocumentMetadataDTO.from_internal_metadata(internal_response.metadata)
+        metadata_dto = DocumentMetadataDTO.from_internal_metadata(internal_response.document_metadata)
         
         # Convert images
-        images_dto = ImageListDTO.from_internal_images(internal_response.images)
+        images_dto = ImageListDTO.from_internal_images(internal_response.all_images)
         
         # Convert contexts
-        contexts_dto = ContextListDTO.from_internal_contexts(internal_response.contexts)
+        contexts_dto = ContextListDTO.from_internal_contexts(internal_response.context_blocks)
         
         # Convert questions
         questions_dto = QuestionListDTO.from_internal_questions(internal_response.questions)
@@ -245,13 +245,28 @@ class DocumentResponseDTO(BaseModel):
             content_types=contexts_dto.content_types
         )
     
-    def get_legacy_format(self) -> Dict[str, Any]:
+    def get_legacy_format(self, image_data_lookup: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """
         Convert to legacy format for backward compatibility.
+        
+        Args:
+            image_data_lookup: Optional dict mapping image IDs to base64 data
         
         Returns:
             Dictionary in legacy response format
         """
+        # Helper function to resolve image IDs to base64 data
+        def resolve_images(image_ids: List[str]) -> List[str]:
+            """Convert image IDs to base64 strings."""
+            if not image_data_lookup or not image_ids:
+                return []
+            
+            base64_images = []
+            for image_id in image_ids:
+                if image_id in image_data_lookup:
+                    base64_images.append(image_data_lookup[image_id])
+            return base64_images
+        
         return {
             "header": {
                 "network": self.metadata.network,
@@ -264,28 +279,39 @@ class DocumentResponseDTO(BaseModel):
                 "grade": self.metadata.grade,
                 "class": self.metadata.class_,
                 "student": self.metadata.student,
-                "date": self.metadata.date
+                "date": self.metadata.date,
+                "images": []  # Images do header (se houver)
             },
-            "contexts": [
+            "context_blocks": [
                 {
                     "id": ctx.id,
-                    "type": ctx.type,
+                    "type": ctx.type[0] if ctx.type else "text",
                     "content": {"description": ctx.content.description},
-                    "title": ctx.title,
-                    "statement": ctx.statement,
-                    "hasImage": ctx.has_image
+                    "title": ctx.title or "",
+                    "statement": ctx.statement or "",
+                    "sub_contexts": [
+                        {
+                            "sequence": sub.sequence,
+                            "type": sub.type,
+                            "title": sub.title,
+                            "content": sub.content,
+                            "images": sub.images
+                        }
+                        for sub in ctx.sub_contexts
+                    ],
+                    "hasImage": ctx.has_image,
+                    "images": resolve_images(ctx.image_ids)  # ← Resolver IDs para base64
                 }
-                for ctx in self.contexts.contexts
+                for ctx in (self.contexts.contexts if hasattr(self.contexts, 'contexts') else self.contexts)
             ],
             "questions": [
                 {
                     "number": q.number,
                     "content": q.content.statement,
-                    "options": [
+                    "alternatives": [
                         {
-                            "label": opt.label,
-                            "text": opt.text,
-                            "isCorrect": opt.is_correct
+                            "letter": opt.label,
+                            "text": opt.text
                         }
                         for opt in q.options
                     ],
@@ -293,23 +319,9 @@ class DocumentResponseDTO(BaseModel):
                     "hasImage": q.has_image,
                     "subject": q.subject
                 }
-                for q in self.questions.questions
-            ],
-            "images": [
-                {
-                    "id": img.id,
-                    "content": img.base64_data,
-                    "page": img.page,
-                    "category": img.category
-                }
-                for img in self.images.images
-            ],
-            "summary": {
-                "totalImages": self.summary.total_images,
-                "totalContexts": self.summary.total_contexts,
-                "totalQuestions": self.summary.total_questions,
-                "avgConfidence": self.summary.avg_confidence
-            }
+                for q in (self.questions.questions if hasattr(self.questions, 'questions') else self.questions)
+            ]
+            # ✅ ETAPA 1: Removidos campos "images" e "summary" da raiz conforme solicitado
         }
     
     class Config:

@@ -8,6 +8,8 @@ including all metadata and processing information.
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from .image_models import InternalImageData
+from .context_models import InternalContextBlock
+from .question_models import InternalQuestion
 
 
 class InternalDocumentMetadata(BaseModel):
@@ -103,7 +105,7 @@ class InternalDocumentMetadata(BaseModel):
             "trimester": self.trimester,
             "grade": self.grade,
             "class": self.class_,
-            "student": self.student,
+            "student": self.student,  # Direct mapping since both use 'student'
             "grade_value": self.grade_value,
             "date": self.date,
             "images": []  # Will be populated by transformation layer
@@ -152,14 +154,14 @@ class InternalDocumentResponse(BaseModel):
         description="Complete document metadata with images"
     )
     
-    # Questions and context (internal format)
-    questions: List[Dict[str, Any]] = Field(
+    # Questions and context (Pydantic models)
+    questions: List[InternalQuestion] = Field(
         default_factory=list,
-        description="Questions in internal format"
+        description="Questions as Pydantic models"
     )
-    context_blocks: List[Dict[str, Any]] = Field(
+    context_blocks: List[InternalContextBlock] = Field(
         default_factory=list,
-        description="Context blocks in internal format"
+        description="Context blocks as Pydantic models"
     )
     
     # Raw processing data

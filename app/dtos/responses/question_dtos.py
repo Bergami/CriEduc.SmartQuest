@@ -124,36 +124,71 @@ class QuestionDTO(BaseModel):
     @classmethod
     def from_internal_question(cls, internal_question) -> "QuestionDTO":
         """
-        Create QuestionDTO from InternalQuestion.
+        Create QuestionDTO from InternalQuestion OR Dict.
         
         Args:
-            internal_question: InternalQuestion instance
+            internal_question: InternalQuestion instance OR Dict
             
         Returns:
             Simplified QuestionDTO for API response
         """
-        # Convert content
-        content_dto = QuestionContentDTO.from_internal_content(internal_question.content)
-        
-        # Convert options
-        option_dtos = [
-            AnswerOptionDTO.from_internal_option(opt)
-            for opt in internal_question.options
-        ]
-        
-        return cls(
-            number=internal_question.number,
-            content=content_dto,
-            options=option_dtos,
-            context_id=internal_question.context_id,
-            answer_type=internal_question.answer_type.value,
-            difficulty=internal_question.difficulty.value,
-            subject=internal_question.subject,
-            topic=internal_question.topic,
-            has_image=internal_question.has_image,
-            image_ids=internal_question.associated_images,
-            confidence=internal_question.confidence_score
-        )
+        # Handle both Dict and Pydantic formats
+        if isinstance(internal_question, dict):
+            # Dict format (current pipeline)
+            content_dto = QuestionContentDTO(
+                statement=internal_question.get("question", internal_question.get("text", ""))
+            )
+            
+            # Convert alternatives to AnswerOptionDTO
+            alternatives = internal_question.get("alternatives", [])
+            option_dtos = []
+            for i, alt_text in enumerate(alternatives):
+                # Ensure alt_text is string
+                alt_text_str = str(alt_text) if alt_text is not None else f"Opção {i+1}"
+                
+                option_dto = AnswerOptionDTO(
+                    label=chr(65 + i),  # A, B, C, D...
+                    text=alt_text_str,
+                    is_correct=False  # TODO: determine correct answer
+                )
+                option_dtos.append(option_dto)
+            
+            return cls(
+                number=internal_question.get("number", 0),
+                content=content_dto,
+                options=option_dtos,
+                context_id=internal_question.get("context_id", 0),
+                answer_type="multiple_choice",  # Default
+                difficulty="medium",  # Default
+                subject=internal_question.get("subject", ""),
+                topic="",  # Default
+                has_image=internal_question.get("hasImage", False),
+                image_ids=[],
+                confidence=0.8  # Default
+            )
+        else:
+            # Pydantic format (future pipeline)
+            content_dto = QuestionContentDTO.from_internal_content(internal_question.content)
+            
+            # Convert options
+            option_dtos = [
+                AnswerOptionDTO.from_internal_option(opt)
+                for opt in internal_question.options
+            ]
+            
+            return cls(
+                number=internal_question.number,
+                content=content_dto,
+                options=option_dtos,
+                context_id=internal_question.context_id,
+                answer_type=internal_question.answer_type.value,
+                difficulty=internal_question.difficulty.value,
+                subject=internal_question.subject,
+                topic=internal_question.topic,
+                has_image=internal_question.has_image,
+                image_ids=internal_question.associated_images,
+                confidence=internal_question.confidence_score
+            )
     
     def get_correct_answer(self) -> Optional[AnswerOptionDTO]:
         """Get the correct answer option."""

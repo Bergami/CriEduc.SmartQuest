@@ -170,8 +170,14 @@ class InternalContextBlock(BaseModel):
         """
         from ...core.constants.content_types import ContentType
         
-        # Extract content
-        content_data = legacy_block.get("content", {})
+        # Extract content - pode vir como "content" ou "paragraphs"
+        content_data = legacy_block.get("content")
+        if not content_data and "paragraphs" in legacy_block:
+            # Se não tem "content", usar "paragraphs" diretamente
+            content_data = {"paragraphs": legacy_block["paragraphs"]}
+        elif not content_data:
+            content_data = {}
+            
         content = InternalContextContent.from_legacy_content(content_data)
         
         # Handle type field

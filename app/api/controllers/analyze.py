@@ -1,5 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, Query, Request
-from typing import Dict, Any
+from fastapi import APIRouter, UploadFile, File, Query, Request, HTTPException, Form
+from typing import Dict, Any, Optional, Union
 from app.services.analyze_service import AnalyzeService
 from app.services.document_processing_orchestrator import DocumentProcessingOrchestrator
 from app.services.image_extraction import ImageExtractionOrchestrator, ImageExtractionMethod
@@ -23,7 +23,8 @@ router = APIRouter()
 async def analyze_document(
     request: Request,
     email: str = Query(..., description="User email for document analysis"),
-    file: UploadFile = File(..., description="PDF file for analysis")
+    use_mock: bool = Query(False, description="Use latest Azure response instead of making new API call"),
+    file: Optional[UploadFile] = File(None, description="PDF file for analysis (required when use_mock=false)")
 ):
     """
     Analisa documento PDF e extrai informações estruturadas via Azure Document Intelligence
@@ -31,7 +32,8 @@ async def analyze_document(
     Args:
         request: Objeto Request do FastAPI
         email: Email do usuário para análise
-        file: Arquivo PDF para análise
+        use_mock: Se True, usa último response do Azure salvo; se False, faz nova chamada
+        file: Arquivo PDF para análise (obrigatório apenas quando use_mock=false)
     
     Returns:
         Dados extraídos do documento em formato estruturado
@@ -41,39 +43,95 @@ async def analyze_document(
         DocumentProcessingError: Erro no processamento do documento
     """
     
+    # Validação condicional do arquivo
+    if not use_mock and file is None:
+        raise HTTPException(
+            status_code=400, 
+            detail="File is required when use_mock=false"
+        )
+    
+    # Determinar filename para logs
+    filename = file.filename if file else "azure-mock-response"
+    file_size = file.size if file and hasattr(file, 'size') else None
+    content_type = file.content_type if file else "application/json"
+    
     # Log contexto da operação
     structured_logger.info(
         "Starting document analysis",
         context={
             "email": email,
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "has_file": True
+            "filename": filename,
+            "content_type": content_type,
+            "has_file": file is not None,
+            "use_mock": use_mock
         }
     )
     
-    # Validação de entrada
-    structured_logger.debug("Executing input validation")
-    AnalyzeValidator.validate_all(file, email)
-    structured_logger.debug("Input validation completed successfully")
+    # Validação de entrada (apenas quando há arquivo)
+    if file:
+        structured_logger.debug("Executing input validation")
+        AnalyzeValidator.validate_all(file, email)
+        structured_logger.debug("Input validation completed successfully")
 
-    # Processamento do documento via Azure Document Intelligence
-    structured_logger.debug("Starting document processing")
-    structured_logger.info(
-        "Using Azure Document Intelligence for processing",
-        context={
-            "email": email,
-            "filename": file.filename,
-            "file_size": file.size if hasattr(file, 'size') else None
-        }
-    )
-    
-    # 🆕 USAR MÉTODO REFATORADO COM MODELOS PYDANTIC
-    internal_response = await AnalyzeService.process_document_with_models(
-        file=file, 
-        email=email, 
-        use_refactored=True
-    )
+    # 🆕 DECISÃO: Usar mock ou fazer nova chamada Azure
+    if use_mock:
+        structured_logger.info(
+            "Using mock mode - processing with latest Azure response",
+            context={
+                "email": email,
+                "filename": filename,
+                "processing_mode": "azure_saved_response"
+            }
+        )
+        
+        # Processar usando último response salvo do Azure
+        from app.services.azure_response_service import AzureResponseService
+        
+        try:
+            azure_response = AzureResponseService.get_latest_azure_response()
+            latest_file_info = AzureResponseService.get_latest_file_info()
+            
+            structured_logger.info(
+                "Loaded latest Azure response for mock processing",
+                context={
+                    "azure_file": latest_file_info.get("name"),
+                    "file_size": latest_file_info.get("size"),
+                    "modified_date": latest_file_info.get("modified_date")
+                }
+            )
+            
+            # Processar documento com response salvo usando pipeline Pydantic
+            internal_response = await AnalyzeService.process_document_with_azure_response(
+                azure_response=azure_response,
+                email=email,
+                filename=filename,
+                use_refactored=True
+            )
+            
+        except Exception as e:
+            structured_logger.error(
+                "Failed to process with mock Azure response",
+                context={"error": str(e), "email": email}
+            )
+            raise DocumentProcessingError(f"Mock processing failed: {str(e)}")
+    else:
+        # Processamento normal via Azure Document Intelligence
+        structured_logger.info(
+            "Using Azure Document Intelligence for processing",
+            context={
+                "email": email,
+                "filename": filename,
+                "file_size": file_size,
+                "processing_mode": "azure_live_api"
+            }
+        )
+        
+        # 🆕 USAR MÉTODO COM MODELOS PYDANTIC - CORRIGIDO
+        internal_response = await AnalyzeService.process_document_with_models(
+            file=file, 
+            email=email, 
+            use_refactored=True
+        )
     
     # 🆕 USAR ADAPTER PARA CONVERTER PARA FORMATO DA API
     api_response = DocumentResponseAdapter.to_api_response(internal_response)
@@ -90,6 +148,88 @@ async def analyze_document(
     )
 
     return api_response
+
+@router.post("/analyze_document_with_last_azure_response")
+@handle_exceptions("document_analysis_azure_saved_response")
+async def analyze_document_with_last_azure_response(
+    request: Request,
+    email: str = Query(..., description="User email for document analysis")
+):
+    """
+    Analisa documento usando exclusivamente o último response salvo do Azure Document Intelligence.
+    Este endpoint não requer arquivo PDF e reutiliza dados já extraídos pelo Azure.
+    
+    Útil para:
+    - Testar o pipeline de processamento sem consumir cota do Azure
+    - Desenvolvimento e debug usando dados reais previamente extraídos
+    - Demonstrações com dados consistentes
+    
+    Args:
+        request: Objeto Request do FastAPI
+        email: Email do usuário para análise
+    
+    Returns:
+        Dados extraídos do documento em formato estruturado usando último response Azure salvo
+    
+    Raises:
+        DocumentProcessingError: Erro no processamento do response Azure salvo
+    """
+    
+    # Log contexto da operação
+    structured_logger.info(
+        "Starting document analysis with last Azure response",
+        context={
+            "email": email,
+            "filename": "last-azure-response",
+            "processing_mode": "azure_saved_response_reuse"
+        }
+    )
+    
+    # Processar usando último response salvo do Azure
+    from app.services.azure_response_service import AzureResponseService
+    
+    try:
+        azure_response = AzureResponseService.get_latest_azure_response()
+        latest_file_info = AzureResponseService.get_latest_file_info()
+        
+        structured_logger.info(
+            "Loaded latest Azure response for mock-only processing",
+            context={
+                "azure_file": latest_file_info.get("name"),
+                "file_size": latest_file_info.get("size"),
+                "modified_date": latest_file_info.get("modified_date")
+            }
+        )
+        
+        # Processar documento com response salvo usando pipeline Pydantic
+        internal_response = await AnalyzeService.process_document_with_azure_response(
+            azure_response=azure_response,
+            email=email,
+            filename="last-azure-response",
+            use_refactored=True
+        )
+        
+        # 🆕 USAR ADAPTER PARA CONVERTER PARA FORMATO DA API
+        api_response = DocumentResponseAdapter.to_api_response(internal_response)
+        
+        structured_logger.info(
+            "Document analysis with last Azure response completed successfully",
+            context={
+                "email": email,
+                "document_id": internal_response.document_id,
+                "questions_count": len(internal_response.questions),
+                "context_blocks_count": len(internal_response.context_blocks)
+            }
+        )
+
+        return api_response
+        
+    except Exception as e:
+        structured_logger.error(
+            "Failed to process with mock-only Azure response",
+            context={"error": str(e), "email": email}
+        )
+        raise DocumentProcessingError(f"Mock-only processing failed: {str(e)}")
 
 @router.post("/analyze_document_mock")
 @handle_exceptions("azure_mock_document_analysis")
@@ -224,8 +364,15 @@ async def analyze_document_with_figures(
     structured_logger.debug("Starting document processing with Azure DI")
     
     try:
-        # Primeiro, fazer a análise padrão do documento
-        extracted_data = await AnalyzeService.process_document(file, email, use_refactored=use_refactored)
+        # 🆕 MIGRAÇÃO PYDANTIC: Primeiro, fazer a análise com modelos Pydantic
+        internal_response = await AnalyzeService.process_document_with_models(
+            file=file, 
+            email=email, 
+            use_refactored=use_refactored
+        )
+        
+        # 🆕 USAR ADAPTER PARA CONVERTER PARA FORMATO DA API
+        extracted_data = DocumentResponseAdapter.to_api_response(internal_response)
         
         # Resetar ponteiro do arquivo para extração de imagens
         await file.seek(0)

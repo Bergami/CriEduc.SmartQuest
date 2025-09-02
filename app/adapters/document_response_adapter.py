@@ -20,7 +20,7 @@ class DocumentResponseAdapter:
     @staticmethod
     def to_api_response(internal_response: InternalDocumentResponse) -> Dict[str, Any]:
         """
-        Converte InternalDocumentResponse para formato de response da API.
+        Converte InternalDocumentResponse para formato de response da API usando DTOs modernos.
         
         Args:
             internal_response: Response interno com modelos tipados
@@ -28,20 +28,14 @@ class DocumentResponseAdapter:
         Returns:
             Dicionário no formato esperado pelos endpoints atuais
         """
-        # Converter header para formato legacy
-        header_dict = internal_response.document_metadata.to_legacy_format()
+        from app.dtos.responses.document_dtos import DocumentResponseDTO
         
-        # Montar response no formato atual
-        api_response = {
-            "email": internal_response.email,
-            "document_id": internal_response.document_id,
-            "filename": internal_response.filename,
-            "header": header_dict,
-            "questions": internal_response.questions,
-            "context_blocks": internal_response.context_blocks
-        }
+        # 🆕 MIGRAÇÃO: Usar DTO moderno ao invés de to_legacy_format()
+        response_dto = DocumentResponseDTO.from_internal_response(internal_response)
         
-        return api_response
+        # Retornar no formato da API (ainda Dict para compatibilidade)
+        # FUTURO: Retornar response_dto.dict() diretamente quando frontend migrar
+        return response_dto.get_legacy_format()
     
     @staticmethod 
     def to_full_response(internal_response: InternalDocumentResponse) -> Dict[str, Any]:

@@ -426,12 +426,14 @@ class MockDocumentService:
         question_parser = QuestionParser()
         question_result = question_parser.extract(text_content)
         questions = question_result.get("questions", [])
+        context_blocks = question_result.get("context_blocks", [])
         
         return {
             "document_id": document_id,
             "text_content": text_content,
             "header": header_result,
             "questions": questions,
+            "context_blocks": context_blocks,  # ✅ ADICIONADO: context_blocks que estavam sendo ignorados
             "images": [],  # Sem imagens neste método
             "metadata": {
                 "email": email,
