@@ -8,6 +8,8 @@ including all metadata and processing information.
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from .image_models import InternalImageData
+from .question_models import InternalQuestion  # 🆕 ADICIONADO - tipo Pydantic
+from .context_models import InternalContextBlock  # 🆕 ADICIONADO - tipo Pydantic
 
 
 class InternalDocumentMetadata(BaseModel):
@@ -152,14 +154,14 @@ class InternalDocumentResponse(BaseModel):
         description="Complete document metadata with images"
     )
     
-    # Questions and context (internal format)
-    questions: List[Dict[str, Any]] = Field(
+    # Questions and context (fully typed Pydantic models)
+    questions: List[InternalQuestion] = Field(
         default_factory=list,
-        description="Questions in internal format"
+        description="Questions with complete Pydantic validation"  # ✅ MIGRADO
     )
-    context_blocks: List[Dict[str, Any]] = Field(
+    context_blocks: List[InternalContextBlock] = Field(
         default_factory=list,
-        description="Context blocks in internal format"
+        description="Context blocks with complete Pydantic validation"  # ✅ MIGRADO
     )
     
     # Raw processing data
@@ -198,6 +200,65 @@ class InternalDocumentResponse(BaseModel):
             "content_images": len(self.get_content_images()),
             "uncategorized": len([img for img in self.all_images if img.categorization is None])
         }
+    
+    def to_legacy_format(self) -> Dict[str, Any]:
+        """
+        Convert to legacy format for backwards compatibility.
+        
+        Returns:
+            Dictionary in legacy format expected by current code
+        """
+        return {
+            "email": self.email,
+            "document_id": self.document_id,
+            "filename": self.filename,
+            "header": self.document_metadata.to_legacy_format(),
+            "questions": [q.to_legacy_format() for q in self.questions],
+            "context_blocks": [cb.to_legacy_format() for cb in self.context_blocks],
+            "extracted_text": self.extracted_text,
+            "provider_metadata": self.provider_metadata,
+            "all_images": [img.dict() for img in self.all_images]
+        }
+    
+    @classmethod
+    def from_legacy_format(
+        cls,
+        legacy_response: Dict[str, Any],
+        document_metadata: "InternalDocumentMetadata",
+        all_images: List[InternalImageData] = None
+    ) -> "InternalDocumentResponse":
+        """
+        Create InternalDocumentResponse from legacy format with full Pydantic validation.
+        
+        Args:
+            legacy_response: Legacy response dictionary
+            document_metadata: Document metadata (already Pydantic)
+            all_images: All images from document
+            
+        Returns:
+            InternalDocumentResponse with Pydantic models
+        """
+        # Convert questions to Pydantic
+        questions = []
+        for q_dict in legacy_response.get("questions", []):
+            questions.append(InternalQuestion.from_legacy_question(q_dict))
+        
+        # Convert context blocks to Pydantic
+        context_blocks = []
+        for cb_dict in legacy_response.get("context_blocks", []):
+            context_blocks.append(InternalContextBlock.from_legacy_context_block(cb_dict))
+        
+        return cls(
+            email=legacy_response.get("email", ""),
+            document_id=legacy_response.get("document_id", ""),
+            filename=legacy_response.get("filename", ""),
+            document_metadata=document_metadata,
+            questions=questions,
+            context_blocks=context_blocks,
+            extracted_text=legacy_response.get("extracted_text"),
+            provider_metadata=legacy_response.get("provider_metadata", {}),
+            all_images=all_images or []
+        )
     
     class Config:
         schema_extra = {

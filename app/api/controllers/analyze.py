@@ -4,7 +4,7 @@ from app.services.analyze_service import AnalyzeService
 from app.services.document_processing_orchestrator import DocumentProcessingOrchestrator
 from app.services.image_extraction import ImageExtractionOrchestrator, ImageExtractionMethod
 from app.validators.analyze_validator import AnalyzeValidator
-from app.adapters import DocumentResponseAdapter
+from app.adapters import DocumentResponseAdapter  # ✅ RESTAURADO - mantendo adapter
 from app.core.exceptions import (
     DocumentProcessingError,
     InvalidEmailException,
@@ -68,28 +68,29 @@ async def analyze_document(
         }
     )
     
-    # 🆕 USAR MÉTODO REFATORADO COM MODELOS PYDANTIC
+    # 🆕 USAR MÉTODO REFATORADO COM MODELOS PYDANTIC (INTERNO)
     internal_response = await AnalyzeService.process_document_with_models(
         file=file, 
         email=email, 
         use_refactored=True
     )
     
-    # 🆕 USAR ADAPTER PARA CONVERTER PARA FORMATO DA API
+    # ✅ USAR ADAPTER PARA MANTER ESTRUTURA DE RESPOSTA EXATA
     api_response = DocumentResponseAdapter.to_api_response(internal_response)
     
     structured_logger.info(
-        "Document analysis completed successfully with models",
+        "Document analysis completed successfully with Pydantic models (internal)",
         context={
             "email": email,
             "document_id": internal_response.document_id,
             "questions_count": len(internal_response.questions),
             "context_blocks_count": len(internal_response.context_blocks),
-            "api_response_keys": list(api_response.keys())
+            "api_response_structure": "preserved_via_adapter",
+            "migration_status": "internal_pydantic_external_dict"
         }
     )
 
-    return api_response
+    return api_response  # ✅ Retorna Dict no formato esperado
 
 @router.post("/analyze_document_mock")
 @handle_exceptions("azure_mock_document_analysis")

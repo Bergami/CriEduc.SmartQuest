@@ -233,20 +233,22 @@ class AnalyzeService:
         logger.info(f"Questions found: {len(question_data['questions'])}")
         logger.info(f"Context blocks: {len(question_data['context_blocks'])}")
 
-        # Criar response usando modelo tipado
-        response = InternalDocumentResponse(
-            email=email,
-            document_id=document_id,
-            filename=file.filename,
+        # 🆕 Criar response usando conversão legacy → Pydantic
+        response = InternalDocumentResponse.from_legacy_format(
+            legacy_response={
+                "email": email,
+                "document_id": document_id,
+                "filename": file.filename,
+                "questions": question_data["questions"],
+                "context_blocks": question_data["context_blocks"],
+                "extracted_text": extracted_data["text"],
+                "provider_metadata": extracted_data.get("metadata", {})
+            },
             document_metadata=header_metadata,
-            questions=question_data["questions"],
-            context_blocks=question_data["context_blocks"],
-            extracted_text=extracted_data["text"],
-            provider_metadata=extracted_data.get("metadata", {}),
             all_images=[]  # TODO: converter image_data para InternalImageData
         )
         
-        logger.info("✅ Document processing completed successfully with models")
+        logger.info("✅ Document processing completed successfully with Pydantic models")
         return response
 
     @staticmethod

@@ -5,9 +5,41 @@ These models represent the complete context block structure used internally,
 including all processing metadata and image associations.
 """
 
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field
 from ...core.constants.content_types import ContentType
+
+
+class InternalSubContext(BaseModel):
+    """
+    Internal representation of a sub-context (used in context blocks with multiple sequences).
+    """
+    sequence: str = Field(..., description="Sequence identifier (I, II, III, IV)")
+    type: str = Field(..., description="Type of sub-context (charge, propaganda, photo, etc.)")
+    title: str = Field(..., description="Title of the sub-context")
+    content: str = Field(..., description="Text content of the sub-context")
+    images: List[str] = Field(default_factory=list, description="Base64 images for this sub-context")
+    
+    @classmethod
+    def from_legacy_sub_context(cls, legacy_sub: Dict[str, Any]) -> "InternalSubContext":
+        """Create InternalSubContext from legacy format."""
+        return cls(
+            sequence=legacy_sub.get("sequence", ""),
+            type=legacy_sub.get("type", "image"),
+            title=legacy_sub.get("title", ""),
+            content=legacy_sub.get("content", ""),
+            images=legacy_sub.get("images", [])
+        )
+    
+    def to_legacy_format(self) -> Dict[str, Any]:
+        """Convert back to legacy sub-context format."""
+        return {
+            "sequence": self.sequence,
+            "type": self.type,
+            "title": self.title,
+            "content": self.content,
+            "images": self.images
+        }
 
 
 class InternalContextContent(BaseModel):
@@ -157,6 +189,12 @@ class InternalContextBlock(BaseModel):
         description="Question IDs that reference this context block"
     )
     
+    # Sub-contexts (for context blocks with multiple sequences like TEXTO I, II, III, IV)
+    sub_contexts: Optional[List[InternalSubContext]] = Field(
+        default=None,
+        description="Sub-contexts for context blocks with multiple sequences"
+    )
+    
     @classmethod
     def from_legacy_context_block(cls, legacy_block: Dict[str, Any]) -> "InternalContextBlock":
         """
@@ -186,6 +224,14 @@ class InternalContextBlock(BaseModel):
             # Fallback for unknown types
             type_enums = [ContentType.TEXT]
         
+        # ✅ Preserve sub_contexts if they exist
+        sub_contexts = None
+        if "sub_contexts" in legacy_block and legacy_block["sub_contexts"]:
+            sub_contexts = [
+                InternalSubContext.from_legacy_sub_context(sub_ctx)
+                for sub_ctx in legacy_block["sub_contexts"]
+            ]
+        
         return cls(
             id=legacy_block.get("id", 0),
             type=type_enums,
@@ -194,7 +240,8 @@ class InternalContextBlock(BaseModel):
             statement=legacy_block.get("statement"),
             source=legacy_block.get("source", "exam_document"),
             has_image=legacy_block.get("hasImage", False),
-            extraction_method="legacy_conversion"
+            extraction_method="legacy_conversion",
+            sub_contexts=sub_contexts  # ✅ Include sub_contexts
         )
     
     def to_legacy_format(self) -> Dict[str, Any]:
@@ -204,7 +251,7 @@ class InternalContextBlock(BaseModel):
         Returns:
             Dictionary in legacy format
         """
-        return {
+        legacy_format = {
             "id": self.id,
             "type": [t.value for t in self.type],
             "content": self.content.to_legacy_format(),
@@ -213,6 +260,14 @@ class InternalContextBlock(BaseModel):
             "source": self.source,
             "hasImage": self.has_image
         }
+        
+        # ✅ Include sub_contexts if they exist
+        if self.sub_contexts:
+            legacy_format["sub_contexts"] = [
+                sub_ctx.to_legacy_format() for sub_ctx in self.sub_contexts
+            ]
+        
+        return legacy_format
     
     def add_image_association(self, image_id: str) -> None:
         """Add an image association to this context block."""

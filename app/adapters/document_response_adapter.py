@@ -20,25 +20,79 @@ class DocumentResponseAdapter:
     @staticmethod
     def to_api_response(internal_response: InternalDocumentResponse) -> Dict[str, Any]:
         """
-        Converte InternalDocumentResponse para formato de response da API.
+        Converte InternalDocumentResponse para formato EXATO esperado pela API.
+        
+        ESTRUTURA FIXA - NÃO PODE SER ALTERADA:
+        - header (não document_metadata)
+        - questions com "question" e "alternatives" 
+        - context_blocks com "paragraphs" (opcional)
         
         Args:
             internal_response: Response interno com modelos tipados
             
         Returns:
-            Dicionário no formato esperado pelos endpoints atuais
+            Dicionário no formato EXATO especificado em copilot_instructions.md
         """
-        # Converter header para formato legacy
+        # ✅ Converter header usando método existente
         header_dict = internal_response.document_metadata.to_legacy_format()
         
-        # Montar response no formato atual
+        # ✅ Converter questions para formato API (question + alternatives)
+        api_questions = []
+        for q in internal_response.questions:
+            api_question = {
+                "number": q.number,
+                "question": q.content.statement,  # content.statement → question
+                "alternatives": [  # options → alternatives
+                    {
+                        "letter": opt.label,
+                        "text": opt.text
+                    }
+                    for opt in q.options
+                ],
+                "hasImage": q.has_image,
+                "context_id": q.context_id
+            }
+            api_questions.append(api_question)
+        
+        # ✅ Converter context_blocks para formato API (com paragraphs quando aplicável)
+        api_context_blocks = []
+        for cb in internal_response.context_blocks:
+            api_context = {
+                "id": cb.id,
+                "type": [t.value for t in cb.type],
+                "source": cb.source,
+                "statement": cb.statement,
+                "title": cb.title,
+                "hasImage": cb.has_image
+            }
+            
+            # ✅ Adicionar paragraphs quando há conteúdo de texto
+            if cb.content and cb.content.description:
+                api_context["paragraphs"] = cb.content.description
+            
+            # ✅ Adicionar sub_contexts se existirem (para contextos com múltiplas sequências)
+            if cb.sub_contexts:
+                api_context["sub_contexts"] = [
+                    {
+                        "sequence": sub.sequence,
+                        "type": sub.type,
+                        "title": sub.title,
+                        "content": sub.content,
+                        "images": sub.images
+                    }
+                    for sub in cb.sub_contexts
+                ]
+            
+            api_context_blocks.append(api_context)
+        
+        # ✅ Montar response no formato EXATO esperado
         api_response = {
             "email": internal_response.email,
             "document_id": internal_response.document_id,
             "filename": internal_response.filename,
-            "header": header_dict,
-            "questions": internal_response.questions,
-            "context_blocks": internal_response.context_blocks
+            "header": header_dict,  # ✅ "header" não "document_metadata"
+            "questions": api_questions,  # ✅ com "question" e "alternatives"
+            "context_blocks": api_context_blocks  # ✅ com "paragraphs" opcional
         }
         
         return api_response
