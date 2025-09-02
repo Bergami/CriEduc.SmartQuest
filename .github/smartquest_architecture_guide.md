@@ -13,48 +13,89 @@ O **SmartQuest** é uma API FastAPI que processa documentos de prova usando Azur
 ```
 app/
 ├── api/                    # Controllers e rotas
+│   └── controllers/        # Controladores específicos
+├── adapters/              # Response adapters (Pydantic → Dict)
 ├── config/                 # Configurações e settings
 ├── core/                   # Utilitários centrais, logging, exceptions
+│   └── constants/          # Constantes do sistema
 ├── data/                   # Dados estáticos (cidades, matérias, etc.)
 ├── dtos/                   # Data Transfer Objects
+│   ├── api/               # DTOs para API
 │   └── responses/          # DTOs para respostas da API
+├── models/                 # Modelos Pydantic
+│   └── internal/          # Modelos internos do sistema
 ├── parsers/                # Processadores de dados do Azure
+│   ├── header_parser/      # Parser de cabeçalho
+│   └── question_parser/    # Parser de questões
 ├── services/               # Lógica de negócio
 ├── utils/                  # Utilitários específicos
-└── validators/             # Validação de dados
+├── validators/             # Validação de dados
+└── main.py                # Entry point da aplicação
 ```
 
 ### 🔄 Fluxo Principal de Processamento
 
-1. **Entrada**: `/analyze/analyze_document` recebe imagem base64
+1. **Entrada**: `/analyze_document` recebe PDF file + email
 2. **Azure Integration**: `azure_document_intelligence_service.py` extrai dados
-3. **Context Building**: `refactored_context_builder.py` processa contextos
-4. **Response Formatting**: DTOs convertem para formato da API
+3. **Context Building**: `advanced_context_builder.py` e `refactored_context_builder.py` processam contextos
+4. **Response Formatting**: Adaptadores convertem Pydantic models para formato da API
 5. **Saída**: JSON estruturado conforme especificação
 
-## 📦 Padrões de DTOs
+**⚠️ Estado Atual (Setembro 2025)**: O sistema está em migração Pydantic vs Dict, com endpoint principal (`/analyze_document`) em estado híbrido.
 
-### 🔧 Estrutura de Response DTOs
+## 📦 Padrões de DTOs e Modelos
+
+### 🔧 Estrutura de Modelos Pydantic (Internal)
 ```python
-# Localização: app/dtos/responses/
-- context_dtos.py     # ContextBlockDTO, SubContextDTO
-- document_dtos.py    # DocumentResponseDTO (principal)
-- image_dtos.py       # ImageDTO
-- question_dtos.py    # QuestionDTO
+# Localização: app/models/internal/
+- document_models.py  # InternalDocumentResponse, InternalDocumentMetadata
+- context_models.py   # InternalContextBlock, InternalContextContent  
+- question_models.py  # InternalQuestion, InternalAnswerOption
+- image_models.py     # InternalImageData, ImagePosition
 ```
+
+### 🔧 Estrutura de DTOs (API)
+```python
+# Localização: app/dtos/
+- api/document_dtos.py    # DocumentResponseDTO (principal)
+- api/context_dtos.py     # ContextDTO, SubContextDTO
+- api/question_dtos.py    # QuestionDTO
+- responses/document_dtos.py # DTOs de resposta legacy
+```
+
+### 🔄 Adaptadores (Pydantic → Dict)
+```python
+# Localização: app/adapters/
+- document_response_adapter.py # DocumentResponseAdapter
+```
+
+**⚠️ Nota de Migração**: O sistema está migrando de Dict para Pydantic. Alguns componentes ainda usam Dict internamente e requerem conversões.
 
 ### 🎨 Padrão de Conversão
 ```python
-class DTO(BaseModel):
+# Para Modelos Pydantic Internos
+class InternalModel(BaseModel):
     @classmethod
-    def from_internal_context(cls, internal_data):
-        """Converte dados internos para DTO da API"""
-        # Lógica de conversão aqui
+    def from_legacy_data(cls, legacy_data: Dict[str, Any]):
+        """Converte dados Dict legados para modelo Pydantic"""
         return cls(...)
 
-    def get_legacy_format(self) -> Dict[str, Any]:
-        """Converte para formato legacy da API"""
-        # Para compatibilidade com versões anteriores
+# Para DTOs de API
+class ApiDTO(BaseModel):
+    @classmethod
+    def from_internal_model(cls, internal_model):
+        """Converte modelo interno Pydantic para DTO da API"""
+        return cls(...)
+
+    def to_legacy_format(self) -> Dict[str, Any]:
+        """Converte para formato legacy da API (compatibilidade)"""
+        return {...}
+
+# Para Adaptadores
+class ResponseAdapter:
+    @staticmethod
+    def to_api_response(internal_response) -> Dict[str, Any]:
+        """Converte Pydantic para Dict (temporário durante migração)"""
         return {...}
 ```
 
@@ -91,7 +132,10 @@ class DTO(BaseModel):
 ### 📍 Arquivos Principais
 - `azure_document_intelligence_service.py`: Client do Azure
 - `document_extraction_factory.py`: Factory para diferentes provedores
-- `refactored_context_builder.py`: Processamento avançado de contextos
+- `advanced_context_builder.py`: Processamento avançado de contextos
+- `refactored_context_builder.py`: Processamento refatorado de contextos
+- `document_processing_orchestrator.py`: Orquestrador de processamento
+- `mock_document_service.py`: Serviço mock para testes
 
 ### 🎨 Dados do Azure (Estrutura Esperada)
 ```python
@@ -137,10 +181,26 @@ class DTO(BaseModel):
 "context_blocks": [...]  # Nome correto
 ```
 
-### 🎯 Campos Removidos (ETAPA 1)
-- ❌ `isCorrect` nas alternativas
-- ❌ `images` na raiz da resposta
-- ❌ `summary` na raiz da resposta
+### 🎯 Migração Pydantic vs Dict (Status Setembro 2025)
+
+#### ✅ Componentes Migrados para Pydantic
+- **Modelos Internos**: `InternalDocumentResponse`, `InternalDocumentMetadata`
+- **DTOs de API**: Todos os DTOs principais
+- **Validação**: Metadados de documento e estrutura básica
+
+#### ⚠️ Componentes Híbridos (Em Migração)
+- **Endpoint Principal**: `/analyze_document` usa Pydantic + Dict interno
+- **InternalDocumentResponse**: Campos `questions` e `context_blocks` ainda são Dict
+- **Parsers**: `HeaderParser` e `QuestionParser` retornam Dict
+
+#### ❌ Componentes Ainda em Dict
+- **Processamento Interno**: Pipeline de parsing usa Dict
+- **Endpoint Legacy**: `/analyze_document_with_figures` 
+- **Context Builders**: Alguns ainda processam apenas Dict
+
+#### 🔄 Conversões Desnecessárias
+- **DocumentResponseAdapter**: Converte Pydantic → Dict (temporário)
+- **Header Processing**: Dict → Pydantic → uso interno
 
 ## 🧪 Testing e Debug
 
@@ -156,25 +216,46 @@ tests/
 
 ### 🔧 Comandos de Debug
 ```powershell
-# Rodar com mock
+# Rodar com mock (endpoint principal)
 python start_simple.py --use-mock
 
-# Testar endpoint específico
-python test_api_direct.py
+# Executar via task configurada
+# Use o comando run_task se disponível
 
-# Rodar testes
-python -m pytest tests/
+# Rodar testes completos
+python run_tests.py
+
+# Rodar apenas testes unitários  
+python run_tests.py --unit
+
+# Rodar com coverage
+python run_tests.py --coverage
+
+# Verificar primeiro conjunto de questões
+python check_first_questions.py
 ```
 
 ## 🚨 Pontos Críticos de Atenção
 
-### ⚠️ Validação de Dados
+### ⚠️ Validação de Dados - Estado Híbrido
 ```python
-# CUIDADO: Hybrid Dict/Pydantic handling
-if isinstance(internal_context, dict):
-    # Processar como Dict
-else:
+# ⚠️ ATENÇÃO: Sistema em migração Pydantic/Dict
+# Alguns campos ainda são Dict mesmo em modelos "Pydantic"
+
+# Verificar tipo antes de processar
+if isinstance(data, BaseModel):
     # Processar como Pydantic Model
+    result = data.field_name
+elif isinstance(data, dict):
+    # Processar como Dict
+    result = data.get("field_name")
+else:
+    # Processo de conversão pode ser necessário
+    pass
+
+# Campos híbridos em InternalDocumentResponse:
+# ✅ Pydantic: metadata, email, document_id  
+# ❌ Dict: questions, context_blocks
 ```
 
 ### 🔒 Campos Obrigatórios na Resposta
@@ -210,26 +291,34 @@ else:
 
 ## 🎨 Exemplo de Implementação
 
-### 🔧 Adicionando Novo Campo ao DTO
+### 🔧 Adicionando Novo Campo ao Sistema Híbrido
 ```python
-# 1. Adicionar no DTO
-class ContextBlockDTO(BaseModel):
+# 1. Se adicionando a modelo Pydantic interno
+class InternalDocumentResponse(BaseModel):
     novo_campo: Optional[str] = Field(default=None)
 
-# 2. Atualizar from_internal_context
-@classmethod
-def from_internal_context(cls, internal_context):
-    return cls(
-        # campos existentes...
-        novo_campo=internal_context.get("novo_campo")
-    )
+# 2. Se adicionando a DTO de API
+class DocumentResponseDTO(BaseModel):
+    novo_campo: Optional[str] = Field(default=None)
+    
+    @classmethod
+    def from_internal_response(cls, internal_response):
+        return cls(
+            # campos existentes...
+            novo_campo=internal_response.novo_campo
+        )
 
-# 3. Atualizar get_legacy_format se necessário
-def get_legacy_format(self):
-    return {
-        # campos existentes...
-        "novo_campo": self.novo_campo
-    }
+# 3. Se adicionando a adaptador (temporário)
+class DocumentResponseAdapter:
+    @staticmethod
+    def to_api_response(internal_response):
+        return {
+            # campos existentes...
+            "novo_campo": internal_response.novo_campo
+        }
+
+# 4. Se campo está em área Dict (questions/context_blocks)
+# Adicionar via parser específico até migração completa
 ```
 
 ## 🎯 Regras de Negócio Específicas
@@ -365,98 +454,29 @@ Antes de modificar extração de imagens, verificar:
 
 ---
 
-**📌 Lembre-se**: Este projeto tem uma estrutura de resposta **FIXA** que não pode ser alterada sem quebrar a compatibilidade. Sempre preserve os campos essenciais e use `get_legacy_format()` para conversões de compatibilidade.
+**📌 Lembre-se**: Este projeto tem uma estrutura de resposta **FIXA** que não pode ser alterada sem quebrar a compatibilidade. Durante a migração Pydantic vs Dict, sempre preserve os campos essenciais e use adaptadores para conversões de compatibilidade.
 
-## 📚 Lições Aprendidas - Manutenção Agosto 2025
+## 🎯 Próximos Passos da Migração
 
-### 🎯 Context da Manutenção
-**Problema Reportado**: "As imagens não estão sendo trazidas neste endpoint"
-**Endpoint Afetado**: `/analyze/analyze_document_with_last_azure_response`
-**Causa Raiz**: Separação inadequada de responsabilidades
+### 🔴 Prioridade Alta
+1. **Completar campos Pydantic em InternalDocumentResponse**
+   - Migrar `questions: List[Dict]` → `questions: List[InternalQuestion]`
+   - Migrar `context_blocks: List[Dict]` → `context_blocks: List[InternalContextBlock]`
 
-### 🔍 Investigação Realizada
+2. **Refatorar Parsers para Pydantic**
+   - `HeaderParser.parse()` retornar `InternalDocumentMetadata` diretamente
+   - `QuestionParser.extract()` retornar objetos Pydantic tipados
 
-#### 📊 Análise via Scripts de Debug
-```python
-# investigate_processed_figures.py - Revelou o problema:
-# ✅ 7 figuras processadas com metadados completos
-# ❌ Campos ausentes: 'file_path', 'base64_image'
-# ✅ Metadados presentes: id, page_number, polygon, coordinates, etc.
-```
+### � Prioridade Média  
+3. **Eliminar DocumentResponseAdapter**
+   - Usar `response_model` do FastAPI diretamente
+   - Remover conversões Pydantic → Dict desnecessárias
 
-#### 🎯 Root Cause Analysis
-1. **AzureFigureProcessor** funcionando corretamente (metadados ✅)
-2. **ImageExtractionOrchestrator** não estava sendo chamado (imagens ❌)
-3. **Placeholders vazios** sendo criados sem dados reais
+4. **Unificar endpoints**
+   - Migrar `/analyze_document_with_figures` para método refatorado
+   - Padronizar processamento em todos os endpoints
 
-### 💡 Soluções Implementadas
-
-#### 🔧 Fix Temporário (Placeholders)
-```python
-# Conversão básica de processed_figures para InternalImageData
-image_data = InternalImageData(
-    id=figure_id,
-    file_path=f"temp/figure_{figure_id}.png",  # Placeholder
-    base64_data="",  # TODO: Implementar extração real
-    position=position,
-    azure_coordinates=figure.get('polygon')
-)
-```
-
-#### 🎯 Solução Definitiva (Pendente)
-```python
-# Integrar ImageExtractionOrchestrator no process_document_with_azure_response
-orchestrator = ImageExtractionOrchestrator()
-real_images = await orchestrator.extract_images_single_method(
-    method=ImageExtractionMethod.AZURE_FIGURES,
-    document_analysis_result=azure_response,
-    document_id=document_id
-)
-```
-
-### 🚀 Próximos Passos
-
-#### 📋 Implementação Prioritária
-1. **Integrar ImageExtractionOrchestrator** no `process_document_with_azure_response`
-2. **Testar estratégia AZURE_FIGURES** sem arquivo PDF
-3. **Implementar fallback** para MANUAL_PDF se necessário
-4. **Validar endpoint** retorna imagens reais (não placeholders)
-
-#### 🎯 Melhorias de Arquitetura
-1. **Interface comum** para ambos métodos de processamento
-2. **Factory pattern** para escolher estratégia automaticamente
-3. **Métricas de performance** para comparar estratégias
-4. **Documentação inline** sobre responsabilidades
-
-### 🔒 Validações de Qualidade
-
-#### ✅ Checklist de Conclusão
-- [ ] Endpoint retorna imagens reais (base64_data preenchido)
-- [ ] Mantém compatibilidade com formato de resposta
-- [ ] Performance aceitável (< 30s processamento)
-- [ ] Logs informativos sobre estratégia utilizada
-- [ ] Testes automatizados para ambos cenários
-
-#### 🎯 Métricas de Sucesso
-- **Imagens extraídas**: > 0 para documentos com figuras
-- **Taxa de sucesso**: > 95% para documentos válidos
-- **Tempo de resposta**: < 30 segundos
-- **Separação clara**: Metadados vs Extração de imagens
-
-### 🔧 Comandos de Debug Úteis
-
-```powershell
-# Investigar figuras processadas
-python investigate_processed_figures.py
-
-# Testar endpoint com Azure response
-python test_api_direct.py
-
-# Executar com mock para validação
-python start_simple.py --use-mock
-
-# Verificar extração de imagens específica
-python -c "from app.services.image_extraction import ImageExtractionOrchestrator; print('Available methods:', ImageExtractionOrchestrator().get_available_methods())"
-```
-
-**⚠️ IMPORTANTE**: Esta documentação reflete o estado em Agosto 2025. Para manutenções futuras, sempre verificar se a separação de responsabilidades está sendo respeitada.
+### 📊 Métricas de Progresso
+- **Atual**: 37% migrado para Pydantic
+- **Meta**: 75% migrado (Outubro 2025)
+- **Status**: Nenhum endpoint 100% Pydantic ainda
