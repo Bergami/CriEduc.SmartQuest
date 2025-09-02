@@ -1,0 +1,28 @@
+{
+  "data": {
+    "email": "test@example.com",
+    "filename": "test_document.pdf",
+    "content_type": null,
+    "extracted_data": {
+      "text": "Sample extracted text from document",
+      "header": {
+        "institution": "Test University",
+        "exam": "Final Exam",
+        "subject": "Mathematics"
+      },
+      "metadata": {
+        "provider": "azure",
+        "confidence": 0.95,
+        "page_count": 3
+      }
+    },
+    "cache_metadata": {
+      "cache_key": "testexample.com_test_document.pdf_28_5106e1be",
+      "original_filename": "test_document.pdf",
+      "user_email": "test@example.com"
+    }
+  },
+  "created_at": "2025-09-02T12:46:02.816248",
+  "expires_at": "2025-09-09T12:46:02.816248",
+  "cache_key": "testexample.com_test_document.pdf_28_5106e1be"
+}

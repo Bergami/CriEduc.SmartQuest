@@ -26,6 +26,7 @@ from app.services.azure_figure_processor import AzureFigureProcessor
 from app.models.internal import InternalDocumentResponse, InternalDocumentMetadata
 from app.services.refactored_context_builder import RefactoredContextBlockBuilder
 from app.core.exceptions import DocumentProcessingError
+from app.core.cache import DocumentCacheManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -78,7 +79,7 @@ class AnalyzeService:
         # Usar Document Extraction Factory (Azure)
         try:
             logger.info("Processing with Document Extraction Factory")
-            extracted_data = await AnalyzeService._extract_text_and_metadata_with_factory(file)
+            extracted_data = await AnalyzeService._extract_text_and_metadata_with_factory(file, email)
             logger.info("Document extraction completed successfully")
         except Exception as e:
             logger.error(f"Document extraction failed: {str(e)}")
@@ -177,7 +178,7 @@ class AnalyzeService:
         # Usar Document Extraction Factory (Azure)
         try:
             logger.info("Processing with Document Extraction Factory")
-            extracted_data = await AnalyzeService._extract_text_and_metadata_with_factory(file)
+            extracted_data = await AnalyzeService._extract_text_and_metadata_with_factory(file, email)
             logger.info("Document extraction completed successfully")
         except Exception as e:
             logger.error(f"Document extraction failed: {str(e)}")
@@ -362,7 +363,7 @@ class AnalyzeService:
         return await MockDocumentService.process_document_mock(email, filename)
 
     @staticmethod
-    async def _extract_text_and_metadata_with_factory(file: UploadFile) -> Dict[str, Any]:
+    async def _extract_text_and_metadata_with_factory(file: UploadFile, email: str = None) -> Dict[str, Any]:
         """
         Extrai texto e metadados usando Document Extraction Factory.
         Suporta múltiplos provedores com fallback automático.
@@ -373,8 +374,8 @@ class AnalyzeService:
         
         logger.info(f"Using extraction provider: {provider_name}")
         
-        # Extrair dados do documento
-        extracted_data = await extractor.extract_document_data(file)
+        # Extrair dados do documento (com cache automático)
+        extracted_data = await AnalyzeService._extract_with_cache(file, extractor, email)
         
         # Obter dados de imagem do Azure para categorização
         raw_image_data = extracted_data.get("image_data", {})
@@ -530,3 +531,49 @@ class AnalyzeService:
         except Exception as e:
             logger.error(f"Error loading images with metadata: {str(e)}")
             return {}
+
+    @staticmethod
+    async def _extract_with_cache(file: UploadFile, extractor, email: str = None) -> Dict[str, Any]:
+        """
+        Extrai dados do documento com cache automático.
+        
+        Args:
+            file: Arquivo para extração
+            extractor: Provedor de extração
+            email: Email do usuário (opcional)
+            
+        Returns:
+            Dados extraídos (do cache ou Azure)
+        """
+        
+        try:
+            # Se temos email, usar cache
+            if email:
+                # Inicializar cache manager
+                cache_manager = DocumentCacheManager()
+                
+                # Verificar cache primeiro
+                cached_result = await cache_manager.get_cached_document(email, file)
+                if cached_result:
+                    logger.info(f"🎯 Cache HIT: Using cached extraction for {email} - {file.filename}")
+                    return cached_result.get("extracted_data")
+                
+                logger.debug(f"⚡ Cache MISS: Extracting from Azure for {email} - {file.filename}")
+            else:
+                logger.debug("No email provided, proceeding without cache")
+            
+            # Se não está em cache, extrair do Azure
+            extracted_data = await extractor.extract_document_data(file)
+            
+            # Cachear resultado se temos email
+            if email and extracted_data:
+                cache_manager = DocumentCacheManager()
+                await cache_manager.cache_document_result(email, file, extracted_data)
+                logger.info(f"💾 Cached extraction result for {email} - {file.filename}")
+            
+            return extracted_data
+            
+        except Exception as e:
+            logger.warning(f"Error in cache layer, falling back to direct extraction: {e}")
+            # Em caso de erro no cache, fazer extração direta
+            return await extractor.extract_document_data(file)
