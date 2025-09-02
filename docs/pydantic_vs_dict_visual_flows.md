@@ -1,6 +1,6 @@
 # 🎯 Diagramas Visuais: Pydantic vs Dict nos Fluxos
 
-## 🔄 Diagrama 1: Fluxo Completo do Sistema
+## 🔄 Diagrama 1: Fluxo REAL do Sistema (CORRIGIDO)
 
 ```mermaid
 graph TD
@@ -9,32 +9,32 @@ graph TD
     end
     
     subgraph "🔀 ENDPOINTS"
-        B1[🆕 /analyze_document<br/>PYDANTIC]
-        B2[📚 /analyze_document_mock<br/>MIXED]
+        B1[⚠️ /analyze_document<br/>HÍBRIDO]
+        B2[📚 /analyze_document_mock<br/>DICT]
         B3[📊 /analyze_document_with_figures<br/>DICT]
     end
     
     subgraph "⚙️ SERVICES LAYER"
-        C1[AnalyzeService<br/>.process_document_with_models<br/>→ Pydantic]
+        C1[AnalyzeService<br/>.process_document_with_models<br/>→ Híbrido Pydantic/Dict]
         C2[DocumentProcessingOrchestrator<br/>.process_from_saved_azure<br/>→ Dict]
         C3[AnalyzeService<br/>.process_document<br/>→ Dict]
     end
     
     subgraph "🧱 MODELS/DATA"
-        D1[📦 InternalDocumentResponse<br/>BaseModel<br/>PYDANTIC ✅]
-        D2[📊 Dict[str, Any]<br/>LEGACY ⚠️]
+        D1[⚠️ InternalDocumentResponse<br/>BaseModel + Dict fields<br/>HÍBRIDO ⚠️]
+        D2[📊 Dict[str, Any]<br/>LEGACY ❌]
         D3[📊 Dict[str, Any]<br/>LEGACY ❌]
     end
     
     subgraph "🔄 ADAPTERS"
-        E1[DocumentResponseAdapter<br/>Pydantic → Dict]
+        E1[DocumentResponseAdapter<br/>Híbrido → Dict<br/>❌ REGRESSIVO]
         E2[No Adapter<br/>Dict Pass-through]
         E3[No Adapter<br/>Dict Pass-through]
     end
     
     subgraph "📤 OUTPUT"
-        F1[✅ API Response<br/>Dict[str, Any]]
-        F2[⚠️ API Response<br/>Dict[str, Any]]
+        F1[❌ API Response<br/>Dict[str, Any]]
+        F2[❌ API Response<br/>Dict[str, Any]]
         F3[❌ API Response<br/>Dict[str, Any]]
     end
     
@@ -58,53 +58,59 @@ graph TD
     E2 --> F2
     E3 --> F3
     
-    classDef pydantic fill:#90EE90,stroke:#333,stroke-width:2px
-    classDef mixed fill:#FFE4B5,stroke:#333,stroke-width:2px
+    classDef hybrid fill:#FFE4B5,stroke:#333,stroke-width:2px
     classDef dict fill:#FFB6C1,stroke:#333,stroke-width:2px
+    classDef regressive fill:#FF6347,stroke:#333,stroke-width:2px
     
-    class B1,C1,D1,E1,F1 pydantic
-    class B2,C2,D2,E2,F2 mixed
-    class B3,C3,D3,E3,F3 dict
+    class B1,C1,D1,E1,F1 hybrid
+    class B2,C2,D2,E2,F2,B3,C3,D3,E3,F3 dict
+    class E1 regressive
 ```
 
-## 🔄 Diagrama 2: Conversões de Dados no Endpoint Principal
+## 🔄 Diagrama 2: Conversões PROBLEMÁTICAS no Endpoint "Migrado"
 
 ```mermaid
 sequenceDiagram
     participant Client
     participant Controller as /analyze_document
     participant Service as AnalyzeService
-    participant Parser as HeaderParser
+    participant HeaderParser as HeaderParser
+    participant QuestionParser as QuestionParser
     participant Model as InternalDocumentMetadata
     participant Response as InternalDocumentResponse
     participant Adapter as DocumentResponseAdapter
     
-    Note over Client,Adapter: 🆕 FLUXO PYDANTIC COMPLETO
+    Note over Client,Adapter: ⚠️ FLUXO HÍBRIDO PROBLEMÁTICO
     
     Client->>Controller: POST PDF + email
     
     Controller->>Service: process_document_with_models()
     
-    Service->>Parser: parse(text) → Dict
-    Note over Parser: ❌ LEGADO: Retorna Dict
+    Service->>HeaderParser: parse(text)
+    HeaderParser-->>Service: Dict[str, Any] ❌
+    Note over HeaderParser: ❌ PROBLEMA 1: Parser retorna Dict
     
     Service->>Model: from_legacy_header(dict_data)
-    Note over Model: ✅ CONVERSÃO: Dict → Pydantic
+    Note over Model: 🔄 CONVERSÃO FORÇADA: Dict → Pydantic
     Model-->>Service: InternalDocumentMetadata (Pydantic)
     
-    Service->>Response: InternalDocumentResponse(metadata=...)
-    Note over Response: ✅ PYDANTIC: Modelo tipado completo
-    Response-->>Service: InternalDocumentResponse (Pydantic)
+    Service->>QuestionParser: extract(text, images)
+    QuestionParser-->>Service: Dict[str, Any] ❌
+    Note over QuestionParser: ❌ PROBLEMA 2: Parser retorna Dict
     
-    Service-->>Controller: InternalDocumentResponse (Pydantic)
+    Service->>Response: InternalDocumentResponse(metadata=pydantic, questions=dict, contexts=dict)
+    Note over Response: ⚠️ PROBLEMA 3: Modelo híbrido<br/>Metadados=Pydantic, Conteúdo=Dict
+    Response-->>Service: InternalDocumentResponse (Híbrido)
+    
+    Service-->>Controller: InternalDocumentResponse (Híbrido)
     
     Controller->>Adapter: to_api_response(internal_response)
-    Note over Adapter: 🔄 CONVERSÃO: Pydantic → Dict
+    Note over Adapter: ❌ PROBLEMA 4: Conversão regressiva<br/>Pydantic → Dict
     Adapter-->>Controller: Dict[str, Any]
     
     Controller-->>Client: API Response (Dict)
     
-    Note over Client,Adapter: PROBLEMA: Conversão desnecessária<br/>Pydantic → Dict → JSON
+    Note over Client,Adapter: RESULTADO: str → Dict → Pydantic → Híbrido → Dict → JSON<br/>❌ 4 CONVERSÕES DESNECESSÁRIAS
 ```
 
 ## 🔄 Diagrama 3: Comparação de Complexidade
@@ -234,49 +240,50 @@ sequenceDiagram
     Note over PDF,API: SOLUÇÃO: Eliminar conversão 2<br/>Usar Pydantic direto na API
 ```
 
-## 🔄 Diagrama 6: Roadmap de Migração
+## 🔄 Diagrama 6: Roadmap de Migração CORRIGIDO
 
 ```mermaid
 gantt
-    title Migração Pydantic - Timeline
+    title Migração Pydantic - Plano de Recuperação
     dateFormat YYYY-MM-DD
-    section Fase 1: Endpoints
-    Migrar /analyze_document_with_figures    :done, a1, 2025-09-02, 2025-09-15
-    Migrar /analyze_document_mock           :active, a2, 2025-09-10, 2025-09-25
-    section Fase 2: Services
-    HeaderParser → Pydantic                :a3, 2025-09-20, 2025-10-05
-    QuestionParser → Pydantic              :a4, 2025-09-25, 2025-10-10
-    ContextBuilder → Pydantic              :a5, 2025-10-01, 2025-10-15
-    section Fase 3: Optimization
-    Eliminar conversões desnecessárias      :a6, 2025-10-10, 2025-10-25
-    API Response → Pydantic direto          :a7, 2025-10-20, 2025-11-05
-    section Fase 4: Testing
-    Testes completos                       :a8, 2025-10-25, 2025-11-10
-    Performance benchmarks                  :a9, 2025-11-01, 2025-11-15
+    section Fase 1: Correção Crítica
+    Corrigir InternalDocumentResponse fields   :crit, a1, 2025-09-02, 2025-09-09
+    Criar HeaderParser.parse_direct()         :crit, a2, 2025-09-05, 2025-09-12
+    Criar QuestionParser.extract_typed()      :crit, a3, 2025-09-08, 2025-09-16
+    section Fase 2: Otimização
+    Eliminar DocumentResponseAdapter          :active, b1, 2025-09-15, 2025-09-22
+    APIs response_model direto                :b2, 2025-09-18, 2025-09-25
+    Migrar endpoint with_figures              :b3, 2025-09-20, 2025-09-30
+    section Fase 3: Validação
+    Testes end-to-end                        :c1, 2025-09-25, 2025-10-02
+    Performance benchmarks                   :c2, 2025-09-28, 2025-10-05
+    Documentação final                       :c3, 2025-10-01, 2025-10-08
+    section Milestone
+    ROI Break-even Point                     :milestone, m1, 2025-10-08, 0d
 ```
 
 ## 📊 Estatísticas de Migração
 
-### Distribuição Atual de Formatos
+### Distribuição REAL de Formatos
 ```mermaid
-pie title Uso de Formatos no Sistema
-    "Pydantic (Migrado)" : 45
-    "Dict Legacy" : 35
-    "Misto (Transição)" : 20
+pie title Estado REAL da Migração
+    "Dict Legacy" : 55
+    "Híbrido (Problemático)" : 25
+    "Pydantic (Completo)" : 20
 ```
 
-### Prioridades de Migração
+### Prioridades CORRIGIDAS de Migração
 ```mermaid
-pie title Prioridade de Migração
-    "Alta (Endpoints)" : 40
-    "Média (Services)" : 35
-    "Baixa (Helpers)" : 25
+pie title Prioridade de Correção
+    "Crítica (Corrigir Híbridos)" : 50
+    "Alta (Migrar Endpoints)" : 30
+    "Média (Otimizações)" : 20
 ```
 
-### Complexidade de Migração
+### Complexidade REAL de Migração
 ```mermaid
-pie title Complexidade por Componente
-    "Fácil (Models)" : 30
-    "Média (Services)" : 45
-    "Difícil (Parsers)" : 25
+pie title Complexidade por Problema
+    "Crítica (Modelos Híbridos)" : 40
+    "Alta (Parsers Dict)" : 35
+    "Média (Adapters)" : 25
 ```
