@@ -110,31 +110,44 @@ class AnalyzeService:
 
         # 6. Processar melhorias da versão refatorada (se aplicável)
         if use_refactored:
-            logger.info("Using REFACTORED version with improvements")
+            logger.info("🚀 Using REFACTORED version with PHASE 2 Pydantic improvements")
             azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
             if azure_result:
-                # A lógica de processamento de figuras e contextos avançados permanece aqui
+                # PHASE 2: Use native Pydantic interface
                 context_builder = RefactoredContextBlockBuilder()
                 
                 # Log para debugging
                 logger.info(f"Building context blocks with Azure result and {len(image_data) if image_data else 0} images")
                 
-                enhanced_context_blocks = context_builder.build_context_blocks_from_azure_figures(
-                    azure_result, image_data
-                )
-
-                if enhanced_context_blocks:
-                    logger.info(f"Created {len(enhanced_context_blocks)} enhanced context blocks")
-                    # Convert the Dicts into Pydantic Models before assigning
-                    question_data["context_blocks"] = [
-                        InternalContextBlock.from_legacy_context_block(cb) for cb in enhanced_context_blocks
-                    ]
+                # Try new Pydantic method first, fallback to legacy if needed
+                try:
+                    logger.info("🔥 PHASE 2: Using parse_to_pydantic() - Native Pydantic Interface")
+                    pydantic_context_blocks = context_builder.parse_to_pydantic(azure_result, image_data)
+                    question_data["context_blocks"] = pydantic_context_blocks
+                    logger.info(f"✅ PHASE 2 SUCCESS: Created {len(pydantic_context_blocks)} context blocks using native Pydantic")
                     
                     # Log context blocks with images for debugging
-                    blocks_with_images = sum(1 for cb in enhanced_context_blocks if cb.get('hasImage', False))
-                    logger.info(f"Context blocks with images: {blocks_with_images}/{len(enhanced_context_blocks)}")
-                else:
-                    logger.warning("No enhanced context blocks were created")
+                    blocks_with_images = sum(1 for cb in pydantic_context_blocks if cb.has_images)
+                    logger.info(f"Context blocks with images: {blocks_with_images}/{len(pydantic_context_blocks)}")
+                    
+                except Exception as e:
+                    logger.warning(f"🔄 PHASE 2 fallback: parse_to_pydantic failed ({e}), using legacy method")
+                    enhanced_context_blocks = context_builder.build_context_blocks_from_azure_figures(
+                        azure_result, image_data
+                    )
+                    
+                    if enhanced_context_blocks:
+                        logger.info(f"Created {len(enhanced_context_blocks)} enhanced context blocks (legacy)")
+                        # Convert the Dicts into Pydantic Models before assigning
+                        question_data["context_blocks"] = [
+                            InternalContextBlock.from_legacy_context_block(cb) for cb in enhanced_context_blocks
+                        ]
+                        
+                        # Log context blocks with images for debugging
+                        blocks_with_images = sum(1 for cb in enhanced_context_blocks if cb.get('hasImage', False))
+                        logger.info(f"Context blocks with images: {blocks_with_images}/{len(enhanced_context_blocks)}")
+                    else:
+                        logger.warning("No enhanced context blocks were created")
                 
                 # A associação de figuras às questões também pode precisar ser refatorada
                 # para usar os objetos pydantic, mas vamos focar no erro atual.

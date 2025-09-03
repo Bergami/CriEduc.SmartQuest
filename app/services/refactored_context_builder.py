@@ -2,7 +2,7 @@
 Advanced Context Block Builder - Refactored Version
 Uses separated constants and enums for better maintainability
 """
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 import re
 import logging
 from dataclasses import dataclass
@@ -13,6 +13,9 @@ from app.core.constants.content_types import (
     ContentType, FigureType, TextRole, ContextBlockType,
     get_content_type_from_string, get_figure_type_from_content
 )
+
+if TYPE_CHECKING:
+    from app.models.internal.context_models import InternalContextBlock, InternalSubContext
 
 logger = logging.getLogger(__name__)
 
@@ -1263,3 +1266,141 @@ class RefactoredContextBlockBuilder:
                     logger.info("Removed 'associated_figures' from context block")
         
         return result
+
+    # ============================================
+    # FASE 2: INTERFACE PYDANTIC NATIVA
+    # ============================================
+    
+    def parse_to_pydantic(
+        self,
+        azure_response: Dict[str, Any],
+        images_base64: Dict[str, str] = None
+    ) -> List['InternalContextBlock']:
+        """
+        FASE 2: Interface Pydantic nativa - retorna diretamente objetos Pydantic
+        
+        Args:
+            azure_response: The full response from Azure Document Intelligence.
+            images_base64: Dictionary mapping figure IDs to base64 image data.
+            
+        Returns:
+            A list of InternalContextBlock Pydantic objects (not Dicts).
+        """
+        try:
+            from app.models.internal.context_models import InternalContextBlock
+            
+            logger.info("🚀 FASE 2: Starting parse_to_pydantic - Direct Pydantic interface")
+
+            # 1. Extract figures directly from the Azure response.
+            figures = self._extract_figures_with_enhanced_info(azure_response)
+            logger.info(f"📊 [Pydantic] Extracted {len(figures)} figures from Azure response")
+
+            # 2. Extrair spans de texto relevantes
+            text_spans = self._extract_relevant_text_spans(azure_response)
+            logger.info(f"📝 [Pydantic] Extracted {len(text_spans)} relevant text spans")
+            
+            # 3. Encontrar instruções gerais (como "ANALISE OS TEXTO A SEGUIR")
+            general_instructions = self._find_general_instructions(azure_response)
+            logger.info(f"📋 [Pydantic] Found {len(general_instructions)} general instructions")
+            
+            # 4. Associar textos às figuras baseado em proximidade espacial
+            self._associate_texts_with_figures_enhanced(figures, text_spans)
+            
+            # 5. Adicionar imagens base64 às figuras se disponíveis
+            if images_base64:
+                self._add_base64_images_to_figures(figures, images_base64)
+                logger.info(f"📷 [Pydantic] Added base64 images to {len([f for f in figures if f.base64_image])} figures")
+            
+            # 6. Criar context blocks DIRETAMENTE como Pydantic objects
+            context_blocks = self._create_pydantic_context_blocks(
+                figures, general_instructions, azure_response
+            )
+            
+            logger.info(f"✅ [Pydantic] Created {len(context_blocks)} InternalContextBlock objects")
+            return context_blocks
+            
+        except Exception as e:
+            logger.error(f"❌ [Pydantic] Error in parse_to_pydantic: {str(e)}")
+            return []
+
+    def _create_pydantic_context_blocks(
+        self,
+        figures: List[FigureInfo],
+        general_instructions: List[str],
+        azure_response: Dict[str, Any]
+    ) -> List['InternalContextBlock']:
+        """
+        Create context blocks directly as Pydantic objects (FASE 2)
+        """
+        from app.models.internal.context_models import InternalContextBlock, InternalSubContext
+        
+        logger.info("🔧 [Pydantic] Creating context blocks as Pydantic objects")
+        context_blocks = []
+        
+        try:
+            # Primeiro criar os context blocks baseados nas figuras
+            for i, figure in enumerate(figures):
+                logger.info(f"🔍 [Pydantic] Processing figure {i+1}/{len(figures)} - ID: {figure.id}")
+                
+                # Detectar sequências no texto da figura
+                sequences = self._extract_all_sequence_identifiers(figure)
+                logger.info(f"📝 [Pydantic] Found {len(sequences)} sequences in figure {figure.id}")
+                
+                # Criar sub_contexts se sequências foram encontradas
+                sub_contexts = []
+                if sequences:
+                    logger.info(f"🎯 [Pydantic] Creating sub-contexts for sequences: {sequences}")
+                    
+                    for sequence in sequences:
+                        # Extrair texto específico para esta sequência
+                        sequence_text = self._extract_sequence_specific_text(figure, sequence)
+                        
+                        # Criar InternalSubContext Pydantic object
+                        sub_context = InternalSubContext(
+                            sequence=sequence,
+                            content=sequence_text,
+                            images=[figure.base64_image] if figure.base64_image else []
+                        )
+                        sub_contexts.append(sub_context)
+                        logger.info(f"✅ [Pydantic] Created sub-context for sequence '{sequence}'")
+                
+                # Extrair texto principal da figura
+                main_content = self._extract_complete_image_texts(figure)
+                main_text = "\n".join(main_content) if main_content else ""
+                
+                # Determinar tipo do context block
+                content_type = self._determine_context_block_type(figure, sequences)
+                
+                # Criar InternalContextBlock Pydantic object
+                context_block = InternalContextBlock(
+                    type=content_type,
+                    content=main_text,
+                    has_images=bool(figure.base64_image),
+                    images=[figure.base64_image] if figure.base64_image and not sub_contexts else [],
+                    sub_contexts=sub_contexts
+                )
+                
+                context_blocks.append(context_block)
+                logger.info(f"✅ [Pydantic] Created context block {i+1} with {len(sub_contexts)} sub-contexts")
+            
+            # Criar context block adicional para instruções gerais (se houver)
+            if general_instructions:
+                instruction_text = "\n".join(general_instructions)
+                
+                instruction_block = InternalContextBlock(
+                    type=["text"],
+                    content=instruction_text,
+                    has_images=False,
+                    images=[],
+                    sub_contexts=[]
+                )
+                
+                context_blocks.append(instruction_block)
+                logger.info(f"✅ [Pydantic] Created instruction block with general instructions")
+            
+            logger.info(f"🎉 [Pydantic] Successfully created {len(context_blocks)} Pydantic context blocks")
+            return context_blocks
+            
+        except Exception as e:
+            logger.error(f"❌ [Pydantic] Error creating Pydantic context blocks: {str(e)}")
+            return []

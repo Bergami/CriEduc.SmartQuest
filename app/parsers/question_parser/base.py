@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 from .detect_context_blocks import detect_context_blocks
 from .detect_questions import detect_questions
 from .match_context_to_questions import match_context_to_questions
@@ -41,3 +41,41 @@ class QuestionParser:
             "context_blocks": context_blocks,
             "questions": improved_questions
         }
+
+    @staticmethod
+    def extract_typed(
+        text: str, 
+        image_data: Optional[Dict[str, str]] = None
+    ) -> Tuple[List, List]:
+        """
+        PHASE 2 COMPLETE: Native Pydantic interface for QuestionParser.
+        
+        Extrai questoes e blocos de contexto retornando tipos Pydantic nativos.
+        
+        Args:
+            text: Texto a ser analisado
+            image_data: Dicionario opcional de imagens (id -> base64_data)
+            
+        Returns:
+            Tuple[List[InternalQuestion], List[InternalContextBlock]]: 
+                Questions and context blocks as native Pydantic models
+        """
+        # Import here to avoid circular imports
+        from app.models.internal.question_models import InternalQuestion
+        from app.models.internal.context_models import InternalContextBlock
+        
+        # Use the existing extract method to get raw data
+        raw_data = QuestionParser.extract(text, image_data)
+        
+        # Convert to Pydantic models
+        pydantic_questions = [
+            InternalQuestion.from_legacy_question(q) 
+            for q in raw_data["questions"]
+        ]
+        
+        pydantic_context_blocks = [
+            InternalContextBlock.from_legacy_context_block(cb) 
+            for cb in raw_data["context_blocks"]
+        ]
+        
+        return pydantic_questions, pydantic_context_blocks

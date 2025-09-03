@@ -12,6 +12,10 @@ from app.core.logging import logger
 from app.core.exceptions import DocumentProcessingError
 from app.services.azure_response_service import AzureResponseService
 from app.services.mock_document_service import MockDocumentService
+from app.models.internal.document_models import InternalDocumentResponse, InternalDocumentMetadata
+from app.models.internal.image_models import InternalImageData
+from app.models.internal.context_models import InternalContextBlock
+from app.models.internal.question_models import InternalQuestion
 
 
 class DocumentProcessingOrchestrator:
@@ -51,18 +55,20 @@ class DocumentProcessingOrchestrator:
         )
     
     @staticmethod
-    async def process_document_from_saved_azure_response() -> Dict[str, Any]:
+    async def process_document_from_saved_azure_response() -> InternalDocumentResponse:
         """
+        PHASE 2 COMPLETE: Returns InternalDocumentResponse instead of Dict.
+        
         Processa documento usando a resposta mais recente salva do Azure.
         
-        Este método simula o processamento de um documento como se tivesse sido
+        Este metodo simula o processamento de um documento como se tivesse sido
         enviado para o Azure, mas usando uma resposta previamente salva.
         
         Returns:
-            Dict no formato padrão do sistema (email, document_id, filename, header, questions, context_blocks)
+            InternalDocumentResponse: Complete Pydantic response model
             
         Raises:
-            DocumentProcessingError: Se não conseguir carregar ou processar a resposta salva
+            DocumentProcessingError: Se nao conseguir carregar ou processar a resposta salva
         """
         logger.info("Orchestrator: Processing document from saved Azure response")
         
@@ -116,7 +122,7 @@ class DocumentProcessingOrchestrator:
         email: str,
         filename: str,
         use_refactored: bool = True
-    ) -> Dict[str, Any]:
+    ) -> InternalDocumentResponse:
         """
         Processa dados já extraídos seguindo a lógica padrão do AnalyzeService.
         
@@ -217,22 +223,60 @@ class DocumentProcessingOrchestrator:
         logger.info(f"Questions found: {len(question_data['questions'])}")
         logger.info(f"Context blocks: {len(question_data['context_blocks'])}")
 
-        result = {
-            "email": email,
-            "document_id": document_id,
-            "filename": filename,
-            "header": header_data,  # Usar header processado
-            "questions": question_data["questions"],
-            "context_blocks": question_data["context_blocks"]
-        }
+        # 🚀 PHASE 2 COMPLETE: Return InternalDocumentResponse instead of Dict
+        logger.info("Creating InternalDocumentResponse with native Pydantic models")
         
-        # 🆕 LIMPEZA DO RESULTADO SEMPRE (independent da flag)
-        context_builder = RefactoredContextBlockBuilder()
-        result = context_builder.remove_figure_association_fields(result)
-        logger.info("Associated figures and figure_ids cleaned from result")
+        # Convert raw image data to InternalImageData if needed
+        all_images = []
+        if raw_image_data and isinstance(raw_image_data, dict):
+            all_images = [
+                InternalImageData(
+                    id=img_id,
+                    base64_data=img_data,
+                    filename=f"image_{img_id}",
+                    category="content"  # Default category
+                ) for img_id, img_data in raw_image_data.items()
+            ]
         
+        # Create InternalDocumentMetadata
+        document_metadata = InternalDocumentMetadata(
+            **header_data,  # This spreads all header fields
+            content_images=all_images,
+            extraction_confidence=1.0,
+            processing_notes="Processed with PHASE 2 complete migration"
+        )
+        
+        # Convert questions and context_blocks if they're still in Dict format
+        pydantic_questions = []
+        if question_data["questions"]:
+            pydantic_questions = [
+                InternalQuestion.from_legacy_question(q) if isinstance(q, dict) else q
+                for q in question_data["questions"]
+            ]
+        
+        pydantic_context_blocks = []
+        if question_data["context_blocks"]:
+            pydantic_context_blocks = [
+                InternalContextBlock.from_legacy_context_block(cb) if isinstance(cb, dict) else cb
+                for cb in question_data["context_blocks"]
+            ]
+        
+        # Create final InternalDocumentResponse
+        internal_response = InternalDocumentResponse(
+            email=email,
+            document_id=document_id,
+            filename=filename,
+            document_metadata=document_metadata,
+            questions=pydantic_questions,
+            context_blocks=pydantic_context_blocks,
+            extracted_text=extracted_data.get("text", ""),
+            provider_metadata=extracted_data.get("metadata", {}),
+            all_images=all_images
+        )
+        
+        logger.info("✅ PHASE 2: InternalDocumentResponse created successfully with native Pydantic models")
         logger.info("Document processing completed successfully")
-        return result
+        return internal_response
     
     @staticmethod
     async def _try_load_saved_images_for_azure_response(
