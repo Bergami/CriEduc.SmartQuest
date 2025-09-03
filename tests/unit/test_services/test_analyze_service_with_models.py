@@ -5,8 +5,7 @@ Testes unitários para novos métodos do AnalyzeService
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from app.services.analyze_service import AnalyzeService
-from app.models.internal.document_response import InternalDocumentResponse
-from app.models.internal.document_metadata import InternalDocumentMetadata
+from app.models.internal.document_models import InternalDocumentResponse, InternalDocumentMetadata
 
 
 class TestAnalyzeServiceWithModels:

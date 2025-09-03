@@ -4,7 +4,7 @@ Testes unitários para InternalDocumentMetadata
 
 import pytest
 from pydantic import ValidationError
-from app.models.internal.document_metadata import InternalDocumentMetadata
+from app.models.internal.document_models import InternalDocumentMetadata
 
 
 class TestInternalDocumentMetadata:

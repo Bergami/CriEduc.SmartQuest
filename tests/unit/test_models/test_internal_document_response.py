@@ -4,8 +4,7 @@ Testes unitários para InternalDocumentResponse
 
 import pytest
 from pydantic import ValidationError
-from app.models.internal.document_response import InternalDocumentResponse
-from app.models.internal.document_metadata import InternalDocumentMetadata
+from app.models.internal.document_models import InternalDocumentResponse, InternalDocumentMetadata
 
 
 class TestInternalDocumentResponse:

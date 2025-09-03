@@ -192,8 +192,8 @@ class DocumentProcessingOrchestrator:
                 
                 # 🆕 CRIAR CONTEXT BLOCKS AVANÇADOS COM TEXTOS ASSOCIADOS
                 context_builder = RefactoredContextBlockBuilder()
-                enhanced_context_blocks = context_builder.analyze_azure_figures_dynamically(
-                    azure_result, image_data
+                enhanced_context_blocks = context_builder.build_context_blocks_from_azure_figures(
+                    azure_result, image_data or {}
                 )
                 
                 logger.info(f"{len(enhanced_context_blocks)} enhanced context blocks created")
@@ -228,7 +228,7 @@ class DocumentProcessingOrchestrator:
         
         # 🆕 LIMPEZA DO RESULTADO SEMPRE (independent da flag)
         context_builder = RefactoredContextBlockBuilder()
-        result = context_builder.remove_associated_figures_from_result(result)
+        result = context_builder.remove_figure_association_fields(result)
         logger.info("Associated figures and figure_ids cleaned from result")
         
         logger.info("Document processing completed successfully")
@@ -252,25 +252,15 @@ class DocumentProcessingOrchestrator:
         
         logger.info(f"Found {len(figures)} figures in Azure result")
         
-        # Tentar carregar imagens usando os métodos do AnalyzeService
+        # Implementação temporária - evitar erro até implementar métodos apropriados
         try:
-            from app.services.analyze_service import AnalyzeService
+            # TODO: Implementar método para carregar imagens salvas do cache
+            logger.info("Attempting to load saved images (placeholder implementation)")
+            saved_images = {}
             
-            # Tentar carregar imagens salvas
-            saved_images = await AnalyzeService._try_load_saved_images(extracted_data)
             if saved_images:
                 logger.info(f"Loaded {len(saved_images)} images from saved files")
                 return saved_images
-            
-            # Se não funcionou, tentar com metadados das figuras
-            figures_metadata = [{"id": fig.get("id")} for fig in figures if fig.get("id")]
-            if figures_metadata:
-                saved_images = await AnalyzeService._try_load_saved_images_with_metadata(
-                    figures_metadata, extracted_data
-                )
-                if saved_images:
-                    logger.info(f"Loaded {len(saved_images)} images using figure metadata")
-                    return saved_images
             
         except Exception as e:
             logger.error(f"Error loading saved images: {str(e)}")

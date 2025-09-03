@@ -66,6 +66,18 @@ class DocumentResponseAdapter:
                 "hasImage": cb.has_image
             }
             
+            # ✅ Adicionar images apenas para context blocks simples (sem sub_contexts)
+            if cb.sub_contexts:
+                # Context blocks com sub_contexts: imagens ficam nos sub_contexts, não no pai
+                api_context["images"] = []
+            else:
+                # Context blocks simples: usar o campo images do próprio block
+                api_context["images"] = cb.images if cb.images else []
+                
+            # ✅ Adicionar contentType se houver imagens (apenas para context blocks simples)
+            if cb.has_image and not cb.sub_contexts and cb.images:
+                api_context["contentType"] = "image/jpeg;base64"
+            
             # ✅ Adicionar paragraphs quando há conteúdo de texto
             if cb.content and cb.content.description:
                 api_context["paragraphs"] = cb.content.description

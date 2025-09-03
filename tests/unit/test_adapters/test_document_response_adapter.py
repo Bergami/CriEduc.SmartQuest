@@ -5,8 +5,7 @@ Testes unitários para DocumentResponseAdapter
 import pytest
 from unittest.mock import Mock
 from app.adapters.document_response_adapter import DocumentResponseAdapter
-from app.models.internal.document_response import InternalDocumentResponse
-from app.models.internal.document_metadata import InternalDocumentMetadata
+from app.models.internal.document_models import InternalDocumentResponse, InternalDocumentMetadata
 
 
 class TestDocumentResponseAdapter:

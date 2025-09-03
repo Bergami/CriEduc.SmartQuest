@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import Mock, AsyncMock, patch
 from fastapi import Request, UploadFile, HTTPException
 from fastapi.testclient import TestClient
-from app.api.controllers.analyze import analyze_document, _validate_file_requirement
+from app.api.controllers.analyze import analyze_document
 from app.core.exceptions import (
     MissingFileException,
     ValidationException,

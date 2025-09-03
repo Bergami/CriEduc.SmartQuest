@@ -1,50 +1,39 @@
 # Diagramas de Sequência - Endpoints de Análise
 
-## 1. Endpoint `/analyze_document` - Fluxo Principal
+## 1. Endpoint `/analyze/document` - Fluxo Principal (Pós-Refatoração SOLID)
 
 ```mermaid
 sequenceDiagram
     participant Client
     participant Controller as analyze.py
-    participant Validator as AnalyzeValidator
-    participant Service as AnalyzeService
-    participant Factory as DocumentExtractionFactory
-    participant Azure as AzureDocumentIntelligenceService
-    participant ImageOrch as ImageExtractionOrchestrator
+    participant ExtractionService as DocumentExtractionService
+    participant AnalyzeService as AnalyzeService
+    participant ImageService as ImageCategorizationService
     participant HeaderParser
     participant QuestionParser
     participant Adapter as DocumentResponseAdapter
 
-    Client->>Controller: POST /analyze_document
+    Client->>Controller: POST /analyze/document
     Note over Client,Controller: email, file (PDF)
     
-    Controller->>Validator: validate_all(file, email)
-    Validator-->>Controller: ✅ Validation OK
+    Controller->>ExtractionService: extract_data_from_document(file, email)
+    Note over ExtractionService: Gerencia o cache<br/>Chama o provider (Azure)
+    ExtractionService-->>Controller: extracted_data (Pydantic Model)
     
-    Controller->>Service: process_document_with_models(file, email, use_refactored=True)
+    Controller->>AnalyzeService: analyze_document(extracted_data)
     
-    Service->>Factory: get_provider()
-    Factory-->>Service: AzureDocumentIntelligenceService
+    AnalyzeService->>ImageService: categorize_images(extracted_data.images)
+    ImageService-->>AnalyzeService: categorized_images
     
-    Service->>Azure: extract_document_data(file)
-    Azure->>Azure: analyze_document() [Azure API Call]
-    Azure-->>Service: extracted_data (text, metadata, raw_response)
+    AnalyzeService->>HeaderParser: parse_to_pydantic(extracted_data.text, categorized_images)
+    HeaderParser-->>AnalyzeService: header (Pydantic Model)
     
-    Service->>ImageOrch: _extract_images_with_fallback()
-    Note over Service,ImageOrch: 1. Manual PDF (rápido)<br/>2. Azure Figures (fallback)<br/>3. Legacy (último recurso)
-    ImageOrch-->>Service: image_data (Dict[str, str])
+    AnalyzeService->>QuestionParser: extract(extracted_data.text, ...)
+    QuestionParser-->>AnalyzeService: questions, contexts (Dicts)
     
-    Service->>HeaderParser: parse(extracted_text)
-    HeaderParser-->>Service: legacy_header
+    Note over AnalyzeService: Monta o InternalDocumentResponse<br/>usando os dados processados.
     
-    Service->>Service: InternalDocumentMetadata.from_legacy_header()
-    
-    Service->>QuestionParser: extract(text, image_data)
-    QuestionParser-->>Service: question_data
-    
-    Note over Service: Se use_refactored=True:<br/>Processar figuras Azure<br/>Criar context blocks avançados
-    
-    Service-->>Controller: InternalDocumentResponse (Pydantic)
+    AnalyzeService-->>Controller: internal_response (Pydantic Model)
     
     Controller->>Adapter: to_api_response(internal_response)
     Adapter-->>Controller: api_response (Dict)

@@ -9,6 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 from app.parsers.header_parser import HeaderParser
+from app.models.internal import InternalDocumentMetadata
 from tests.fixtures.test_data import TestDataProvider
 
 
@@ -24,6 +25,43 @@ class TestHeaderParser(unittest.TestCase):
         """Test that parse method returns a dictionary"""
         result = HeaderParser.parse(self.sample_header_text)
         self.assertIsInstance(result, dict)
+    
+    def test_parse_to_pydantic_returns_pydantic_model(self):
+        """🆕 Test that parse_to_pydantic method returns InternalDocumentMetadata"""
+        result = HeaderParser.parse_to_pydantic(self.sample_header_text)
+        self.assertIsInstance(result, InternalDocumentMetadata)
+    
+    def test_parse_to_pydantic_has_same_fields_as_legacy(self):
+        """🆕 Test that Pydantic method extracts same fields as legacy method"""
+        legacy_result = HeaderParser.parse(self.sample_header_text)
+        pydantic_result = HeaderParser.parse_to_pydantic(self.sample_header_text)
+        
+        # Convert Pydantic back to dict for comparison
+        pydantic_dict = pydantic_result.to_legacy_format()
+        
+        # Compare main fields (excluding images)
+        main_fields = ["network", "school", "city", "teacher", "subject", 
+                      "exam_title", "trimester", "grade", "class", "student", 
+                      "grade_value", "date"]
+        
+        for field in main_fields:
+            self.assertEqual(
+                legacy_result.get(field), 
+                pydantic_dict.get(field),
+                f"Field '{field}' differs between legacy and Pydantic methods"
+            )
+    
+    def test_parse_to_pydantic_with_images(self):
+        """🆕 Test Pydantic method with header and content images"""
+        result = HeaderParser.parse_to_pydantic(
+            self.sample_header_text,
+            header_images=[],  # Empty list for now
+            content_images=[]  # Empty list for now
+        )
+        
+        self.assertIsInstance(result, InternalDocumentMetadata)
+        self.assertIsInstance(result.header_images, list)
+        self.assertIsInstance(result.content_images, list)
     
     def test_parse_network_field(self):
         """Test network field parsing"""

@@ -1,6 +1,17 @@
 ## 🏗️ SmartQues│   ├── 🧠 core/                     # Core utilities and configurations
 │   │   ├── 🧠 config.py             # Core configuration
-│   │   ├── ⚠️ exceptions.py         # Custom ├── ⚙️ pyproject.toml                # Project configuration
+│   ├── 🧠 services/                 # Business logic services
+│   │   ├── 📦 __init__.py
+│   │   ├── 📂 document_extraction_service.py # 🆕 Handles data extraction and caching
+│   │   ├── 🧠 analyze_service.py    # 🔄 Main analysis orchestration
+│   │   ├── ☁️ azure_document_intelligence_service.py # Azure AI provider implementation
+│   │   ├── 🏗️ document_extraction_factory.py # Provider factory service
+│   │   ├── 🔧 mock_document_service.py # Mock service with refactored methods
+│   │   ├── 📂 adapters/            # Provider adapters
+│   │   ├── 🔧 base/                # Base interfaces and utilities
+│   │   ├── 📂 providers/           # Document provider implementations
+│   │   ├── 📂 storage/             # Document storage services
+│   │   └── 🔧 utils/               # Service utilities─ ⚠️ exceptions.py         # Custom ├── ⚙️ pyproject.toml                # Project configuration
 ├── 📚 docs/                         # Technical documentation
 │   └── 📄 azure_document_intelligence_coordinates.md # Azure coordinates guide
 ├── 🏗️ ARCHITECTURE.md               # Architecture documentation
@@ -836,11 +847,14 @@ This analysis was conducted using:
 - **User Isolation**: Secure cache separation based on `{email}_{filename}_{file_size}` keys
 - **Zero Configuration**: Automatically enabled for `/analyze_document` and `/analyze_document_with_figures` endpoints
 
-### ✅ **Major Architectural Refactoring (August 2025)**
-- **Simplified API**: Removed complex parameters from `/analyze_document` endpoint
-- **Pydantic Models**: Full type safety with `InternalDocumentResponse` and `InternalDocumentMetadata`
-- **Adapter Pattern**: Clean separation via `DocumentResponseAdapter` for API responses
-- **MockDocumentService**: Refactored with specialized methods (`process_document_mock_text_only`, `process_document_mock_images_only`)
+### ✅ **Major Architectural Refactoring (September 2025)**
+- **SOLID Principles**: Refactored services to follow the Single Responsibility Principle (SRP).
+- **New `DocumentExtractionService`**: Created to handle all data extraction and caching logic, separating concerns from the analysis process.
+- **Simplified `AnalyzeService`**: Now acts as a pure orchestrator for business logic, receiving pre-extracted data.
+- **Simplified API**: Removed complex parameters from `/analyze_document` endpoint.
+- **Pydantic Models**: Full type safety with `InternalDocumentResponse` and `InternalDocumentMetadata`.
+- **Adapter Pattern**: Clean separation via `DocumentResponseAdapter` for API responses.
+- **MockDocumentService**: Refactored with specialized methods (`process_document_mock_text_only`, `process_document_mock_images_only`).
 
 ### 🧹 **Project Cleanup (15 obsolete files removed)**
 - **Test Structure**: Reorganized tests into clear categories (`unit/`, `integration/`, `debug_scripts/`)

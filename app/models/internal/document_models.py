@@ -108,7 +108,7 @@ class InternalDocumentMetadata(BaseModel):
             "student": self.student,
             "grade_value": self.grade_value,
             "date": self.date,
-            "images": []  # Will be populated by transformation layer
+            "images": [img.base64_data for img in self.header_images] if self.header_images else []
         }
         return result
     

@@ -20,6 +20,19 @@ class HeaderParser:
 
     @staticmethod
     def parse(header: str, header_images: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+        """
+        🚨 MÉTODO LEGADO - Mantido para compatibilidade
+        
+        Parse header and return dictionary format (legacy format).
+        Usado por endpoints que ainda não migraram para Pydantic.
+        
+        Args:
+            header: Header text to parse
+            header_images: Optional list of header images
+            
+        Returns:
+            Dictionary with parsed header fields
+        """
         lines = header.splitlines()
 
         def extract_field_line(label: str) -> Optional[str]:
@@ -52,3 +65,53 @@ class HeaderParser:
             result["images"] = []
 
         return result
+
+    @staticmethod
+    def parse_to_pydantic(
+        header: str, 
+        header_images: Optional[List] = None,
+        content_images: Optional[List] = None
+    ):
+        """
+        🆕 MÉTODO PYDANTIC - Retorna diretamente InternalDocumentMetadata
+        
+        Parse header and return typed Pydantic model directly.
+        Usado por endpoints migrados para Pydantic.
+        
+        Args:
+            header: Header text to parse
+            header_images: Optional list of header images (InternalImageData)
+            content_images: Optional list of content images (InternalImageData)
+            
+        Returns:
+            InternalDocumentMetadata with full type safety
+        """
+        from app.models.internal import InternalDocumentMetadata
+        
+        lines = header.splitlines()
+
+        def extract_field_line(label: str) -> Optional[str]:
+            for line in lines:
+                if label.lower() in line.lower():
+                    return line.strip()
+            return None
+
+        student_line = extract_field_line("Estudante:")
+
+        # ✅ Criar diretamente o modelo Pydantic
+        return InternalDocumentMetadata(
+            network=parse_network(header, lines),
+            school=parse_school(header),
+            city=parse_city(header),
+            teacher=parse_teacher(header),
+            subject=parse_subject(header),
+            exam_title=parse_exam_title(header),
+            trimester=parse_trimester(header),
+            grade=parse_grade(header),
+            class_=parse_class(student_line),
+            student=parse_student(student_line),
+            grade_value=parse_grade_value(header),
+            date=parse_date(student_line),
+            header_images=header_images or [],
+            content_images=content_images or []
+        )

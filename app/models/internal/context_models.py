@@ -163,6 +163,10 @@ class InternalContextBlock(BaseModel):
     source: Optional[str] = Field(default="exam_document", description="Source of the context")
     
     # Image associations
+    images: List[str] = Field(
+        default_factory=list,
+        description="Base64 images directly in this context block"
+    )
     associated_images: List[str] = Field(
         default_factory=list,
         description="IDs of images associated with this context block"
@@ -239,6 +243,8 @@ class InternalContextBlock(BaseModel):
             title=legacy_block.get("title"),
             statement=legacy_block.get("statement"),
             source=legacy_block.get("source", "exam_document"),
+            images=legacy_block.get("images", []),  # ✅ Preserve images from legacy format
+            associated_images=legacy_block.get("associated_images", []),
             has_image=legacy_block.get("hasImage", False),
             extraction_method="legacy_conversion",
             sub_contexts=sub_contexts  # ✅ Include sub_contexts

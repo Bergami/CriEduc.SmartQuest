@@ -8,6 +8,7 @@ import logging
 from dataclasses import dataclass
 
 from app.core.constants.instruction_patterns import InstructionPatterns
+from app.models.internal.image_models import InternalImageData, ImageCategory
 from app.core.constants.content_types import (
     ContentType, FigureType, TextRole, ContextBlockType,
     get_content_type_from_string, get_figure_type_from_content
@@ -58,28 +59,28 @@ class RefactoredContextBlockBuilder:
             ContentType.INSTRUCTION: ['analise', 'observe', 'leia', 'responda']
         }
     
-    def analyze_azure_figures_dynamically(
-        self, 
+    def build_context_blocks_from_azure_figures(
+        self,
         azure_response: Dict[str, Any],
-        images_base64: Dict[str, str]
+        images_base64: Dict[str, str] = None
     ) -> List[Dict[str, Any]]:
         """
-        Analisa figuras do Azure dinamicamente sem hardcoding
+        Builds context blocks from Azure figures dynamically without hardcoding.
         
         Args:
-            azure_response: Resposta do Azure Document Intelligence
-            images_base64: Dicionário com imagens em base64
+            azure_response: The full response from Azure Document Intelligence.
+            images_base64: Dictionary mapping figure IDs to base64 image data.
             
         Returns:
-            Lista de context blocks estruturados
+            A list of structured context blocks.
         """
         try:
             logger.info("🔧 DYNAMIC FIGURE ANALYSIS - Starting")
-            
-            # 1. Extrair figuras com informações espaciais
+
+            # 1. Extract figures directly from the Azure response.
             figures = self._extract_figures_with_enhanced_info(azure_response)
-            logger.info(f"📊 Extracted {len(figures)} figures with spatial data")
-            
+            logger.info(f"📊 Extracted {len(figures)} figures from Azure response")
+
             # 2. Extrair spans de texto relevantes
             text_spans = self._extract_relevant_text_spans(azure_response)
             logger.info(f"📝 Extracted {len(text_spans)} relevant text spans")
@@ -91,8 +92,10 @@ class RefactoredContextBlockBuilder:
             # 4. Associar textos às figuras baseado em proximidade espacial
             self._associate_texts_with_figures_enhanced(figures, text_spans)
             
-            # 5. Adicionar imagens base64
-            self._add_base64_images_to_figures(figures, images_base64)
+            # 5. Adicionar imagens base64 às figuras se disponíveis
+            if images_base64:
+                self._add_base64_images_to_figures(figures, images_base64)
+                logger.info(f"📷 Added base64 images to {len([f for f in figures if f.base64_image])} figures")
             
             # 6. Criar context blocks baseado em análise dinâmica
             context_blocks = self._create_dynamic_context_blocks(
@@ -105,6 +108,24 @@ class RefactoredContextBlockBuilder:
         except Exception as e:
             logger.error(f"❌ Error in dynamic figure analysis: {str(e)}")
             return []
+
+    def _convert_internal_images_to_figure_info(self, images: List[InternalImageData]) -> List[FigureInfo]:
+        """Converte uma lista de InternalImageData para uma lista de FigureInfo."""
+        figure_infos = []
+        for img in images:
+            # A conversão precisa mapear os campos de InternalImageData para FigureInfo
+            # O azure_figure pode ser None se não tivermos a referência direta
+            figure_info = FigureInfo(
+                id=img.id,
+                page_number=img.page,
+                bounding_regions=img.extraction_metadata.bounding_regions if img.extraction_metadata else [],
+                base64_image=img.base64_data,
+                azure_figure=None, # Este campo pode precisar ser preenchido de outra forma se necessário
+                figure_type=FigureType.CONTENT, # Categoria precisa ser mapeada
+                content_type=ContentType.FIGURE # Categoria precisa ser mapeada
+            )
+            figure_infos.append(figure_info)
+        return figure_infos
     
     def _extract_figures_with_enhanced_info(self, azure_response: Dict) -> List[FigureInfo]:
         """Extrai figuras com informações aprimoradas usando enums"""
@@ -406,11 +427,28 @@ class RefactoredContextBlockBuilder:
         return distance
     
     def _add_base64_images_to_figures(self, figures: List[FigureInfo], images_base64: Dict[str, str]):
-        """Adiciona imagens base64 às figuras"""
+        """Adiciona imagens base64 às figuras - Versão melhorada com logs"""
+        if not images_base64:
+            logger.warning("No images_base64 provided to _add_base64_images_to_figures")
+            return
+            
+        logger.info(f"Adding base64 images: {len(images_base64)} images available for {len(figures)} figures")
+        
+        images_added = 0
         for figure in figures:
             if figure.id in images_base64:
                 figure.base64_image = images_base64[figure.id]
+                images_added += 1
                 logger.debug(f"   ✅ Added base64 image to {figure.id}")
+            else:
+                logger.debug(f"   ❌ No base64 image found for {figure.id}")
+        
+        logger.info(f"Successfully added base64 images to {images_added}/{len(figures)} figures")
+        
+        # Log figuras sem imagens
+        figures_without_images = [f.id for f in figures if not f.base64_image]
+        if figures_without_images:
+            logger.warning(f"Figures without base64 images: {figures_without_images}")
     
     def _create_dynamic_context_blocks(
         self, 
@@ -515,12 +553,12 @@ class RefactoredContextBlockBuilder:
                 if title or text_paragraphs:
                     context_block = {
                         'id': len(context_blocks) + 1,
-                        'type': 'text',
+                        'type': ['text'],
+                        'source': 'exam_document',
                         'statement': statement,
                         'title': title if title else "Texto para análise",
                         'paragraphs': text_paragraphs,
-                        'has_images': False,
-                        'images': {}
+                        'hasImage': False
                     }
                     context_blocks.append(context_block)
                     logger.info(f"📋 Created text context block: '{statement}' -> '{title}' ({len(text_paragraphs)} paragraphs)")
@@ -737,22 +775,67 @@ class RefactoredContextBlockBuilder:
         return sequences[0] if sequences else None
     
     def _extract_all_sequence_identifiers(self, figure: FigureInfo) -> List[str]:
-        """Extrai TODOS os identificadores de sequência de uma figura"""
+        """Extrai TODOS os identificadores de sequência de uma figura - Versão melhorada"""
         sequences_found = []
         
         for text_span in figure.associated_texts:
             content_upper = text_span.content.upper()
-            # Procurar por padrões como "TEXTO I:", "TEXTO II:", etc.
-            matches = re.findall(r'TEXTO\s+([IVX]+)', content_upper)
-            sequences_found.extend(matches)
+            
+            # Padrões mais robustos para detectar sequências
+            patterns = [
+                r'TEXTO\s+([IVX]+)\s*:',      # TEXTO I:, TEXTO II:, etc.
+                r'TEXTO\s+([IVX]+)\s*[-–]',   # TEXTO I -, TEXTO II -, etc.
+                r'TEXTO\s+([IVX]+)\s*\.',     # TEXTO I., TEXTO II., etc.
+                r'TEXTO\s+([IVX]+)\s+',       # TEXTO I (seguido de espaço)
+                r'^([IVX]+)\s*[-–:]',         # I:, II:, III: no início da linha
+                r'^\s*([IVX]+)\s*\.',         # I., II., III. no início da linha
+            ]
+            
+            for pattern in patterns:
+                matches = re.findall(pattern, content_upper)
+                sequences_found.extend(matches)
+            
+            # Também procurar por numeração arábica como fallback
+            arabic_patterns = [
+                r'TEXTO\s+(\d+)\s*:',         # TEXTO 1:, TEXTO 2:, etc.
+                r'TEXTO\s+(\d+)\s*[-–]',      # TEXTO 1 -, TEXTO 2 -, etc.
+            ]
+            
+            for pattern in arabic_patterns:
+                arabic_matches = re.findall(pattern, content_upper)
+                # Converter números arábicos para romanos
+                for num in arabic_matches:
+                    try:
+                        num_int = int(num)
+                        if num_int <= 10:  # Limitar conversão para números pequenos
+                            roman = self._arabic_to_roman(num_int)
+                            sequences_found.append(roman)
+                    except ValueError:
+                        continue
         
-        # Remover duplicatas e converter para lowercase
-        unique_sequences = list(set(seq.lower() for seq in sequences_found))
+        # Remover duplicatas e converter para lowercase, mantendo ordem
+        seen = set()
+        unique_sequences = []
+        for seq in sequences_found:
+            seq_lower = seq.lower()
+            if seq_lower not in seen:
+                seen.add(seq_lower)
+                unique_sequences.append(seq_lower)
         
         if len(unique_sequences) > 1:
             logger.debug(f"Figure {figure.id} has multiple sequences: {unique_sequences}")
+        elif len(unique_sequences) == 1:
+            logger.debug(f"Figure {figure.id} has sequence: {unique_sequences[0]}")
         
         return unique_sequences
+    
+    def _arabic_to_roman(self, num: int) -> str:
+        """Converte números arábicos para romanos (1-10)"""
+        conversion = {
+            1: 'I', 2: 'II', 3: 'III', 4: 'IV', 5: 'V',
+            6: 'VI', 7: 'VII', 8: 'VIII', 9: 'IX', 10: 'X'
+        }
+        return conversion.get(num, str(num))
     
     def _has_individual_instruction(self, figure: FigureInfo) -> bool:
         """Verifica se a figura tem uma instrução individual (não faz parte do grupo ANALISE OS TEXTO A SEGUIR)"""
@@ -839,15 +922,31 @@ class RefactoredContextBlockBuilder:
                 if sub_context:
                     sub_contexts.append(sub_context)
         
+        # Coletar todas as imagens dos sub_contexts
+        all_images = []
+        for sub_context in sub_contexts:
+            sub_images = sub_context.get('images', [])
+            logger.debug(f"Sub-context has {len(sub_images)} images")
+            all_images.extend(sub_images)
+        
+        logger.debug(f"Total images collected for context block: {len(all_images)}")
+        
         # Context block principal
         context_block = {
             'id': 0,  # Será renumerado depois
-            'type': 'image_collection',
+            'type': ['text', 'image'],
+            'source': 'exam_document',
             'title': 'Análise de Textos',
-            'statement': general_instruction or 'ANALISE OS TEXTO A SEGUIR:',
-            'sub_contexts': sub_contexts,
-            'has_images': True
+            'statement': general_instruction if general_instruction else '',
+            'paragraphs': [],  # Context blocks com sub_contexts geralmente não têm paragraphs próprios
+            'hasImage': len(all_images) > 0,
+            'images': [],  # 🔧 CORREÇÃO: Context blocks com sub_contexts NÃO têm imagens no pai
+            'sub_contexts': sub_contexts
         }
+        
+        # Adicionar campo contentType se houver imagens
+        if len(all_images) > 0:
+            context_block['contentType'] = 'image/jpeg;base64'
         
         logger.debug(f"Created context block with {len(sub_contexts)} sub_contexts")
         
@@ -921,8 +1020,6 @@ class RefactoredContextBlockBuilder:
     
     def _create_individual_context_block(self, figure: FigureInfo) -> Optional[Dict[str, Any]]:
         """Cria um context_block individual para figuras com instruções próprias"""
-        if not figure.base64_image:
-            return None
         
         # Extrair instrução e título
         instruction = None
@@ -964,38 +1061,54 @@ class RefactoredContextBlockBuilder:
         # Extrair textos completos da imagem usando boundingRegions
         image_texts = self._extract_complete_image_texts(figure)
         
+        # Criar context block base
         context_block = {
             'id': 0,  # Será renumerado depois
-            'type': context_type,
+            'type': [context_type],
+            'source': 'exam_document',
             'title': title,
             'statement': instruction,
-            'content': {
-                'description': image_texts  # Array direto com os textos
-            },
-            'images': [figure.base64_image],
-            'has_images': True
+            'paragraphs': image_texts,  # Usar os textos extraídos como paragraphs
+            'hasImage': True  # Sempre True para figuras individuais
         }
         
-        logger.debug(f"Created individual context block: {title}")
+        # Adicionar imagens se disponíveis
+        if figure.base64_image:
+            context_block['contentType'] = 'image/jpeg;base64'
+            context_block['images'] = [figure.base64_image]
+            logger.debug(f"Added base64 image to individual context block: {title}")
+        else:
+            # Mesmo sem imagem base64, manter estrutura
+            context_block['images'] = []
+            logger.warning(f"No base64_image available for figure {figure.id} in context block: {title}")
+        
+        logger.debug(f"Created individual context block: {title} with {len(image_texts)} text paragraphs, hasImage={context_block.get('hasImage')}, images_count={len(context_block.get('images', []))}")
         
         return context_block
     
     def _extract_complete_image_texts(self, figure: FigureInfo) -> List[str]:
-        """Extrai todos os textos que estão dentro da área da imagem usando boundingRegions"""
+        """Extrai todos os textos que estão dentro da área da imagem usando boundingRegions - Versão melhorada"""
         if not figure.azure_figure:
-            return []
+            # Se não temos azure_figure, usar textos associados como fallback
+            logger.debug(f"No azure_figure for {figure.id}, using associated texts as fallback")
+            return [text.content.strip() for text in figure.associated_texts 
+                   if text.content.strip() and len(text.content.strip()) > 1]
         
         # Obter boundingRegions da figura
         figure_regions = figure.azure_figure.get('boundingRegions', [])
         if not figure_regions:
-            return []
+            logger.debug(f"No boundingRegions for {figure.id}, using associated texts")
+            return [text.content.strip() for text in figure.associated_texts 
+                   if text.content.strip() and len(text.content.strip()) > 1]
         
         # Obter informações de página e coordenadas da figura
         figure_page = figure_regions[0].get('pageNumber', 1)
         figure_polygon = figure_regions[0].get('polygon', [])
         
         if len(figure_polygon) < 8:  # Precisa de pelo menos 4 pontos (x,y cada)
-            return []
+            logger.debug(f"Invalid polygon for {figure.id}, using associated texts")
+            return [text.content.strip() for text in figure.associated_texts 
+                   if text.content.strip() and len(text.content.strip()) > 1]
         
         # Calcular bounding box da figura
         x_coords = [figure_polygon[i] for i in range(0, len(figure_polygon), 2)]
@@ -1028,22 +1141,35 @@ class RefactoredContextBlockBuilder:
                     para_y_min, para_y_max = min(para_y_coords), max(para_y_coords)
                     
                     # Verificar se o parágrafo está dentro da área da figura (com margem)
-                    margin = 0.1  # Margem de tolerância
+                    margin = 0.1  # Margem de tolerância aumentada
                     if (para_x_min >= fig_x_min - margin and para_x_max <= fig_x_max + margin and
                         para_y_min >= fig_y_min - margin and para_y_max <= fig_y_max + margin):
                         
                         content = paragraph.get('content', '').strip()
                         if content and len(content) > 1:
                             image_texts.append(content)
+                            logger.debug(f"Found text within figure {figure.id}: {content[:50]}...")
         
         # Se não conseguiu pelo método acima, usar os textos associados existentes
         if not image_texts:
+            logger.debug(f"No texts found within boundingRegions for {figure.id}, using associated texts")
             for text_span in figure.associated_texts:
                 content = text_span.content.strip()
                 if content and len(content) > 1 and not content.upper().startswith('QUESTÃO'):
                     image_texts.append(content)
         
-        return image_texts
+        # Filtrar textos muito curtos ou irrelevantes
+        filtered_texts = []
+        for text in image_texts:
+            # Pular números isolados, questões, ou textos muito curtos
+            if (len(text) > 3 and 
+                not text.isdigit() and 
+                not text.upper().startswith('QUESTÃO') and
+                not re.match(r'^\d+\s*$', text.strip())):
+                filtered_texts.append(text)
+        
+        logger.debug(f"Extracted {len(filtered_texts)} texts for figure {figure.id}")
+        return filtered_texts
     
     def _create_simple_context_block_from_group(
         self, 
@@ -1075,21 +1201,19 @@ class RefactoredContextBlockBuilder:
             if len(text.strip()) > 3 and not text.strip().isdigit():
                 relevant_texts.append(text)
         
-        context_text = '\n'.join(relevant_texts) if relevant_texts else f"Contexto para {group_name}"
-        
         context_block = {
             'id': 0,  # Será renumerado depois
-            'type': 'image',
+            'type': ['image'],
+            'source': 'exam_document',
             'title': group_name.replace('_', ' ').title(),
-            'content': context_text,
-            'images': images,
-            'has_images': len(images) > 0
+            'paragraphs': relevant_texts,
+            'hasImage': len(images) > 0
         }
         
-        logger.debug(f"Created simple context block: {group_name} with {len(images)} images")
+        if len(images) > 0:
+            context_block['contentType'] = 'image/jpeg;base64'
+            context_block['images'] = images
         
-        return context_block
-    
         logger.debug(f"Created simple context block: {group_name} with {len(images)} images")
         
         return context_block
@@ -1111,8 +1235,8 @@ class RefactoredContextBlockBuilder:
         else:
             return ContextBlockType.UNKNOWN
     
-    def remove_associated_figures_from_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
-        """Remove campos desnecessários 'associated_figures' e 'figure_ids' do resultado da API"""
+    def remove_figure_association_fields(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """Removes unnecessary 'associated_figures' and 'figure_ids' fields from the API result."""
         # Remove associated_figures do nível superior
         if 'associated_figures' in result:
             del result['associated_figures']

@@ -1,255 +1,166 @@
 """
-Analyze Service - Versão Limpa e Refatorada
+Analyze Service - Versão Refatorada (SOLID)
 
 Responsabilidades:
-- Processamento de documentos reais via Azure
-- Categorização de imagens
-- Extração de header e questões
-- Delegação para MockDocumentService para casos mock
+- Orquestrar o fluxo de análise de um documento a partir de dados já extraídos.
+- Categorizar imagens.
+- Extrair header e questões.
+- Delegar para MockDocumentService para casos mock.
 
-Nota: Este serviço agora trabalha em conjunto com DocumentProcessingOrchestrator
-para maior organização e flexibilidade de fluxos de processamento.
+Esta classe não tem mais conhecimento sobre cache ou a origem dos dados (Azure, etc.),
+seguindo o Princípio da Responsabilidade Única.
 """
-import json
-import os
-import base64
+import logging
 from typing import Dict, Any
 from uuid import uuid4
-from pathlib import Path
 from fastapi import UploadFile
+
 from app.parsers.header_parser import HeaderParser
 from app.parsers.question_parser import QuestionParser
-from app.services.document_extraction_factory import DocumentExtractionFactory
-from app.services.mock_document_service import MockDocumentService
-from app.services.image_categorization_service import ImageCategorizationService
+from app.services.image_categorization_service_pure_pydantic import ImageCategorizationService
 from app.services.azure_figure_processor import AzureFigureProcessor
-from app.models.internal import InternalDocumentResponse, InternalDocumentMetadata
+from app.models.internal import (
+    InternalDocumentResponse,
+    InternalDocumentMetadata,
+    InternalQuestion,
+    InternalContextBlock,
+    InternalImageData
+)
 from app.services.refactored_context_builder import RefactoredContextBlockBuilder
 from app.core.exceptions import DocumentProcessingError
-from app.core.cache import DocumentCacheManager
-import logging
+from app.services.mock_document_service import MockDocumentService
 
 logger = logging.getLogger(__name__)
 
 
 class AnalyzeService:
     """
-    Serviço principal para análise de documentos.
-    
-    Responsabilidades:
-    - Processar documentos reais via Azure Document Intelligence
-    - Categorizar imagens extraídas
-    - Extrair informações do header
-    - Extrair questões e contexto
-    - Delegar processamento mock para MockDocumentService
+    Serviço de orquestração da análise de documentos.
+    Recebe dados brutos e os transforma em um InternalDocumentResponse estruturado.
     """
-    
-    @staticmethod
-    async def process_document(
-        file: UploadFile, 
-        email: str, 
-        use_json_fallback: bool = False,
-        use_refactored: bool = False
-    ) -> Dict[str, Any]:
-        """
-        Processa documento usando Azure Document Intelligence com extração de imagens otimizada
-        
-        Args:
-            file: Arquivo para processamento
-            email: Email do usuário
-            use_json_fallback: Se deve usar fallback JSON
-            use_refactored: Flag para usar versão refatorada com melhorias
-        """
-        document_id = str(uuid4())
-        logger.info(f"Processing document {file.filename} for {email}")
-
-        if use_json_fallback:
-            logger.info("Using JSON fallback mode")
-            # Carrega resultado_parser.json
-            with open("resultado_parser.json", "r", encoding="utf-8") as f:
-                parsed_data = json.load(f)
-
-            parsed_data["document_id"] = document_id
-            parsed_data["email"] = email
-            parsed_data["filename"] = file.filename
-            parsed_data["extracted_text"] = "Documento carregado via fallback JSON."
-
-            return parsed_data
-
-        # Usar Document Extraction Factory (Azure)
-        try:
-            logger.info("Processing with Document Extraction Factory")
-            extracted_data = await AnalyzeService._extract_text_and_metadata_with_factory(file, email)
-            logger.info("Document extraction completed successfully")
-        except Exception as e:
-            logger.error(f"Document extraction failed: {str(e)}")
-            error_message = f"Failed to process document: {str(e)}"
-            raise DocumentProcessingError(error_message)
-        
-        logger.info(f"Text extracted: {len(extracted_data['text'])} characters")
-        
-        # 🆕 NOVA LÓGICA: Usar extratores isolados com fallback automático
-        image_data = await AnalyzeService._extract_images_with_fallback(
-            file=file,
-            extracted_data=extracted_data,
-            document_id=f"{email}_{file.filename}"
-        )
-        
-        if image_data:
-            logger.info(f"{len(image_data)} images extracted using optimized extractors")
-        
-        # Extrair questões usando parser padrão
-        question_data = QuestionParser.extract(extracted_data["text"], image_data)
-        
-        # 🆕 FEATURE FLAG: Usar versão refatorada se habilitada
-        if use_refactored:
-            logger.info("Using REFACTORED version with improvements")
-            
-            # 🆕 PROCESSAR FIGURAS DO AZURE PARA ASSOCIAÇÃO COM QUESTÕES E CONTEXTOS
-            azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
-            if azure_result and "figures" in azure_result:
-                processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_result)
-                logger.info(f"{len(processed_figures)} figures processed from Azure")
-                
-                # 🆕 CRIAR CONTEXT BLOCKS AVANÇADOS COM TEXTOS ASSOCIADOS
-                context_builder = RefactoredContextBlockBuilder()
-                enhanced_context_blocks = context_builder.analyze_azure_figures_dynamically(
-                    azure_result, image_data
-                )
-                
-                logger.info(f"{len(enhanced_context_blocks)} enhanced context blocks created")
-                
-                # Usar context blocks avançados se disponíveis
-                if enhanced_context_blocks:
-                    question_data["context_blocks"] = enhanced_context_blocks
-                
-                # Associar figuras às questões
-                enhanced_questions = AzureFigureProcessor.associate_figures_to_questions(
-                    processed_figures, question_data["questions"]
-                )
-                question_data["questions"] = enhanced_questions
-                
-                logger.info("Questions enhanced with figure associations")
-            else:
-                logger.info("No Azure figures data, using standard refactored extraction")
-        else:
-            logger.info("Using STANDARD version (legacy)")
-            
-        logger.info(f"Questions found: {len(question_data['questions'])}")
-        logger.info(f"Context blocks: {len(question_data['context_blocks'])}")
-
-        result = {
-            "email": email,
-            "document_id": document_id,
-            "filename": file.filename,
-            "header": extracted_data["header"],
-            "questions": question_data["questions"],
-            "context_blocks": question_data["context_blocks"]
-        }
-        
-        # 🆕 LIMPEZA DO RESULTADO SEMPRE (independent da flag)
-        context_builder = RefactoredContextBlockBuilder()
-        result = context_builder.remove_associated_figures_from_result(result)
-        logger.info("Associated figures and figure_ids cleaned from result")
-        
-        logger.info("Document processing completed successfully")
-        return result
 
     @staticmethod
     async def process_document_with_models(
-        file: UploadFile, 
-        email: str, 
+        extracted_data: Dict[str, Any],
+        email: str,
+        filename: str,
+        file: UploadFile, # Necessário para o fallback de extração de imagem
         use_refactored: bool = True
     ) -> InternalDocumentResponse:
         """
-        🆕 VERSÃO REFATORADA: Processa documento usando modelos Pydantic tipados
-        
+        ✅ REFATORADO: Orquestra a análise a partir de dados já extraídos.
+        Não possui mais conhecimento sobre cache ou provedores de extração.
+
         Args:
-            file: Arquivo para processamento
-            email: Email do usuário 
-            use_refactored: Flag para usar versão refatorada (sempre True por padrão)
-            
+            extracted_data: Dicionário com os dados brutos extraídos pelo DocumentExtractionService.
+            email: Email do usuário.
+            filename: Nome do arquivo original.
+            file: O objeto UploadFile, necessário para o fallback de extração de imagem.
+            use_refactored: Flag para usar lógica de processamento avançada.
+
         Returns:
-            InternalDocumentResponse: Response completo com tipagem forte
+            InternalDocumentResponse: O objeto de resposta Pydantic completo.
         """
         document_id = str(uuid4())
-        logger.info(f"🔧 Processing document with models: {file.filename} for {email}")
+        logger.info(f"🔧 Orchestrating analysis for {filename} for {email}")
 
-        # Usar Document Extraction Factory (Azure)
-        try:
-            logger.info("Processing with Document Extraction Factory")
-            extracted_data = await AnalyzeService._extract_text_and_metadata_with_factory(file, email)
-            logger.info("Document extraction completed successfully")
-        except Exception as e:
-            logger.error(f"Document extraction failed: {str(e)}")
-            error_message = f"Failed to process document: {str(e)}"
-            raise DocumentProcessingError(error_message)
+        # 1. Extrair informações primárias dos dados recebidos
+        extracted_text = extracted_data.get("text", "")
+        raw_image_data = extracted_data.get("image_data", {})
+        azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
         
-        logger.info(f"Text extracted: {len(extracted_data['text'])} characters")
-        
-        # Extração de imagens com fallback automático
+        logger.info(f"Text received: {len(extracted_text)} characters")
+
+        # 2. Extração de imagens com fallback (ainda necessário aqui, pois depende do azure_result)
+        # Esta lógica poderia ser movida para um ImageExtractionService no futuro.
         image_data = await AnalyzeService._extract_images_with_fallback(
             file=file,
             extracted_data=extracted_data,
-            document_id=f"{email}_{file.filename}"
+            document_id=f"{email}_{filename}"
         )
-        
         if image_data:
             logger.info(f"{len(image_data)} images extracted using optimized extractors")
-        
-        # Processar header usando modelo tipado
-        legacy_header = HeaderParser.parse(extracted_data["text"])
-        header_metadata = InternalDocumentMetadata.from_legacy_header(legacy_header)
-        
-        # Extrair questões usando parser padrão
-        question_data = QuestionParser.extract(extracted_data["text"], image_data)
-        
-        # Processar versão refatorada com melhorias
+
+        # 3. Categorizar imagens usando o serviço Pydantic
+        header_images_pydantic, content_images_pydantic = [], []
+        if isinstance(image_data, dict) and image_data:
+            logger.info(f"🔧 Categorizing {len(image_data)} extracted images using PURE PYDANTIC service")
+            header_images_pydantic, content_images_pydantic = ImageCategorizationService.categorize_extracted_images(
+                image_data, azure_result, document_id=f"analyze_{len(image_data)}_images"
+            )
+            logger.info(f"🔧 PURE PYDANTIC Categorization complete: {len(header_images_pydantic)} header images, {len(content_images_pydantic)} content images")
+        else:
+            logger.info("🔧 Skipping image categorization - no valid image data available")
+
+        # Combine all categorized images into a single list
+        all_categorized_images = header_images_pydantic + content_images_pydantic
+
+        # 4. Parse do Header usando o método Pydantic e as imagens já categorizadas
+        logger.info(f"Using Pydantic HeaderParser with {len(header_images_pydantic)} categorized header images")
+        header_metadata = HeaderParser.parse_to_pydantic(
+            header=extracted_text,
+            header_images=header_images_pydantic,
+            content_images=content_images_pydantic
+        )
+
+        # 5. Extrair questões
+        question_data = QuestionParser.extract(extracted_text, image_data)
+        logger.info(f"Questions found: {len(question_data['questions'])}")
+        logger.info(f"Context blocks found: {len(question_data['context_blocks'])}")
+
+        # 6. Processar melhorias da versão refatorada (se aplicável)
         if use_refactored:
             logger.info("Using REFACTORED version with improvements")
-            
             azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
-            if azure_result and "figures" in azure_result:
-                processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_result)
-                logger.info(f"{len(processed_figures)} figures processed from Azure")
-                
-                from app.services.refactored_context_builder import RefactoredContextBlockBuilder
+            if azure_result:
+                # A lógica de processamento de figuras e contextos avançados permanece aqui
                 context_builder = RefactoredContextBlockBuilder()
-                enhanced_context_blocks = context_builder.analyze_azure_figures_dynamically(
+                
+                # Log para debugging
+                logger.info(f"Building context blocks with Azure result and {len(image_data) if image_data else 0} images")
+                
+                enhanced_context_blocks = context_builder.build_context_blocks_from_azure_figures(
                     azure_result, image_data
                 )
-                
-                logger.info(f"{len(enhanced_context_blocks)} enhanced context blocks created")
-                
+
                 if enhanced_context_blocks:
-                    question_data["context_blocks"] = enhanced_context_blocks
+                    logger.info(f"Created {len(enhanced_context_blocks)} enhanced context blocks")
+                    # Convert the Dicts into Pydantic Models before assigning
+                    question_data["context_blocks"] = [
+                        InternalContextBlock.from_legacy_context_block(cb) for cb in enhanced_context_blocks
+                    ]
+                    
+                    # Log context blocks with images for debugging
+                    blocks_with_images = sum(1 for cb in enhanced_context_blocks if cb.get('hasImage', False))
+                    logger.info(f"Context blocks with images: {blocks_with_images}/{len(enhanced_context_blocks)}")
+                else:
+                    logger.warning("No enhanced context blocks were created")
                 
+                # A associação de figuras às questões também pode precisar ser refatorada
+                # para usar os objetos pydantic, mas vamos focar no erro atual.
+                processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_result)
                 enhanced_questions = AzureFigureProcessor.associate_figures_to_questions(
                     processed_figures, question_data["questions"]
                 )
                 question_data["questions"] = enhanced_questions
-                
-                logger.info("Questions enhanced with figure associations")
-        
-        logger.info(f"Questions found: {len(question_data['questions'])}")
-        logger.info(f"Context blocks: {len(question_data['context_blocks'])}")
+                logger.info("Questions and context blocks enhanced with figure associations")
 
-        # 🆕 Criar response usando conversão legacy → Pydantic
-        response = InternalDocumentResponse.from_legacy_format(
-            legacy_response={
-                "email": email,
-                "document_id": document_id,
-                "filename": file.filename,
-                "questions": question_data["questions"],
-                "context_blocks": question_data["context_blocks"],
-                "extracted_text": extracted_data["text"],
-                "provider_metadata": extracted_data.get("metadata", {})
-            },
+        # 7. Construir o objeto de resposta final Pydantic
+        # A lista all_categorized_images já contém os objetos Pydantic corretos
+        response = InternalDocumentResponse(
+            email=email,
+            document_id=document_id,
+            filename=filename,
             document_metadata=header_metadata,
-            all_images=[]  # TODO: converter image_data para InternalImageData
+            questions=[InternalQuestion.from_legacy_question(q) for q in question_data.get("questions", [])],
+            context_blocks=question_data.get("context_blocks", []), # Now receives a list of Pydantic models
+            extracted_text=extracted_text,
+            provider_metadata=extracted_data.get("metadata", {}),
+            all_images=all_categorized_images
         )
-        
-        logger.info("✅ Document processing completed successfully with Pydantic models")
+
+        logger.info(f"🔧 Final check before returning response: {len(response.document_metadata.header_images)} header images in metadata.")
+        logger.info("✅ Document analysis orchestration completed successfully with Pydantic models")
         return response
 
     @staticmethod
@@ -259,321 +170,116 @@ class AnalyzeService:
         document_id: str
     ) -> Dict[str, str]:
         """
-        Extrai imagens usando estratégia de fallback automático:
-        1. Tenta método Manual PDF (rápido e alta qualidade)
-        2. Se falhar, usa Azure Figures (mais lento mas confiável)
-        
-        Args:
-            file: Arquivo PDF para extração
-            extracted_data: Dados extraídos do documento
-            document_id: ID único do documento
-            
-        Returns:
-            Dicionário com figure_id -> base64_string das imagens extraídas
+        Extrai imagens usando estratégia de fallback automático.
+        Esta é uma responsabilidade candidata a ser movida para um futuro ImageExtractionService.
         """
         from app.services.image_extraction import ImageExtractionOrchestrator, ImageExtractionMethod
         
         logger.info("Starting image extraction with automatic fallback")
-        
-        # Resetar ponteiro do arquivo
         await file.seek(0)
-        
-        # Inicializar orquestrador
         orchestrator = ImageExtractionOrchestrator()
-        
-        # Obter raw_response do Azure para coordenadas
         azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
         
         try:
-            # STEP 1: Tentar método Manual PDF (rápido e alta qualidade)
             logger.info("STEP 1: Attempting Manual PDF extraction (primary method)")
-            
             manual_images = await orchestrator.extract_images_single_method(
                 method=ImageExtractionMethod.MANUAL_PDF,
                 file=file,
                 document_analysis_result=azure_result,
                 document_id=document_id
             )
-            
-            if manual_images and len(manual_images) > 0:
-                manual_metrics = orchestrator._extractors[ImageExtractionMethod.MANUAL_PDF].get_performance_metrics()
-                logger.info(
-                    f"✅ Manual PDF extraction successful: {len(manual_images)} images extracted in {manual_metrics.get('total_processing_time', 0):.2f}s"
-                )
+            if manual_images:
+                logger.info(f"✅ Manual PDF extraction successful: {len(manual_images)} images extracted.")
+                await file.seek(0)
                 return manual_images
-            
             logger.warning("⚠️ Manual PDF extraction returned no images, attempting fallback")
-            
         except Exception as e:
             logger.warning(f"⚠️ Manual PDF extraction failed: {str(e)}, attempting fallback")
         
-        # Reset file pointer for fallback
         await file.seek(0)
         
         try:
-            # STEP 2: Fallback para Azure Figures (mais lento mas confiável)
             logger.info("STEP 2: Using Azure Figures fallback (secondary method)")
-            
             azure_images = await orchestrator.extract_images_single_method(
                 method=ImageExtractionMethod.AZURE_FIGURES,
                 file=file,
                 document_analysis_result=azure_result,
                 document_id=document_id
             )
-            
-            if azure_images and len(azure_images) > 0:
-                azure_metrics = orchestrator._extractors[ImageExtractionMethod.AZURE_FIGURES].get_performance_metrics()
-                logger.info(
-                    f"✅ Azure Figures fallback successful: {len(azure_images)} images extracted in {azure_metrics.get('total_processing_time', 0):.2f}s"
-                )
+            if azure_images:
+                logger.info(f"✅ Azure Figures fallback successful: {len(azure_images)} images extracted.")
+                await file.seek(0)
                 return azure_images
-                
             logger.warning("⚠️ Azure Figures fallback also returned no images")
-            
         except Exception as e:
             logger.error(f"❌ Azure Figures fallback failed: {str(e)}")
         
-        # STEP 3: Fallback para método legado se ambos falharem
-        logger.info("STEP 3: Using legacy image extraction method (final fallback)")
-        
-        try:
-            # Usar método legado do sistema atual
-            legacy_images = extracted_data.get("images", {})
-            
-            if not legacy_images:
-                # Tentar carregar de arquivos salvos
-                legacy_images = await AnalyzeService._try_load_saved_images(extracted_data)
-            
-            if legacy_images:
-                logger.info(f"✅ Legacy extraction successful: {len(legacy_images)} images loaded")
-                return legacy_images
-            
-        except Exception as e:
-            logger.error(f"❌ Legacy extraction failed: {str(e)}")
-        
-        # Se todos os métodos falharam
-        logger.warning("❌ All image extraction methods failed, returning empty result")
+        logger.warning("❌ All primary image extraction methods failed, returning empty result")
+        await file.seek(0)
         return {}
 
+    # ==================================================================================
+    # MÉTODOS MOCK (Mantidos para não quebrar os testes e endpoints de mock)
+    # ==================================================================================
     @staticmethod
     async def process_document_mock(email: str, filename: str = None) -> Dict[str, Any]:
         """
-        Delega o processamento mock para MockDocumentService
+        Delega o processamento mock para MockDocumentService.
         """
         return await MockDocumentService.process_document_mock(email, filename)
 
     @staticmethod
-    async def _extract_text_and_metadata_with_factory(file: UploadFile, email: str = None) -> Dict[str, Any]:
+    async def process_document_with_models_mock(
+        email: str = "test@mock.com",
+        image_extraction_method=None
+    ) -> InternalDocumentResponse:
         """
-        Extrai texto e metadados usando Document Extraction Factory.
-        Suporta múltiplos provedores com fallback automático.
+        Processa um documento mock usando modelos Pydantic.
         """
-        # Obter o provedor de extração configurado
-        extractor = DocumentExtractionFactory.get_provider()
-        provider_name = extractor.get_provider_name()
+        logger.info("🔧 Processing mock document with Pydantic models")
         
-        logger.info(f"Using extraction provider: {provider_name}")
+        from app.services.azure_response_service import AzureResponseService
         
-        # Extrair dados do documento (com cache automático)
-        extracted_data = await AnalyzeService._extract_with_cache(file, extractor, email)
-        
-        # Obter dados de imagem do Azure para categorização
+        azure_result = AzureResponseService.get_latest_azure_response()
+        file_info = AzureResponseService.get_latest_file_info()
+        extracted_data = AzureResponseService.convert_azure_response_to_extracted_data(azure_result)
         raw_image_data = extracted_data.get("image_data", {})
-        
-        # Se não há dados de imagem diretos, tentar carregar de arquivos salvos
-        if not raw_image_data:
-            raw_image_data = await AnalyzeService._try_load_saved_images(extracted_data)
-        
-        # 🆕 USAR O NOVO SERVIÇO DE CATEGORIZAÇÃO
-        azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
-        
-        # Se chegou lista de metadados, carregar imagens correspondentes
-        if isinstance(raw_image_data, list):
-            logger.info("Converting Azure metadata list to images")
-            base64_images = await AnalyzeService._load_images_from_metadata(raw_image_data, extracted_data)
-            raw_image_data = base64_images
-        
-        # Categorizar usando o novo serviço (só se temos imagens base64)
-        if isinstance(raw_image_data, dict) and raw_image_data:
-            logger.info(f"Categorizing {len(raw_image_data)} extracted images")
-            
-            # Categorizar imagens
-            header_images, content_images = ImageCategorizationService.categorize_extracted_images(
-                raw_image_data, azure_result
-            )
-            
-            logger.info(f"Categorization complete: {len(header_images)} header images, {len(content_images)} content images")
-            
-        else:
-            logger.info("Skipping categorization - no valid image data available")
-            header_images, content_images = [], {}
-        
-        # Fazer parse das informações do header com imagens categorizadas
-        header_data = HeaderParser.parse(extracted_data["text"], header_images)
-        
-        # Retornar dados estruturados compatíveis com o sistema atual
-        return {
-            "text": extracted_data["text"],
-            "header": header_data,
-            "images": content_images,  # Usar imagens de conteúdo categorizadas
-            "metadata": {
-                **extracted_data.get("metadata", {}),
-                "extraction_provider": provider_name,
-                "confidence": extracted_data.get("confidence", 0.0),
-                "page_count": extracted_data.get("page_count", 1),
-                "raw_response": extracted_data.get("metadata", {}).get("raw_response", {})
-            }
-        }
-    
-    @staticmethod
-    async def _try_load_saved_images(extracted_data: Dict[str, Any]) -> Dict[str, str]:
-        """
-        Tenta carregar imagens de arquivos salvos se não houver dados diretos
-        """
-        document_id = extracted_data.get("metadata", {}).get("document_id")
-        if not document_id:
-            return {}
-            
-        try:
-            from app.services.storage.document_storage_service import DocumentStorageService
-            
-            storage = DocumentStorageService()
-            base_path = storage.base_path
-            provider_dir = base_path / "images" / "by_provider" / "azure" / document_id
-            
-            if provider_dir.exists():
-                raw_image_data = {}
-                for img_file in provider_dir.glob("*.jpg"):
-                    figure_id = img_file.stem  # filename without extension
-                    
-                    # Ler arquivo de imagem e converter para base64
-                    with open(img_file, 'rb') as f:
-                        image_bytes = f.read()
-                        base64_image = base64.b64encode(image_bytes).decode('utf-8')
-                        raw_image_data[figure_id] = base64_image
-                
-                logger.info(f"Loaded {len(raw_image_data)} images from saved files")
-                return raw_image_data
-            else:
-                return {}
-                
-        except Exception as e:
-            logger.error(f"Error loading saved images: {str(e)}")
-            return {}
-    
-    @staticmethod
-    async def _load_images_from_metadata(metadata_list: list, extracted_data: Dict[str, Any]) -> Dict[str, str]:
-        """
-        Carrega imagens base64 baseadas numa lista de metadados do Azure.
-        
-        Args:
-            metadata_list: Lista de metadados das figuras do Azure
-            extracted_data: Dados extraídos contendo informações do documento
-            
-        Returns:
-            Dicionário com figure_id -> base64_string
-        """
-        logger.info(f"Processing {len(metadata_list)} metadata items for image loading")
-        
-        # Primeiro, tentar carregar de arquivos salvos usando os IDs dos metadados
-        saved_images = await AnalyzeService._try_load_saved_images_with_metadata(metadata_list, extracted_data)
-        if saved_images:
-            logger.info(f"Loaded {len(saved_images)} images from saved files using metadata")
-            return saved_images
-        
-        # Se não há arquivos salvos, tentar buscar no storage service padrão
-        default_images = await AnalyzeService._try_load_saved_images(extracted_data)
-        if default_images:
-            logger.info(f"Loaded {len(default_images)} images from default storage")
-            return default_images
-        
-        logger.warning("No images found for the provided metadata")
-        return {}
-    
-    @staticmethod
-    async def _try_load_saved_images_with_metadata(metadata_list: list, extracted_data: Dict[str, Any]) -> Dict[str, str]:
-        """
-        Tenta carregar imagens salvas usando os IDs dos metadados
-        """
-        try:
-            from app.services.storage.document_storage_service import DocumentStorageService
-            
-            storage = DocumentStorageService()
-            base_path = storage.base_path
-            
-            # Procurar por diretórios de imagens do Azure
-            azure_dirs = list((base_path / "images" / "by_provider" / "azure").glob("*"))
-            
-            # Procurar em todos os diretórios Azure por imagens correspondentes aos IDs
-            for azure_dir in azure_dirs:
-                if azure_dir.is_dir():
-                    raw_image_data = {}
-                    
-                    for metadata in metadata_list:
-                        if isinstance(metadata, dict) and 'id' in metadata:
-                            figure_id = metadata['id']
-                            
-                            # Procurar por arquivo com esse ID
-                            for img_file in azure_dir.glob(f"{figure_id}.*"):
-                                # Ler arquivo de imagem e converter para base64
-                                with open(img_file, 'rb') as f:
-                                    image_bytes = f.read()
-                                    base64_image = base64.b64encode(image_bytes).decode('utf-8')
-                                    raw_image_data[figure_id] = base64_image
-                                break
-                    
-                    if raw_image_data:
-                        logger.info(f"Successfully loaded {len(raw_image_data)} images using metadata")
-                        return raw_image_data
-            
-            return {}
-                
-        except Exception as e:
-            logger.error(f"Error loading images with metadata: {str(e)}")
-            return {}
 
-    @staticmethod
-    async def _extract_with_cache(file: UploadFile, extractor, email: str = None) -> Dict[str, Any]:
-        """
-        Extrai dados do documento com cache automático.
+        header_images_pydantic, content_images_pydantic = [], []
+        if isinstance(raw_image_data, dict) and raw_image_data:
+            logger.info(f"🔧 MOCK: Categorizing {len(raw_image_data)} images using PURE PYDANTIC service")
+            header_images_pydantic, content_images_pydantic = ImageCategorizationService.categorize_extracted_images(
+                raw_image_data, azure_result, document_id=f"mock_{len(raw_image_data)}_images"
+            )
         
-        Args:
-            file: Arquivo para extração
-            extractor: Provedor de extração
-            email: Email do usuário (opcional)
-            
-        Returns:
-            Dados extraídos (do cache ou Azure)
-        """
+        header_metadata = HeaderParser.parse_to_pydantic(
+            header=extracted_data["text"],
+            header_images=header_images_pydantic,
+            content_images=content_images_pydantic
+        )
+
+        question_data = QuestionParser.extract(extracted_data["text"], raw_image_data)
         
-        try:
-            # Se temos email, usar cache
-            if email:
-                # Inicializar cache manager
-                cache_manager = DocumentCacheManager()
-                
-                # Verificar cache primeiro
-                cached_result = await cache_manager.get_cached_document(email, file)
-                if cached_result:
-                    logger.info(f"🎯 Cache HIT: Using cached extraction for {email} - {file.filename}")
-                    return cached_result.get("extracted_data")
-                
-                logger.debug(f"⚡ Cache MISS: Extracting from Azure for {email} - {file.filename}")
-            else:
-                logger.debug("No email provided, proceeding without cache")
-            
-            # Se não está em cache, extrair do Azure
-            extracted_data = await extractor.extract_document_data(file)
-            
-            # Cachear resultado se temos email
-            if email and extracted_data:
-                cache_manager = DocumentCacheManager()
-                await cache_manager.cache_document_result(email, file, extracted_data)
-                logger.info(f"💾 Cached extraction result for {email} - {file.filename}")
-            
-            return extracted_data
-            
-        except Exception as e:
-            logger.warning(f"Error in cache layer, falling back to direct extraction: {e}")
-            # Em caso de erro no cache, fazer extração direta
-            return await extractor.extract_document_data(file)
+        context_builder = RefactoredContextBlockBuilder()
+        context_blocks = context_builder.build_context_blocks_from_azure_figures(
+            azure_result, raw_image_data or {}
+        )
+        
+        internal_response = InternalDocumentResponse(
+            document_id=str(uuid4()),
+            email=email,
+            filename=file_info['filename'],
+            document_metadata=header_metadata,
+            questions=[InternalQuestion.from_legacy_format(q) for q in question_data.get("questions", [])],
+            context_blocks=[InternalContextBlock.from_legacy_context_block(cb) for cb in context_blocks],
+            extracted_text=extracted_data["text"],
+            provider_metadata={
+                "email": email,
+                "filename": file_info['filename'],
+                "processing_mode": "mock_pydantic_complete",
+                "migration_status": "100_percent_pydantic"
+            }
+        )
+        
+        logger.info(f"🔧 Mock document processed with 100% Pydantic: {internal_response.document_id}")
+        return internal_response
