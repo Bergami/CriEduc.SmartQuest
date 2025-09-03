@@ -35,7 +35,16 @@ from .question_dtos import (
 from .document_dtos import (
     DocumentMetadataDTO,
     ProcessingSummaryDTO,
-    DocumentResponseDTO
+    DocumentResponseDTO as LegacyDocumentResponseDTO
+)
+
+from .document_response_dto import (
+    DocumentResponseDTO,
+    QuestionDTO,
+    ContextBlockDTO,
+    AlternativeDTO,
+    SubContextDTO,
+    HeaderDTO
 )
 
 __all__ = [
@@ -58,7 +67,13 @@ __all__ = [
     # Document DTOs
     "DocumentMetadataDTO",
     "ProcessingSummaryDTO",
+    "LegacyDocumentResponseDTO",
+    
+    # New Pydantic DTOs
     "DocumentResponseDTO",
+    "AlternativeDTO",
+    "SubContextDTO",
+    "HeaderDTO",
 ]
 
 

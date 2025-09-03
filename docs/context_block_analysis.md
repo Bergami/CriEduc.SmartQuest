@@ -442,6 +442,8 @@ pydantic_blocks = [
 - ✅ **Manutenibilidade**: Complexidade reduzida
 
 ---
+# Importante
+- Quando for executar o teste do endpoint principal execute passando por parâmetros o e-mail wander.bergami@gmail.com e o arquivo mais recente modificado em D:\Git\CriEduc.SmartQuest\tests\documents 
 
 *Documento criado em: 2 de setembro de 2025*  
 *Versão: 1.0*  

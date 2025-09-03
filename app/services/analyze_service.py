@@ -112,6 +112,9 @@ class AnalyzeService:
         if use_refactored:
             logger.info("🚀 Using REFACTORED version with PHASE 2 Pydantic improvements")
             azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
+            logger.info(f"🔍 CRITICAL DEBUG: azure_result exists: {bool(azure_result)}")
+            logger.info(f"🔍 CRITICAL DEBUG: azure_result keys: {list(azure_result.keys()) if azure_result else 'EMPTY'}")
+            
             if azure_result:
                 # PHASE 2: Use native Pydantic interface
                 context_builder = RefactoredContextBlockBuilder()
@@ -122,7 +125,12 @@ class AnalyzeService:
                 # Try new Pydantic method first, fallback to legacy if needed
                 try:
                     logger.info("🔥 PHASE 2: Using parse_to_pydantic() - Native Pydantic Interface")
+                    logger.info(f"🔍 DEBUG: Azure result keys: {list(azure_result.keys()) if azure_result else 'None'}")
+                    logger.info(f"🔍 DEBUG: Image data type: {type(image_data)}, size: {len(image_data) if image_data else 0}")
+                    
                     pydantic_context_blocks = context_builder.parse_to_pydantic(azure_result, image_data)
+                    logger.info(f"🔍 DEBUG: parse_to_pydantic returned {len(pydantic_context_blocks)} blocks")
+                    
                     question_data["context_blocks"] = pydantic_context_blocks
                     logger.info(f"✅ PHASE 2 SUCCESS: Created {len(pydantic_context_blocks)} context blocks using native Pydantic")
                     
@@ -148,8 +156,12 @@ class AnalyzeService:
                         logger.info(f"Context blocks with images: {blocks_with_images}/{len(enhanced_context_blocks)}")
                     else:
                         logger.warning("No enhanced context blocks were created")
+            else:
+                logger.error("🚨 CRITICAL: azure_result is EMPTY - RefactoredContextBlockBuilder will NOT be executed")
+                logger.error(f"🚨 extracted_data keys: {list(extracted_data.keys())}")
+                logger.error(f"🚨 metadata keys: {list(extracted_data.get('metadata', {}).keys())}")
                 
-                # A associação de figuras às questões também pode precisar ser refatorada
+            # A associação de figuras às questões também pode precisar ser refatorada
                 # para usar os objetos pydantic, mas vamos focar no erro atual.
                 processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_result)
                 enhanced_questions = AzureFigureProcessor.associate_figures_to_questions(
@@ -166,7 +178,7 @@ class AnalyzeService:
             filename=filename,
             document_metadata=header_metadata,
             questions=[InternalQuestion.from_legacy_question(q) for q in question_data.get("questions", [])],
-            context_blocks=question_data.get("context_blocks", []), # Now receives a list of Pydantic models
+            context_blocks=AnalyzeService._ensure_pydantic_context_blocks(question_data.get("context_blocks", [])),
             extracted_text=extracted_text,
             provider_metadata=extracted_data.get("metadata", {}),
             all_images=all_categorized_images
@@ -296,3 +308,28 @@ class AnalyzeService:
         
         logger.info(f"🔧 Mock document processed with 100% Pydantic: {internal_response.document_id}")
         return internal_response
+
+    @staticmethod
+    def _ensure_pydantic_context_blocks(context_blocks_data):
+        """
+        🔧 PHASE 2 FIX: Ensure context_blocks are always Pydantic objects.
+        
+        Handles mixed scenarios where context_blocks might be:
+        - Already Pydantic objects (from parse_to_pydantic)
+        - Still Dicts (from legacy processing)
+        """
+        from app.models.internal.context_models import InternalContextBlock
+        
+        if not context_blocks_data:
+            return []
+        
+        pydantic_blocks = []
+        for cb in context_blocks_data:
+            if isinstance(cb, dict):
+                # Legacy Dict - convert to Pydantic
+                pydantic_blocks.append(InternalContextBlock.from_legacy_context_block(cb))
+            else:
+                # Already Pydantic - keep as is
+                pydantic_blocks.append(cb)
+        
+        return pydantic_blocks

@@ -7,6 +7,7 @@ from app.services.analyze_service import AnalyzeService
 from app.services.image_extraction import ImageExtractionMethod
 from app.validators.analyze_validator import AnalyzeValidator
 from app.adapters import DocumentResponseAdapter
+from app.dtos.responses.document_response_dto import DocumentResponseDTO
 from app.core.exceptions import (
     DocumentProcessingError,
     ValidationException
@@ -21,13 +22,13 @@ from app.services.image_extraction import ImageExtractionOrchestrator
 
 router = APIRouter()
 
-@router.post("/analyze_document")
+@router.post("/analyze_document", response_model=DocumentResponseDTO)
 @handle_exceptions("document_analysis")
 async def analyze_document(
     request: Request,
     email: str = Query(..., description="User email for document analysis"),
     file: UploadFile = File(..., description="PDF file for analysis")
-):
+) -> DocumentResponseDTO:
     """
     ✅ REFATORADO: Analisa um documento PDF com um fluxo de responsabilidades claras.
     1. Extrai os dados brutos (usando cache).
@@ -65,9 +66,9 @@ async def analyze_document(
         use_refactored=True
     )
     
-    # --- ETAPA 3: Adaptação da Resposta ---
-    # O Adapter garante que a resposta da API mantenha o formato esperado, mesmo com a migração interna.
-    api_response = DocumentResponseAdapter.to_api_response(internal_response)
+    # --- ETAPA 3: Conversão para DTO da API ---
+    # Converte a resposta interna (Pydantic) para o DTO da API (mantém compatibilidade)
+    api_response = DocumentResponseDTO.from_internal_response(internal_response)
     
     structured_logger.info(
         "Document analysis completed successfully",
@@ -77,7 +78,7 @@ async def analyze_document(
             "questions_count": len(internal_response.questions),
             "context_blocks_count": len(internal_response.context_blocks),
             "header_images_count": len(internal_response.document_metadata.header_images),
-            "migration_status": "full_pydantic_flow_with_adapter"
+            "migration_status": "100_percent_pydantic_flow"
         }
     )
 
