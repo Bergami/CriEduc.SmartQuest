@@ -6,7 +6,7 @@ from app.services.document_extraction_service import DocumentExtractionService
 from app.services.analyze_service import AnalyzeService
 from app.services.image_extraction import ImageExtractionMethod
 from app.validators.analyze_validator import AnalyzeValidator
-from app.adapters import DocumentResponseAdapter
+# 🚨 FASE 03: DocumentResponseAdapter DEPRECATED - removed import
 from app.dtos.responses.document_response_dto import DocumentResponseDTO
 from app.core.exceptions import (
     DocumentProcessingError,
@@ -88,17 +88,25 @@ async def analyze_document(
 # ENDPOINTS LEGADOS/MOCK (Mantidos para não quebrar testes existentes)
 # ==================================================================================
 
-@router.post("/analyze_document_mock")
+@router.post("/analyze_document_mock", response_model=DocumentResponseDTO)
 @handle_exceptions("azure_mock_document_analysis")
 async def analyze_document_mock(
     request: Request,
     image_extraction_method: str = Query("manual_pdf", description="Image extraction method: manual_pdf (recommended for mock)")
-):
+) -> DocumentResponseDTO:
     """
+    🚀 FASE 03: Mock endpoint updated to use DocumentResponseDTO (Pydantic native)
+    
     Analisa documento usando a resposta mais recente salva do Azure Document Intelligence.
+    
+    Melhorias da Fase 03:
+    - Retorna DocumentResponseDTO (Pydantic nativo)
+    - Eliminado DocumentResponseAdapter.to_api_response()
+    - Serialização automática via FastAPI
+    - Mesma interface que endpoint principal
     """
     structured_logger.info(
-        "Starting Azure mock document analysis",
+        "🚀 FASE 03: Starting Azure mock document analysis with Pydantic response",
         context={"image_extraction_method": image_extraction_method}
     )
     
@@ -113,11 +121,17 @@ async def analyze_document_mock(
         image_extraction_method=selected_method
     )
     
-    api_response = DocumentResponseAdapter.to_api_response(internal_response)
+    # 🆕 FASE 03: Use DocumentResponseDTO.from_internal_response() instead of DocumentResponseAdapter
+    api_response = DocumentResponseDTO.from_internal_response(internal_response)
     
     structured_logger.info(
-        "Azure mock document analysis completed successfully",
-        context={"header_images_count": len(api_response.get("header", {}).get("images", []))}
+        "✅ FASE 03: Azure mock document analysis completed with Pydantic response",
+        context={
+            "header_images_count": len(api_response.header.images),
+            "questions_count": len(api_response.questions),
+            "context_blocks_count": len(api_response.context_blocks),
+            "migration_status": "phase_03_pydantic_native_response"
+        }
     )
 
     return api_response

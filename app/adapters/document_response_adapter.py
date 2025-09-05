@@ -1,25 +1,40 @@
 """
 Document Response Adapter
 
+🚨 DEPRECATED: Esta classe está depreciada desde a Fase 03 da migração Pydantic.
+
+Use DocumentResponseDTO.from_internal_response() em vez de DocumentResponseAdapter.to_api_response().
+O DocumentResponseDTO já é um modelo Pydantic nativo que FastAPI serializa automaticamente.
+
 Esta camada adapta os modelos internos tipados para o formato de response
 esperado pelos endpoints, mantendo compatibilidade com o código existente.
 """
 
+import logging
 from typing import Dict, Any
 from app.models.internal import InternalDocumentResponse
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentResponseAdapter:
     """
+    🚨 DEPRECATED: Use DocumentResponseDTO.from_internal_response() instead
+    
     Adapta InternalDocumentResponse para formato de response da API.
     
     Esta classe mantém a separação entre modelos internos (completos e tipados)
     e responses da API (formato específico para cada endpoint).
+    
+    FASE 03: Esta classe está sendo eliminada em favor do DocumentResponseDTO
+    que já é um modelo Pydantic nativo e oferece melhor type safety.
     """
     
     @staticmethod
     def to_api_response(internal_response: InternalDocumentResponse) -> Dict[str, Any]:
         """
+        🚨 DEPRECATED: Use DocumentResponseDTO.from_internal_response() instead
+        
         Converte InternalDocumentResponse para formato EXATO esperado pela API.
         
         ESTRUTURA FIXA - NÃO PODE SER ALTERADA:
@@ -33,6 +48,8 @@ class DocumentResponseAdapter:
         Returns:
             Dicionário no formato EXATO especificado em copilot_instructions.md
         """
+        logger.warning("🚨 DEPRECATED: DocumentResponseAdapter.to_api_response() is deprecated. Use DocumentResponseDTO.from_internal_response() instead.")
+        
         # ✅ Converter header usando método existente
         header_dict = internal_response.document_metadata.to_legacy_format()
         
