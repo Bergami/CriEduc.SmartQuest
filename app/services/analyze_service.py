@@ -107,23 +107,23 @@ class AnalyzeService:
         azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
         azure_paragraphs = azure_result.get("paragraphs", []) if azure_result else []
         
-        # 🆕 SEMPRE usar extração SOLID baseada em parágrafos Azure
+        # 🆕 FASE 1: SEMPRE usar extração SOLID Pydantic nativa baseada em parágrafos Azure
         if azure_paragraphs:
-            logger.info(f"🆕 Using NEW SOLID extraction from {len(azure_paragraphs)} Azure paragraphs")
-            question_data = QuestionParser.extract_from_paragraphs(azure_paragraphs, image_data)
-            logger.info("✅ SOLID-based extraction completed successfully")
+            logger.info(f"🆕 FASE 1: Using NEW Pydantic native extraction from {len(azure_paragraphs)} Azure paragraphs")
+            questions, context_blocks = QuestionParser.extract_typed_from_paragraphs(azure_paragraphs, image_data)
+            logger.info("✅ FASE 1: Pydantic native extraction completed successfully")
         elif azure_result and "paragraphs" in azure_result:
             backup_paragraphs = azure_result["paragraphs"]
-            logger.info(f"🆕 Using NEW SOLID extraction from {len(backup_paragraphs)} backup Azure paragraphs")
-            question_data = QuestionParser.extract_from_paragraphs(backup_paragraphs, image_data)
-            logger.info("✅ SOLID-based extraction completed successfully")
+            logger.info(f"🆕 FASE 1: Using NEW Pydantic native extraction from {len(backup_paragraphs)} backup Azure paragraphs")
+            questions, context_blocks = QuestionParser.extract_typed_from_paragraphs(backup_paragraphs, image_data)
+            logger.info("✅ FASE 1: Pydantic native extraction completed successfully")
         else:
             logger.error("❌ CRITICAL: No Azure paragraphs available - cannot extract questions using SOLID")
             # Sistema agora exige parágrafos Azure - não há mais fallback
             raise ValueError("Azure paragraphs are required for SOLID extraction. Document processing failed.")
             
-        logger.info(f"Questions found: {len(question_data['questions'])}")
-        logger.info(f"Context blocks found: {len(question_data['context_blocks'])}")
+        logger.info(f"Questions found: {len(questions)}")
+        logger.info(f"Context blocks found: {len(context_blocks)}")
 
         # 6. Processar melhorias da versão refatorada (se aplicável)
         if use_refactored:
@@ -144,32 +144,33 @@ class AnalyzeService:
                     logger.info(f"🔍 DEBUG: Azure result keys: {list(azure_result.keys()) if azure_result else 'None'}")
                     logger.info(f"🔍 DEBUG: Image data type: {type(image_data)}, size: {len(image_data) if image_data else 0}")
                     
-                    pydantic_context_blocks = context_builder.parse_to_pydantic(azure_result, image_data)
-                    logger.info(f"🔍 DEBUG: parse_to_pydantic returned {len(pydantic_context_blocks)} blocks")
+                    enhanced_context_blocks = context_builder.parse_to_pydantic(azure_result, image_data)
+                    logger.info(f"🔍 DEBUG: parse_to_pydantic returned {len(enhanced_context_blocks)} blocks")
                     
-                    question_data["context_blocks"] = pydantic_context_blocks
-                    logger.info(f"✅ PHASE 2 SUCCESS: Created {len(pydantic_context_blocks)} context blocks using native Pydantic")
+                    # ✅ FASE 1: Substituir context blocks por versão enhanced
+                    context_blocks = enhanced_context_blocks
+                    logger.info(f"✅ PHASE 2 SUCCESS: Created {len(enhanced_context_blocks)} context blocks using native Pydantic")
                     
                     # Log context blocks with images for debugging
-                    blocks_with_images = sum(1 for cb in pydantic_context_blocks if cb.has_images)
-                    logger.info(f"Context blocks with images: {blocks_with_images}/{len(pydantic_context_blocks)}")
+                    blocks_with_images = sum(1 for cb in enhanced_context_blocks if cb.has_images)
+                    logger.info(f"Context blocks with images: {blocks_with_images}/{len(enhanced_context_blocks)}")
                     
                 except Exception as e:
                     logger.warning(f"🔄 PHASE 2 fallback: parse_to_pydantic failed ({e}), using legacy method")
-                    enhanced_context_blocks = context_builder.build_context_blocks_from_azure_figures(
+                    enhanced_context_blocks_dict = context_builder.build_context_blocks_from_azure_figures(
                         azure_result, image_data
                     )
                     
-                    if enhanced_context_blocks:
-                        logger.info(f"Created {len(enhanced_context_blocks)} enhanced context blocks (legacy)")
+                    if enhanced_context_blocks_dict:
+                        logger.info(f"Created {len(enhanced_context_blocks_dict)} enhanced context blocks (legacy)")
                         # Convert the Dicts into Pydantic Models before assigning
-                        question_data["context_blocks"] = [
-                            InternalContextBlock.from_legacy_context_block(cb) for cb in enhanced_context_blocks
+                        context_blocks = [
+                            InternalContextBlock.from_legacy_context_block(cb) for cb in enhanced_context_blocks_dict
                         ]
                         
                         # Log context blocks with images for debugging
-                        blocks_with_images = sum(1 for cb in enhanced_context_blocks if cb.get('hasImage', False))
-                        logger.info(f"Context blocks with images: {blocks_with_images}/{len(enhanced_context_blocks)}")
+                        blocks_with_images = sum(1 for cb in enhanced_context_blocks_dict if cb.get('hasImage', False))
+                        logger.info(f"Context blocks with images: {blocks_with_images}/{len(enhanced_context_blocks_dict)}")
                     else:
                         logger.warning("No enhanced context blocks were created")
             else:
@@ -178,13 +179,36 @@ class AnalyzeService:
                 logger.error(f"🚨 metadata keys: {list(extracted_data.get('metadata', {}).keys())}")
                 
             # A associação de figuras às questões também pode precisar ser refatorada
-                # para usar os objetos pydantic, mas vamos focar no erro atual.
+            # para usar os objetos pydantic, mas vamos focar no erro atual.
+            try:
                 processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_result)
-                enhanced_questions = AzureFigureProcessor.associate_figures_to_questions(
-                    processed_figures, question_data["questions"]
+                # ✅ CORREÇÃO: Converter questions para formato legacy correto
+                questions_dict = []
+                for q in questions:
+                    legacy_dict = {
+                        "number": q.number,
+                        "question": q.content.statement,  # ✅ content.statement → question
+                        "alternatives": [
+                            {
+                                "letter": opt.label,  # ✅ label → letter
+                                "text": opt.text
+                            }
+                            for opt in q.options
+                        ],
+                        "hasImage": q.has_image,
+                        "contextId": q.context_id,
+                        "subject": q.subject
+                    }
+                    questions_dict.append(legacy_dict)
+                
+                enhanced_questions_dict = AzureFigureProcessor.associate_figures_to_questions(
+                    processed_figures, questions_dict
                 )
-                question_data["questions"] = enhanced_questions
-                logger.info("Questions and context blocks enhanced with figure associations")
+                # ✅ FASE 1: Converter de volta para Pydantic com formato correto
+                questions = [InternalQuestion.from_legacy_question(q) for q in enhanced_questions_dict]
+                logger.info("Questions enhanced with figure associations")
+            except Exception as e:
+                logger.warning(f"Figure association failed: {e}, proceeding without enhancement")
 
         # 7. Construir o objeto de resposta final Pydantic
         # A lista all_categorized_images já contém os objetos Pydantic corretos
@@ -193,8 +217,8 @@ class AnalyzeService:
             document_id=document_id,
             filename=filename,
             document_metadata=header_metadata,
-            questions=[InternalQuestion.from_legacy_question(q) for q in question_data.get("questions", [])],
-            context_blocks=AnalyzeService._ensure_pydantic_context_blocks(question_data.get("context_blocks", [])),
+            questions=questions,  # ✅ FASE 1: Direto Pydantic - sem conversão
+            context_blocks=context_blocks,  # ✅ FASE 1: Direto Pydantic - sem conversão
             extracted_text=extracted_text,
             provider_metadata=extracted_data.get("metadata", {}),
             all_images=all_categorized_images
@@ -303,66 +327,55 @@ class AnalyzeService:
         azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
         azure_paragraphs = azure_result.get("paragraphs", []) if azure_result else []
         
-        # 🆕 SEMPRE usar extração SOLID baseada em parágrafos Azure
+        # 🆕 FASE 1: SEMPRE usar extração SOLID Pydantic nativa baseada em parágrafos Azure
         if azure_paragraphs:
-            logger.info(f"🆕 MOCK: Using NEW SOLID extraction from {len(azure_paragraphs)} Azure paragraphs")
-            question_data = QuestionParser.extract_from_paragraphs(azure_paragraphs, raw_image_data)
-            logger.info("✅ MOCK: SOLID-based extraction completed successfully")
+            logger.info(f"🆕 FASE 1 MOCK: Using NEW Pydantic native extraction from {len(azure_paragraphs)} Azure paragraphs")
+            questions, context_blocks = QuestionParser.extract_typed_from_paragraphs(azure_paragraphs, raw_image_data)
+            logger.info("✅ FASE 1 MOCK: Pydantic native extraction completed successfully")
         elif azure_result and "paragraphs" in azure_result:
             backup_paragraphs = azure_result["paragraphs"]
-            logger.info(f"🆕 MOCK: Using NEW SOLID extraction from {len(backup_paragraphs)} backup Azure paragraphs")
-            question_data = QuestionParser.extract_from_paragraphs(backup_paragraphs, raw_image_data)
-            logger.info("✅ MOCK: SOLID-based extraction completed successfully")
+            logger.info(f"🆕 FASE 1 MOCK: Using NEW Pydantic native extraction from {len(backup_paragraphs)} backup Azure paragraphs")
+            questions, context_blocks = QuestionParser.extract_typed_from_paragraphs(backup_paragraphs, raw_image_data)
+            logger.info("✅ FASE 1 MOCK: Pydantic native extraction completed successfully")
         else:
             logger.error("❌ MOCK CRITICAL: No Azure paragraphs available - cannot extract questions using SOLID")
             # Sistema agora exige parágrafos Azure - não há mais fallback
             raise ValueError("Azure paragraphs are required for SOLID extraction. Mock processing failed.")
         
+        # Enhanced context blocks (mantido para compatibilidade)
         context_builder = RefactoredContextBlockBuilder()
-        context_blocks = context_builder.build_context_blocks_from_azure_figures(
-            azure_result, raw_image_data or {}
-        )
+        try:
+            enhanced_context_blocks = context_builder.parse_to_pydantic(azure_result, raw_image_data or {})
+            context_blocks = enhanced_context_blocks
+            logger.info(f"✅ MOCK: Enhanced context blocks using Pydantic: {len(enhanced_context_blocks)}")
+        except Exception as e:
+            logger.warning(f"MOCK: Enhanced context blocks failed ({e}), using basic extraction")
+            # context_blocks já foi definido pela extração typed acima
+        
+        # Combinar todas as imagens para o response final
+        all_images = header_images_pydantic + content_images_pydantic
         
         internal_response = InternalDocumentResponse(
             document_id=str(uuid4()),
             email=email,
             filename=file_info['filename'],
             document_metadata=header_metadata,
-            questions=[InternalQuestion.from_legacy_question(q) for q in question_data.get("questions", [])],
-            context_blocks=[InternalContextBlock.from_legacy_context_block(cb) for cb in context_blocks],
+            questions=questions,  # ✅ FASE 1: Direto Pydantic - sem conversão
+            context_blocks=context_blocks,  # ✅ FASE 1: Direto Pydantic - sem conversão
             extracted_text=extracted_data["text"],
             provider_metadata={
                 "email": email,
                 "filename": file_info['filename'],
                 "processing_mode": "mock_pydantic_complete",
                 "migration_status": "100_percent_pydantic"
-            }
+            },
+            all_images=all_images
         )
         
         logger.info(f"🔧 Mock document processed with 100% Pydantic: {internal_response.document_id}")
         return internal_response
 
-    @staticmethod
-    def _ensure_pydantic_context_blocks(context_blocks_data):
-        """
-        🔧 PHASE 2 FIX: Ensure context_blocks are always Pydantic objects.
-        
-        Handles mixed scenarios where context_blocks might be:
-        - Already Pydantic objects (from parse_to_pydantic)
-        - Still Dicts (from legacy processing)
-        """
-        from app.models.internal.context_models import InternalContextBlock
-        
-        if not context_blocks_data:
-            return []
-        
-        pydantic_blocks = []
-        for cb in context_blocks_data:
-            if isinstance(cb, dict):
-                # Legacy Dict - convert to Pydantic
-                pydantic_blocks.append(InternalContextBlock.from_legacy_context_block(cb))
-            else:
-                # Already Pydantic - keep as is
-                pydantic_blocks.append(cb)
-        
-        return pydantic_blocks
+    # ==================================================================================
+    # DEPRECATED METHODS - Removed after FASE 1 migration
+    # ==================================================================================
+    # _ensure_pydantic_context_blocks() - No longer needed with native Pydantic extraction
