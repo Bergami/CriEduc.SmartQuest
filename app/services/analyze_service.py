@@ -178,37 +178,18 @@ class AnalyzeService:
                 logger.error(f"🚨 extracted_data keys: {list(extracted_data.keys())}")
                 logger.error(f"🚨 metadata keys: {list(extracted_data.get('metadata', {}).keys())}")
                 
-            # A associação de figuras às questões também pode precisar ser refatorada
-            # para usar os objetos pydantic, mas vamos focar no erro atual.
+            # 🆕 FASE 02: Figure association using native Pydantic interface
             try:
                 processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_result)
-                # ✅ CORREÇÃO: Converter questions para formato legacy correto
-                questions_dict = []
-                for q in questions:
-                    legacy_dict = {
-                        "number": q.number,
-                        "question": q.content.statement,  # ✅ content.statement → question
-                        "alternatives": [
-                            {
-                                "letter": opt.label,  # ✅ label → letter
-                                "text": opt.text
-                            }
-                            for opt in q.options
-                        ],
-                        "hasImage": q.has_image,
-                        "contextId": q.context_id,
-                        "subject": q.subject
-                    }
-                    questions_dict.append(legacy_dict)
                 
-                enhanced_questions_dict = AzureFigureProcessor.associate_figures_to_questions(
-                    processed_figures, questions_dict
+                logger.info("🆕 FASE 02: Using native Pydantic figure association (no legacy conversion)")
+                # ✅ FASE 02: Use new Pydantic native method - no Dict conversion needed
+                questions = AzureFigureProcessor.associate_figures_to_pydantic_questions(
+                    processed_figures, questions
                 )
-                # ✅ FASE 1: Converter de volta para Pydantic com formato correto
-                questions = [InternalQuestion.from_legacy_question(q) for q in enhanced_questions_dict]
-                logger.info("Questions enhanced with figure associations")
+                logger.info("✅ FASE 02: Questions enhanced with figure associations using native Pydantic")
             except Exception as e:
-                logger.warning(f"Figure association failed: {e}, proceeding without enhancement")
+                logger.warning(f"🔄 FASE 02: Figure association failed: {e}, proceeding without enhancement")
 
         # 7. Construir o objeto de resposta final Pydantic
         # A lista all_categorized_images já contém os objetos Pydantic corretos

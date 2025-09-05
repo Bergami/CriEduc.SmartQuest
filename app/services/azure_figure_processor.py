@@ -237,8 +237,12 @@ class AzureFigureProcessor:
     @staticmethod
     def associate_figures_to_questions(figures: List[Dict[str, Any]], questions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
+        🚨 DEPRECATED: Use associate_figures_to_pydantic_questions() instead
+        
         Associa figuras às questões baseado em proximidade e contexto
         """
+        logger.warning("🚨 DEPRECATED: associate_figures_to_questions() is deprecated. Use associate_figures_to_pydantic_questions() instead.")
+        
         updated_questions = []
         
         for question in questions:
@@ -253,6 +257,65 @@ class AzureFigureProcessor:
             question_copy['associated_figures'] = associated_figures
             updated_questions.append(question_copy)
         
+        return updated_questions
+
+    @staticmethod
+    def associate_figures_to_pydantic_questions(figures: List[Dict[str, Any]], questions: List) -> List:
+        """
+        🆕 FASE 02: Associa figuras às questões Pydantic sem conversões intermediárias
+        
+        Args:
+            figures: Lista de figuras processadas do Azure
+            questions: Lista de InternalQuestion (Pydantic)
+            
+        Returns:
+            List[InternalQuestion]: Questions com figuras associadas (Pydantic nativo)
+        """
+        # Import here to avoid circular imports
+        from app.models.internal.question_models import InternalQuestion
+        
+        logger.info(f"🆕 FASE 02: Associating {len(figures)} figures to {len(questions)} Pydantic questions")
+        
+        updated_questions = []
+        
+        for question in questions:
+            # Work directly with Pydantic objects - no Dict conversion needed
+            associated_figures = []
+            
+            # Buscar figuras próximas ou mencionadas
+            for figure in figures:
+                # Convert Pydantic question to dict format only for compatibility check
+                question_dict = {
+                    'question': question.content.statement,
+                    'alternatives': [{'text': opt.text} for opt in question.options],
+                    'number': question.number
+                }
+                
+                if AzureFigureProcessor._is_figure_related_to_question(figure, question_dict):
+                    associated_figures.append(figure['id'])
+            
+            # Create new InternalQuestion with updated associated_figures
+            # Note: We maintain the original question but update has_image if figures found
+            updated_question = InternalQuestion(
+                number=question.number,
+                content=question.content,
+                options=question.options,
+                has_image=question.has_image or len(associated_figures) > 0,  # Update if figures found
+                context_id=question.context_id,
+                subject=question.subject,
+                # Copy all other existing fields
+                answer_type=question.answer_type,
+                difficulty=question.difficulty,
+                associated_images=question.associated_images + associated_figures,  # Add new figures
+                topic=question.topic,
+                learning_objectives=question.learning_objectives,
+                extraction_method=question.extraction_method,
+                confidence_score=question.confidence_score
+            )
+            
+            updated_questions.append(updated_question)
+        
+        logger.info(f"✅ FASE 02: Successfully associated figures to {len(updated_questions)} Pydantic questions")
         return updated_questions
     
     @staticmethod
