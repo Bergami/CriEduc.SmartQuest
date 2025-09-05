@@ -183,8 +183,24 @@ class DocumentProcessingOrchestrator:
         if image_data:
             logger.info(f"{len(image_data)} categorized content images available")
         
-        # Extrair questões usando parser padrão
-        question_data = QuestionParser.extract(extracted_data["text"], image_data)
+        # Extrair questões usando nova implementação SOLID quando possível
+        azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
+        azure_paragraphs = azure_result.get("paragraphs", []) if azure_result else []
+        
+        # 🆕 SEMPRE usar extração SOLID baseada em parágrafos Azure
+        if azure_paragraphs:
+            logger.info(f"🆕 Using NEW SOLID extraction from {len(azure_paragraphs)} Azure paragraphs")
+            question_data = QuestionParser.extract_from_paragraphs(azure_paragraphs, image_data)
+            logger.info("✅ SOLID-based extraction completed successfully")
+        elif azure_result and "paragraphs" in azure_result:
+            backup_paragraphs = azure_result["paragraphs"]
+            logger.info(f"🆕 Using NEW SOLID extraction from {len(backup_paragraphs)} backup Azure paragraphs")
+            question_data = QuestionParser.extract_from_paragraphs(backup_paragraphs, image_data)
+            logger.info("✅ SOLID-based extraction completed successfully")
+        else:
+            logger.error("❌ ORCHESTRATOR CRITICAL: No Azure paragraphs available - cannot extract questions using SOLID")
+            # Sistema agora exige parágrafos Azure - não há mais fallback
+            raise ValueError("Azure paragraphs are required for SOLID extraction. Document processing failed.")
         
         # 🆕 FEATURE FLAG: Usar versão refatorada se habilitada
         if use_refactored:

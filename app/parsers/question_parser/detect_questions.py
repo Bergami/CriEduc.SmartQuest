@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 import re
-from .extract_alternatives_from_text import extract_alternatives_from_question_text
+from .legacy_adapter import extract_alternatives_from_question_text
 
 def detect_questions(text: str) -> List[Dict[str, Any]]:
     """

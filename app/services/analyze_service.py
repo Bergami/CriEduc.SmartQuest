@@ -103,15 +103,31 @@ class AnalyzeService:
             content_images=content_images_pydantic
         )
 
-        # 5. Extrair questões
-        question_data = QuestionParser.extract(extracted_text, image_data)
+        # 5. Extrair questões - NOVA IMPLEMENTAÇÃO SOLID PRIORIZADA
+        azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
+        azure_paragraphs = azure_result.get("paragraphs", []) if azure_result else []
+        
+        # 🆕 SEMPRE usar extração SOLID baseada em parágrafos Azure
+        if azure_paragraphs:
+            logger.info(f"🆕 Using NEW SOLID extraction from {len(azure_paragraphs)} Azure paragraphs")
+            question_data = QuestionParser.extract_from_paragraphs(azure_paragraphs, image_data)
+            logger.info("✅ SOLID-based extraction completed successfully")
+        elif azure_result and "paragraphs" in azure_result:
+            backup_paragraphs = azure_result["paragraphs"]
+            logger.info(f"🆕 Using NEW SOLID extraction from {len(backup_paragraphs)} backup Azure paragraphs")
+            question_data = QuestionParser.extract_from_paragraphs(backup_paragraphs, image_data)
+            logger.info("✅ SOLID-based extraction completed successfully")
+        else:
+            logger.error("❌ CRITICAL: No Azure paragraphs available - cannot extract questions using SOLID")
+            # Sistema agora exige parágrafos Azure - não há mais fallback
+            raise ValueError("Azure paragraphs are required for SOLID extraction. Document processing failed.")
+            
         logger.info(f"Questions found: {len(question_data['questions'])}")
         logger.info(f"Context blocks found: {len(question_data['context_blocks'])}")
 
         # 6. Processar melhorias da versão refatorada (se aplicável)
         if use_refactored:
             logger.info("🚀 Using REFACTORED version with PHASE 2 Pydantic improvements")
-            azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
             logger.info(f"🔍 CRITICAL DEBUG: azure_result exists: {bool(azure_result)}")
             logger.info(f"🔍 CRITICAL DEBUG: azure_result keys: {list(azure_result.keys()) if azure_result else 'EMPTY'}")
             
@@ -283,7 +299,24 @@ class AnalyzeService:
             content_images=content_images_pydantic
         )
 
-        question_data = QuestionParser.extract(extracted_data["text"], raw_image_data)
+        # Extrair questões - priorizar nova implementação SOLID
+        azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
+        azure_paragraphs = azure_result.get("paragraphs", []) if azure_result else []
+        
+        # 🆕 SEMPRE usar extração SOLID baseada em parágrafos Azure
+        if azure_paragraphs:
+            logger.info(f"🆕 MOCK: Using NEW SOLID extraction from {len(azure_paragraphs)} Azure paragraphs")
+            question_data = QuestionParser.extract_from_paragraphs(azure_paragraphs, raw_image_data)
+            logger.info("✅ MOCK: SOLID-based extraction completed successfully")
+        elif azure_result and "paragraphs" in azure_result:
+            backup_paragraphs = azure_result["paragraphs"]
+            logger.info(f"🆕 MOCK: Using NEW SOLID extraction from {len(backup_paragraphs)} backup Azure paragraphs")
+            question_data = QuestionParser.extract_from_paragraphs(backup_paragraphs, raw_image_data)
+            logger.info("✅ MOCK: SOLID-based extraction completed successfully")
+        else:
+            logger.error("❌ MOCK CRITICAL: No Azure paragraphs available - cannot extract questions using SOLID")
+            # Sistema agora exige parágrafos Azure - não há mais fallback
+            raise ValueError("Azure paragraphs are required for SOLID extraction. Mock processing failed.")
         
         context_builder = RefactoredContextBlockBuilder()
         context_blocks = context_builder.build_context_blocks_from_azure_figures(
@@ -295,7 +328,7 @@ class AnalyzeService:
             email=email,
             filename=file_info['filename'],
             document_metadata=header_metadata,
-            questions=[InternalQuestion.from_legacy_format(q) for q in question_data.get("questions", [])],
+            questions=[InternalQuestion.from_legacy_question(q) for q in question_data.get("questions", [])],
             context_blocks=[InternalContextBlock.from_legacy_context_block(cb) for cb in context_blocks],
             extracted_text=extracted_data["text"],
             provider_metadata={

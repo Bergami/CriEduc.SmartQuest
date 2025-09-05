@@ -57,7 +57,27 @@ class MockDocumentService:
         
         # Processar header e questões
         header_data = HeaderParser.parse(text_content, header_images)
-        question_data = QuestionParser.extract(text_content, content_images)
+        
+        # 🆕 Tentar usar extração SOLID se parágrafos estão disponíveis
+        azure_paragraphs = mock_data.get("paragraphs", [])
+        if azure_paragraphs:
+            logger.info(f"🆕 MOCK: Using NEW SOLID extraction from {len(azure_paragraphs)} Azure paragraphs")
+            question_data = QuestionParser.extract_from_paragraphs(azure_paragraphs, content_images)
+            logger.info("✅ MOCK: SOLID-based extraction completed successfully")
+        else:
+            # Tentar parágrafos no formato analyzeResult (para compatibilidade)
+            analyze_result = mock_data.get("analyzeResult", {})
+            analyze_paragraphs = analyze_result.get("paragraphs", []) if analyze_result else []
+            
+            if analyze_paragraphs:
+                logger.info(f"🆕 MOCK: Using NEW SOLID extraction from {len(analyze_paragraphs)} analyzeResult paragraphs")
+                question_data = QuestionParser.extract_from_paragraphs(analyze_paragraphs, content_images)
+                logger.info("✅ MOCK: SOLID-based extraction completed successfully")
+            else:
+                logger.warning("⚠️ MOCK: No Azure paragraphs available, using text-based extraction")
+                # Criar parágrafos sintéticos a partir do texto
+                synthetic_paragraphs = [{"content": text_content}]
+                question_data = QuestionParser.extract_from_paragraphs(synthetic_paragraphs, content_images)
         
         logger.info(f"Header extracted from mock with {len(header_images)} images")
         logger.info(f"Questions found in mock: {len(question_data['questions'])}")

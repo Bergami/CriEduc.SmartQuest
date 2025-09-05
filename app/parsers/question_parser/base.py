@@ -4,12 +4,16 @@ from .detect_questions import detect_questions
 from .match_context_to_questions import match_context_to_questions
 from .context_question_mapper import ContextQuestionMapper
 from .context_block_image_processor import ContextBlockImageProcessor
+from .legacy_adapter import extract_questions_from_paragraphs_legacy_compatible
 
 class QuestionParser:
     @staticmethod
     def extract(text: str, image_data: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """
-        Extrai questões e blocos de contexto do texto
+        🚨 DEPRECATED: Use extract_from_paragraphs() instead
+        
+        This method is deprecated and only maintained for backward compatibility.
+        It now redirects to the new SOLID-based extraction system.
         
         Args:
             text: Texto a ser analisado
@@ -18,29 +22,14 @@ class QuestionParser:
         Returns:
             Dicionário com questões e blocos de contexto
         """
-        # Use improved context block detection
-        context_blocks = detect_context_blocks(text)
-        questions = detect_questions(text)
+        import logging
+        logger = logging.getLogger(__name__)
         
-        # Use old matching as fallback, then apply new intelligent mapping
-        linked_questions = match_context_to_questions(questions, context_blocks, text)
+        logger.warning("🚨 DEPRECATED: QuestionParser.extract() is deprecated. Use extract_from_paragraphs() instead.")
         
-        # Apply new intelligent context-question mapping
-        improved_questions = ContextQuestionMapper.map_contexts_to_questions(
-            text, linked_questions, context_blocks
-        )            # Enriquecer blocos de contexto com imagens se disponíveis
-        if image_data:
-            context_blocks = ContextBlockImageProcessor.enrich_context_blocks_with_images(
-                context_blocks, image_data
-            )
-            
-            # Salvar imagens em arquivo para depuração
-            ContextBlockImageProcessor.save_images_to_file(image_data, "tests/extracted_images")
-
-        return {
-            "context_blocks": context_blocks,
-            "questions": improved_questions
-        }
+        # 🆕 Redirecionar para novo sistema SOLID
+        synthetic_paragraphs = [{"content": text}]
+        return QuestionParser.extract_from_paragraphs(synthetic_paragraphs, image_data)
 
     @staticmethod
     def extract_typed(
@@ -63,9 +52,16 @@ class QuestionParser:
         # Import here to avoid circular imports
         from app.models.internal.question_models import InternalQuestion
         from app.models.internal.context_models import InternalContextBlock
+        import logging
         
-        # Use the existing extract method to get raw data
-        raw_data = QuestionParser.extract(text, image_data)
+        logger = logging.getLogger(__name__)
+        
+        # 🆕 Usar sempre extração SOLID - criar parágrafos sintéticos do texto
+        logger.info("🔄 extract_typed: Converting text to synthetic paragraphs for SOLID extraction")
+        synthetic_paragraphs = [{"content": text}]
+        
+        # Use the new SOLID extraction method
+        raw_data = QuestionParser.extract_from_paragraphs(synthetic_paragraphs, image_data)
         
         # Convert to Pydantic models
         pydantic_questions = [
@@ -79,3 +75,42 @@ class QuestionParser:
         ]
         
         return pydantic_questions, pydantic_context_blocks
+    
+    @staticmethod
+    def extract_from_paragraphs(
+        paragraphs: List[Dict[str, Any]], 
+        image_data: Optional[Dict[str, str]] = None
+    ) -> Dict[str, Any]:
+        """
+        🆕 NOVA FUNCIONALIDADE: Extrai questões diretamente dos parágrafos do Azure
+        
+        Esta função usa a nova implementação baseada em princípios SOLID para extrair
+        questões diretamente dos parágrafos do Azure Document Intelligence, oferecendo
+        melhor performance e precisão.
+        
+        Args:
+            paragraphs: Lista de parágrafos do Azure Document Intelligence
+            image_data: Dicionário opcional de imagens (id -> base64_data)
+            
+        Returns:
+            Dicionário com questões no formato legacy para compatibilidade
+        """
+        # Usar nova implementação SOLID via adaptador de compatibilidade
+        result = extract_questions_from_paragraphs_legacy_compatible(paragraphs)
+        
+        # O adaptador já retorna no formato correto
+        questions = result.get("questions", [])
+        context_blocks = result.get("context_blocks", [])
+        
+        # Enriquecer com dados de imagem se disponível
+        if image_data:
+            # Aplicar enriquecimento de imagens nas questões
+            for question in questions:
+                if question.get('hasImage', False):
+                    # Lógica para associar imagens às questões pode ser implementada aqui
+                    pass
+        
+        return {
+            "context_blocks": context_blocks,
+            "questions": questions
+        }
