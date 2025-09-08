@@ -9,8 +9,9 @@ from dataclasses import dataclass
 
 from app.core.constants.instruction_patterns import InstructionPatterns, InstructionPattern
 from app.core.constants.content_types import (
-    ContentType, FigureType, TextRole, ContextBlockType, InstructionType,
+    ContentType, FigureType, TextRole, ContextBlockType,
     get_content_type_from_string, get_figure_type_from_content
+    # REMOVED: InstructionType (not used in this file)
 )
 
 logger = logging.getLogger(__name__)

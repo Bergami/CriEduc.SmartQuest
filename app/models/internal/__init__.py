@@ -11,8 +11,7 @@ from .image_models import (
     InternalImageData,
     ImagePosition,
     ExtractionMetadata,
-    ImageCategory,
-    ImageProcessingStatus
+    ImageCategory
 )
 from .document_models import (
     InternalDocumentResponse,
@@ -26,7 +25,6 @@ from .question_models import (
     InternalQuestion,
     InternalAnswerOption,
     InternalQuestionContent,
-    QuestionDifficulty,
     AnswerType
 )
 
@@ -36,7 +34,6 @@ __all__ = [
     "ImagePosition", 
     "ExtractionMetadata",
     "ImageCategory",
-    "ImageProcessingStatus",
     
     # Document models
     "InternalDocumentResponse",
@@ -49,7 +46,6 @@ __all__ = [
     # Question models
     "InternalQuestion",
     "InternalAnswerOption",
-    "InternalQuestionContent",
-    "QuestionDifficulty",
+    "InternalQuestionContent", 
     "AnswerType"
 ]

@@ -212,7 +212,6 @@
 │   │
 │   ├── 📂 documents/               # Test documents
 │   ├── 📂 extracted_images/        # Extracted test images
-│   ├── � extracted_text/          # Extracted test text
 │   ├── 📂 fixtures/                # Test fixtures
 │   ├── 📂 images/                  # Test images
 │   └── 📂 responses/               # Mock responses

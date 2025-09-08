@@ -8,31 +8,9 @@ for processing, including all Azure metadata, coordinates, and extraction detail
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 from datetime import datetime
-from enum import Enum
 
-
-class ImageCategory(str, Enum):
-    """Categories for image classification."""
-    HEADER = "header"
-    FOOTER = "footer"
-    CONTENT = "content"
-    SIDEBAR = "sidebar"
-    LOGO = "logo"
-    WATERMARK = "watermark"
-    FIGURE = "figure"
-    CHART = "chart"
-    DIAGRAM = "diagram"
-    PHOTO = "photo"
-    UNKNOWN = "unknown"
-
-
-class ImageProcessingStatus(str, Enum):
-    """Status of image processing."""
-    PENDING = "pending"
-    PROCESSING = "processing"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    SKIPPED = "skipped"
+# Import enums from centralized location
+from app.enums import ImageCategory
 
 
 class ImagePosition(BaseModel):
@@ -150,10 +128,6 @@ class InternalImageData(BaseModel):
         default=ImageCategory.UNKNOWN,
         description="Image category classification"
     )
-    processing_status: ImageProcessingStatus = Field(
-        default=ImageProcessingStatus.PENDING,
-        description="Current processing status"
-    )
     
     # Content analysis
     extracted_text: Optional[str] = Field(
@@ -243,8 +217,7 @@ class InternalImageData(BaseModel):
             position=position,
             azure_coordinates=coordinates,
             extraction_metadata=extraction_metadata,
-            category=ImageCategory.FIGURE,
-            processing_status=ImageProcessingStatus.COMPLETED,
+            category=ImageCategory.CONTENT,
             processing_notes="Extracted from Azure Document Intelligence"
         )
     
@@ -281,18 +254,11 @@ class InternalImageData(BaseModel):
         # Calculate relative position
         rel_y = self.position.y / page_height
         
-        # Header classification
+        # Header classification (top 15% of page)
         if rel_y <= 0.15:
             return ImageCategory.HEADER
         
-        # Footer classification  
-        if rel_y >= 0.85:
-            return ImageCategory.FOOTER
-        
-        # Content classification based on size and position
-        if self.position.width > 200 and self.position.height > 150:
-            return ImageCategory.FIGURE
-        
+        # Everything else is content (including footer, figures, etc.)
         return ImageCategory.CONTENT
     
     class Config:
@@ -310,7 +276,6 @@ class InternalImageData(BaseModel):
                 },
                 "azure_coordinates": [4.783, 0.7453, 7.5413, 0.7457, 7.5403, 2.8879, 4.782, 2.8874],
                 "category": "figure",
-                "processing_status": "completed",
                 "confidence_score": 0.95
             }
         }

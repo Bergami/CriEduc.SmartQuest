@@ -1232,14 +1232,21 @@ class RefactoredContextBlockBuilder:
         texts: List[str]
     ) -> ContextBlockType:
         """Determina tipo do context block baseado nos tipos de conteúdo"""
-        if ContentType.CHARGE in content_types:
-            return ContextBlockType.CHARGE_CONTEXT
-        elif ContentType.PROPAGANDA in content_types:
-            return ContextBlockType.PROPAGANDA_CONTEXT
-        elif any(content_type in [ContentType.DIALOGUE, ContentType.PARAGRAPH] for content_type in content_types):
+        # Check if has visual content (charge, propaganda, image, figure)
+        visual_types = {ContentType.CHARGE, ContentType.PROPAGANDA, ContentType.IMAGE, ContentType.FIGURE}
+        has_visual = bool(visual_types.intersection(content_types))
+        
+        # Check if has text content  
+        text_types = {ContentType.TEXT, ContentType.DIALOGUE, ContentType.PARAGRAPH, ContentType.TITLE}
+        has_text = bool(text_types.intersection(content_types)) or any(texts)
+        
+        # Determine context block type
+        if has_visual and has_text:
+            return ContextBlockType.TEXT_AND_IMAGE
+        elif has_visual:
+            return ContextBlockType.IMAGE_CONTEXT
+        elif has_text:
             return ContextBlockType.TEXT_CONTEXT
-        elif len(content_types) > 1:
-            return ContextBlockType.MIXED_CONTEXT
         else:
             return ContextBlockType.UNKNOWN
     

@@ -12,8 +12,7 @@ from app.models.internal.image_models import (
     InternalImageData, 
     ImageCategory, 
     ImagePosition, 
-    ExtractionMetadata,
-    ImageProcessingStatus
+    ExtractionMetadata
 )
 from .azure_figure_processor import AzureFigureProcessor
 
@@ -174,7 +173,6 @@ class ImageCategorizationServicePydantic:
             azure_coordinates=ImageCategorizationServicePydantic._extract_polygon_from_metadata(azure_figure_metadata),
             extraction_metadata=extraction_metadata,
             category=category,
-            processing_status=ImageProcessingStatus.COMPLETED,
             confidence_score=azure_figure_metadata.get("confidence", 0.95),
             processing_notes=f"Processed by ImageCategorizationServicePydantic at {datetime.now().isoformat()}",
             created_at=datetime.now()

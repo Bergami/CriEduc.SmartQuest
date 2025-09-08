@@ -305,7 +305,6 @@ class AzureFigureProcessor:
                 subject=question.subject,
                 # Copy all other existing fields
                 answer_type=question.answer_type,
-                difficulty=question.difficulty,
                 associated_images=question.associated_images + associated_figures,  # Add new figures
                 topic=question.topic,
                 learning_objectives=question.learning_objectives,

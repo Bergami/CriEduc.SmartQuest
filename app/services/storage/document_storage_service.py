@@ -25,8 +25,7 @@ class DocumentStorageService:
             self.base_path / "responses" / "azure",
             self.base_path / "responses" / "other_providers",
             self.base_path / "images" / "by_document",
-            self.base_path / "images" / "by_provider" / "azure",
-            self.base_path / "extracted_text"
+            self.base_path / "images" / "by_provider" / "azure"
         ]
         
         for directory in directories:
@@ -118,31 +117,8 @@ class DocumentStorageService:
             logger.error(f"Erro ao salvar imagens do documento {document_id}: {str(e)}")
             return {}
     
-    def save_extracted_text(self, text: str, document_id: str, provider: str) -> Optional[str]:
-        """
-        Salva texto extraído do documento
-        
-        Args:
-            text: Texto extraído
-            document_id: ID único do documento
-            provider: Nome do provedor
-            
-        Returns:
-            Caminho do arquivo salvo ou None se houver erro
-        """
-        try:
-            filename = f"{document_id}_{provider}.txt"
-            output_path = self.base_path / "extracted_text" / filename
-            
-            with open(output_path, "w", encoding="utf-8") as f:
-                f.write(text)
-            
-            logger.info(f"Texto extraído salvo em: {output_path}")
-            return str(output_path)
-            
-        except Exception as e:
-            logger.error(f"Erro ao salvar texto extraído: {str(e)}")
-            return None
+    # REMOVIDO: save_extracted_text() - funcionalidade desnecessária
+    # O texto extraído já fica disponível na memória e não precisa ser persistido
     
     def save_original_document(self, file_content: bytes, filename: str, document_id: str) -> Optional[str]:
         """
@@ -176,7 +152,7 @@ class DocumentStorageService:
         Retorna caminho para um tipo específico de documento
         
         Args:
-            document_type: Tipo do documento (responses, images, extracted_text, documents)
+            document_type: Tipo do documento (responses, images, documents)
             document_id: ID único do documento
             
         Returns:

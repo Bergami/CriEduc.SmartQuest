@@ -52,9 +52,8 @@ class BaseDocumentProvider(ABC):
             # Salvar resposta bruta
             self.storage.save_raw_response(raw_response, file.filename, self.provider_name)
             
-            # Salvar texto extraído
-            if "text" in structured_data:
-                self.storage.save_extracted_text(structured_data["text"], document_id, self.provider_name)
+            # REMOVIDO: save_extracted_text() - texto extraído não precisa ser persistido
+            # O texto já fica disponível na memória através do structured_data
             
             # Salvar imagens se existirem
             if "image_data" in structured_data:

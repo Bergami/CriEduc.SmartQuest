@@ -7,25 +7,9 @@ including all processing metadata and answer validation.
 
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
-from enum import Enum
 
-
-class QuestionDifficulty(str, Enum):
-    """Question difficulty levels."""
-    EASY = "easy"
-    MEDIUM = "medium"
-    HARD = "hard"
-    UNKNOWN = "unknown"
-
-
-class AnswerType(str, Enum):
-    """Answer format types."""
-    MULTIPLE_CHOICE = "multiple_choice"
-    TRUE_FALSE = "true_false"
-    OPEN_ENDED = "open_ended"
-    NUMERICAL = "numerical"
-    FILL_IN_BLANK = "fill_in_blank"
-    UNKNOWN = "unknown"
+# Import enums from centralized location
+from app.enums import AnswerType
 
 
 class InternalAnswerOption(BaseModel):
@@ -195,10 +179,6 @@ class InternalQuestion(BaseModel):
         default=AnswerType.UNKNOWN,
         description="Type of answer expected"
     )
-    difficulty: QuestionDifficulty = Field(
-        default=QuestionDifficulty.UNKNOWN,
-        description="Question difficulty level"
-    )
     
     # Image associations
     associated_images: List[str] = Field(
@@ -364,7 +344,6 @@ class InternalQuestion(BaseModel):
                 ],
                 "context_id": 1,
                 "answer_type": "multiple_choice",
-                "difficulty": "medium",
                 "has_image": False,
                 "subject": "Língua Portuguesa",
                 "topic": "Interpretação de texto",

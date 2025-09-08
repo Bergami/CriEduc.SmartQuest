@@ -147,7 +147,7 @@ class QuestionDTO(BaseModel):
             options=option_dtos,
             context_id=internal_question.context_id,
             answer_type=internal_question.answer_type.value,
-            difficulty=internal_question.difficulty.value,
+            difficulty="unknown",  # Default value since difficulty was removed
             subject=internal_question.subject,
             topic=internal_question.topic,
             has_image=internal_question.has_image,
@@ -254,10 +254,8 @@ class QuestionListDTO(BaseModel):
         for q in question_dtos:
             answer_types[q.answer_type] = answer_types.get(q.answer_type, 0) + 1
         
-        # Count difficulty levels
-        difficulty_levels = {}
-        for q in question_dtos:
-            difficulty_levels[q.difficulty] = difficulty_levels.get(q.difficulty, 0) + 1
+        # Count difficulty levels (simplified since all are 'unknown')
+        difficulty_levels = {"unknown": len(question_dtos)}
         
         # Count subjects
         subjects = {}

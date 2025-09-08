@@ -48,8 +48,7 @@ class AnalyzeService:
     ) -> InternalDocumentResponse:
         """
         ✅ REFATORADO: Orquestra a análise a partir de dados já extraídos.
-        Não possui mais conhecimento sobre cache ou provedores de extração.
-
+     
         Args:
             extracted_data: Dicionário com os dados brutos extraídos pelo DocumentExtractionService.
             email: Email do usuário.
@@ -65,11 +64,8 @@ class AnalyzeService:
 
         # 1. Extrair informações primárias dos dados recebidos
         extracted_text = extracted_data.get("text", "")
-        raw_image_data = extracted_data.get("image_data", {})
         azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
         
-        logger.info(f"Text received: {len(extracted_text)} characters")
-
         # 2. Extração de imagens com fallback (ainda necessário aqui, pois depende do azure_result)
         # Esta lógica poderia ser movida para um ImageExtractionService no futuro.
         image_data = await AnalyzeService._extract_images_with_fallback(

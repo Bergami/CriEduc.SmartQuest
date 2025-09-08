@@ -8,7 +8,7 @@ import logging
 from typing import Dict, List, Tuple, Any
 from datetime import datetime
 
-from app.models.internal.image_models import InternalImageData, ImageCategory, ImagePosition, ExtractionMetadata, ImageProcessingStatus
+from app.models.internal.image_models import InternalImageData, ImageCategory, ImagePosition, ExtractionMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +126,6 @@ class ImageCategorizationService:
             category=category,
             page=page,
             position=position,
-            processing_status=ImageProcessingStatus.COMPLETED,  # Usar enum correto
             created_at=datetime.now(),
             processing_notes=f"Categorized as {category.value} via Pure Pydantic Service"
         )
@@ -141,7 +140,6 @@ class ImageCategorizationService:
             category=ImageCategory.CONTENT,  # Default para content em caso de erro
             page=1,
             position=None,
-            processing_status=ImageProcessingStatus.COMPLETED,  # Usar enum correto
             created_at=datetime.now(),
             processing_notes=f"Fallback processing due to categorization error"
         )
