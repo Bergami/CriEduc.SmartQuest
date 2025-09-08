@@ -65,33 +65,8 @@ class TestAPIIntegration(unittest.TestCase):
         
         self.assertEqual(response.status_code, 422)  # Validation error
     
-    def test_analyze_document_mock_mode(self):
-        """Test analyze_document endpoint in mock mode"""
-        with patch('app.services.analyze_service.AnalyzeService.process_document_mock') as mock_process:
-            mock_process.return_value = {
-                "email": "test@example.com",
-                "document_id": "test-id",
-                "filename": "mock_document.pdf",
-                "header": self.test_data.get_expected_parsed_header(),
-                "questions": self.test_data.get_expected_question_data(),
-                "context_blocks": []
-            }
-            
-            response = self.client.post(
-                "/analyze/analyze_document",
-                params={
-                    "email": "test@example.com",
-                    "use_mock": True
-                }
-            )
-            
-            self.assertEqual(response.status_code, 200)
-            data = response.json()
-            self.assertEqual(data["email"], "test@example.com")
-            self.assertIn("document_id", data)
-            self.assertIn("header", data)
-            self.assertIn("questions", data)
-            self.assertIn("context_blocks", data)
+    # 🧹 TESTE REMOVIDO: test_analyze_document_mock_mode
+    # Mock endpoints foram removidos após confirmação de que o endpoint principal funciona
     
     def test_analyze_document_without_file_not_mock(self):
         """Test analyze_document endpoint without file when not in mock mode"""

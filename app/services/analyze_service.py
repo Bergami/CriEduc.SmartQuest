@@ -28,7 +28,6 @@ from app.models.internal import (
 )
 from app.services.refactored_context_builder import RefactoredContextBlockBuilder
 from app.core.exceptions import DocumentProcessingError
-from app.services.mock_document_service import MockDocumentService
 
 logger = logging.getLogger(__name__)
 
@@ -103,20 +102,76 @@ class AnalyzeService:
             content_images=content_images_pydantic
         )
 
-        # 5. Extrair questões - NOVA IMPLEMENTAÇÃO SOLID PRIORIZADA
-        azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
+        # 5. Extrair questões - CORREÇÃO CRÍTICA: Usar parágrafos diretamente
         azure_paragraphs = azure_result.get("paragraphs", []) if azure_result else []
         
-        # 🆕 FASE 1: SEMPRE usar extração SOLID Pydantic nativa baseada em parágrafos Azure
+        # 🔧 CORREÇÃO: Usar extract_from_paragraphs diretamente (mais eficiente e preciso)
         if azure_paragraphs:
-            logger.info(f"🆕 FASE 1: Using NEW Pydantic native extraction from {len(azure_paragraphs)} Azure paragraphs")
-            questions, context_blocks = QuestionParser.extract_typed_from_paragraphs(azure_paragraphs, image_data)
-            logger.info("✅ FASE 1: Pydantic native extraction completed successfully")
+            logger.info(f"🔧 CORREÇÃO: Using extract_from_paragraphs directly from {len(azure_paragraphs)} Azure paragraphs")
+            
+            # Preparar parágrafos no formato esperado
+            paragraph_list = [{"content": p.get("content", "")} for p in azure_paragraphs if p.get("content")]
+            
+            # Extrair usando método que funciona corretamente
+            raw_data = QuestionParser.extract_from_paragraphs(paragraph_list, image_data)
+            
+            # Converter para Pydantic manualmente com validação
+            from app.models.internal.question_models import InternalQuestion
+            from app.models.internal.context_models import InternalContextBlock
+            
+            questions = []
+            for i, q in enumerate(raw_data.get("questions", [])):
+                try:
+                    # 🔍 DEBUG: Log detalhado da questão antes da conversão
+                    logger.info(f"🔍 DEBUG Question {i+1}: number={q.get('number')}, question_length={len(q.get('question', ''))}, alternatives={len(q.get('alternatives', []))}")
+                    logger.debug(f"🔍 DEBUG Question {i+1} content: {q}")
+                    
+                    if not q.get("question"):
+                        logger.warning(f"⚠️ Question {i+1} has empty content, skipping")
+                        continue
+                        
+                    pydantic_q = InternalQuestion.from_legacy_question(q)
+                    questions.append(pydantic_q)
+                    logger.info(f"✅ Question {i+1} converted: {len(pydantic_q.content.statement)} chars, {len(pydantic_q.options)} options")
+                except Exception as e:
+                    logger.error(f"❌ Error converting question {i+1}: {e}")
+                    continue
+            
+            context_blocks = []
+            for i, cb in enumerate(raw_data.get("context_blocks", [])):
+                try:
+                    pydantic_cb = InternalContextBlock.from_legacy_context_block(cb)
+                    context_blocks.append(pydantic_cb)
+                except Exception as e:
+                    logger.warning(f"⚠️ Error converting context block {i+1}: {e}")
+                    continue
+            
+            logger.info(f"🔧 CORREÇÃO: Successfully extracted {len(questions)} questions, {len(context_blocks)} context blocks")
+            
         elif azure_result and "paragraphs" in azure_result:
             backup_paragraphs = azure_result["paragraphs"]
-            logger.info(f"🆕 FASE 1: Using NEW Pydantic native extraction from {len(backup_paragraphs)} backup Azure paragraphs")
-            questions, context_blocks = QuestionParser.extract_typed_from_paragraphs(backup_paragraphs, image_data)
-            logger.info("✅ FASE 1: Pydantic native extraction completed successfully")
+            logger.info(f"🔧 CORREÇÃO: Using extract_from_paragraphs from {len(backup_paragraphs)} backup Azure paragraphs")
+            
+            # Mesmo processo para backup paragraphs
+            paragraph_list = [{"content": p.get("content", "")} for p in backup_paragraphs if p.get("content")]
+            raw_data = QuestionParser.extract_from_paragraphs(paragraph_list, image_data)
+            
+            from app.models.internal.question_models import InternalQuestion
+            from app.models.internal.context_models import InternalContextBlock
+            
+            questions = [
+                InternalQuestion.from_legacy_question(q) 
+                for q in raw_data.get("questions", [])
+                if q.get("question")  # Apenas questões com conteúdo
+            ]
+            
+            context_blocks = [
+                InternalContextBlock.from_legacy_context_block(cb) 
+                for cb in raw_data.get("context_blocks", [])
+            ]
+            
+            logger.info(f"🔧 CORREÇÃO: Successfully extracted {len(questions)} questions from backup paragraphs")
+            
         else:
             logger.error("❌ CRITICAL: No Azure paragraphs available - cannot extract questions using SOLID")
             # Sistema agora exige parágrafos Azure - não há mais fallback
@@ -265,96 +320,9 @@ class AnalyzeService:
         return {}
 
     # ==================================================================================
-    # MÉTODOS MOCK (Mantidos para não quebrar os testes e endpoints de mock)
+    # 🧹 MÉTODOS MOCK REMOVIDOS
+    # Removidos após confirmação de que o endpoint principal está funcionando
     # ==================================================================================
-    @staticmethod
-    async def process_document_mock(email: str, filename: str = None) -> Dict[str, Any]:
-        """
-        Delega o processamento mock para MockDocumentService.
-        """
-        return await MockDocumentService.process_document_mock(email, filename)
-
-    @staticmethod
-    async def process_document_with_models_mock(
-        email: str = "test@mock.com",
-        image_extraction_method=None
-    ) -> InternalDocumentResponse:
-        """
-        Processa um documento mock usando modelos Pydantic.
-        """
-        logger.info("🔧 Processing mock document with Pydantic models")
-        
-        from app.services.azure_response_service import AzureResponseService
-        
-        azure_result = AzureResponseService.get_latest_azure_response()
-        file_info = AzureResponseService.get_latest_file_info()
-        extracted_data = AzureResponseService.convert_azure_response_to_extracted_data(azure_result)
-        raw_image_data = extracted_data.get("image_data", {})
-
-        header_images_pydantic, content_images_pydantic = [], []
-        if isinstance(raw_image_data, dict) and raw_image_data:
-            logger.info(f"🔧 MOCK: Categorizing {len(raw_image_data)} images using PURE PYDANTIC service")
-            header_images_pydantic, content_images_pydantic = ImageCategorizationService.categorize_extracted_images(
-                raw_image_data, azure_result, document_id=f"mock_{len(raw_image_data)}_images"
-            )
-        
-        header_metadata = HeaderParser.parse_to_pydantic(
-            header=extracted_data["text"],
-            header_images=header_images_pydantic,
-            content_images=content_images_pydantic
-        )
-
-        # Extrair questões - priorizar nova implementação SOLID
-        azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
-        azure_paragraphs = azure_result.get("paragraphs", []) if azure_result else []
-        
-        # 🆕 FASE 1: SEMPRE usar extração SOLID Pydantic nativa baseada em parágrafos Azure
-        if azure_paragraphs:
-            logger.info(f"🆕 FASE 1 MOCK: Using NEW Pydantic native extraction from {len(azure_paragraphs)} Azure paragraphs")
-            questions, context_blocks = QuestionParser.extract_typed_from_paragraphs(azure_paragraphs, raw_image_data)
-            logger.info("✅ FASE 1 MOCK: Pydantic native extraction completed successfully")
-        elif azure_result and "paragraphs" in azure_result:
-            backup_paragraphs = azure_result["paragraphs"]
-            logger.info(f"🆕 FASE 1 MOCK: Using NEW Pydantic native extraction from {len(backup_paragraphs)} backup Azure paragraphs")
-            questions, context_blocks = QuestionParser.extract_typed_from_paragraphs(backup_paragraphs, raw_image_data)
-            logger.info("✅ FASE 1 MOCK: Pydantic native extraction completed successfully")
-        else:
-            logger.error("❌ MOCK CRITICAL: No Azure paragraphs available - cannot extract questions using SOLID")
-            # Sistema agora exige parágrafos Azure - não há mais fallback
-            raise ValueError("Azure paragraphs are required for SOLID extraction. Mock processing failed.")
-        
-        # Enhanced context blocks (mantido para compatibilidade)
-        context_builder = RefactoredContextBlockBuilder()
-        try:
-            enhanced_context_blocks = context_builder.parse_to_pydantic(azure_result, raw_image_data or {})
-            context_blocks = enhanced_context_blocks
-            logger.info(f"✅ MOCK: Enhanced context blocks using Pydantic: {len(enhanced_context_blocks)}")
-        except Exception as e:
-            logger.warning(f"MOCK: Enhanced context blocks failed ({e}), using basic extraction")
-            # context_blocks já foi definido pela extração typed acima
-        
-        # Combinar todas as imagens para o response final
-        all_images = header_images_pydantic + content_images_pydantic
-        
-        internal_response = InternalDocumentResponse(
-            document_id=str(uuid4()),
-            email=email,
-            filename=file_info['filename'],
-            document_metadata=header_metadata,
-            questions=questions,  # ✅ FASE 1: Direto Pydantic - sem conversão
-            context_blocks=context_blocks,  # ✅ FASE 1: Direto Pydantic - sem conversão
-            extracted_text=extracted_data["text"],
-            provider_metadata={
-                "email": email,
-                "filename": file_info['filename'],
-                "processing_mode": "mock_pydantic_complete",
-                "migration_status": "100_percent_pydantic"
-            },
-            all_images=all_images
-        )
-        
-        logger.info(f"🔧 Mock document processed with 100% Pydantic: {internal_response.document_id}")
-        return internal_response
 
     # ==================================================================================
     # DEPRECATED METHODS - Removed after FASE 1 migration

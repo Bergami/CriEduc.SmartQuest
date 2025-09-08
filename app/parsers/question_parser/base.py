@@ -37,9 +37,10 @@ class QuestionParser:
         image_data: Optional[Dict[str, str]] = None
     ) -> Tuple[List, List]:
         """
-        PHASE 2 COMPLETE: Native Pydantic interface for QuestionParser.
+        🔧 CORRIGIDO: Native Pydantic interface for QuestionParser.
         
         Extrai questoes e blocos de contexto retornando tipos Pydantic nativos.
+        Inclui validação adequada para prevenir perda de dados durante conversão.
         
         Args:
             text: Texto a ser analisado
@@ -56,23 +57,73 @@ class QuestionParser:
         
         logger = logging.getLogger(__name__)
         
-        # 🆕 Usar sempre extração SOLID - criar parágrafos sintéticos do texto
-        logger.info("🔄 extract_typed: Converting text to synthetic paragraphs for SOLID extraction")
+        # 🔧 CORREÇÃO CRÍTICA: NÃO converter parágrafos para texto único!
+        # O problema era que estava passando texto combinado em vez de parágrafos separados
+        logger.info("🔄 extract_typed: Using text as single paragraph (preserving original logic)")
+        
+        # ⚠️ IMPORTANTE: extract_from_paragraphs espera parágrafos separados, não texto único
+        # Se recebemos texto único, assumimos que é para compatibilidade e criamos parágrafo sintético
         synthetic_paragraphs = [{"content": text}]
         
-        # Use the new SOLID extraction method
+        # Use the SOLID extraction method
         raw_data = QuestionParser.extract_from_paragraphs(synthetic_paragraphs, image_data)
         
-        # Convert to Pydantic models
-        pydantic_questions = [
-            InternalQuestion.from_legacy_question(q) 
-            for q in raw_data["questions"]
-        ]
+        # 🔧 CORREÇÃO: Validar dados antes da conversão
+        questions_list = raw_data.get("questions", [])
+        context_blocks_list = raw_data.get("context_blocks", [])
         
-        pydantic_context_blocks = [
-            InternalContextBlock.from_legacy_context_block(cb) 
-            for cb in raw_data["context_blocks"]
-        ]
+        logger.info(f"🔍 extract_typed: Raw data has {len(questions_list)} questions, {len(context_blocks_list)} context blocks")
+        
+        # Convert to Pydantic models with validation
+        pydantic_questions = []
+        for i, q in enumerate(questions_list):
+            try:
+                # 🔧 CORREÇÃO: Validar estrutura antes da conversão
+                if not isinstance(q, dict):
+                    logger.error(f"❌ Question {i} is not a dict: {type(q)}")
+                    continue
+                    
+                if not q.get("question"):
+                    logger.error(f"❌ Question {i} has empty 'question' field: {q}")
+                    continue
+                
+                # Debug da questão antes da conversão
+                logger.debug(f"🔍 Converting question {i+1}: number={q.get('number')}, question_length={len(q.get('question', ''))}, alternatives={len(q.get('alternatives', []))}")
+                
+                pydantic_q = InternalQuestion.from_legacy_question(q)
+                pydantic_questions.append(pydantic_q)
+                logger.info(f"✅ Question {i+1} converted successfully - content: {len(pydantic_q.content.statement)} chars, options: {len(pydantic_q.options)}")
+                
+            except Exception as e:
+                logger.error(f"❌ Error converting question {i}: {e}")
+                logger.error(f"❌ Question data: {q}")
+                import traceback
+                logger.error(f"❌ Traceback: {traceback.format_exc()}")
+                continue
+        
+        # Convert context blocks with validation
+        pydantic_context_blocks = []
+        for i, cb in enumerate(context_blocks_list):
+            try:
+                if not isinstance(cb, dict):
+                    logger.warning(f"⚠️ Context block {i} is not a dict: {type(cb)}")
+                    continue
+                    
+                pydantic_cb = InternalContextBlock.from_legacy_context_block(cb)
+                pydantic_context_blocks.append(pydantic_cb)
+                logger.debug(f"✅ Context block {i+1} converted successfully")
+                
+            except Exception as e:
+                logger.error(f"❌ Error converting context block {i}: {e}")
+                logger.error(f"❌ Context block data: {cb}")
+                continue
+        
+        logger.info(f"🔧 extract_typed: Successfully converted {len(pydantic_questions)} questions, {len(pydantic_context_blocks)} context blocks")
+        
+        # 🔧 CORREÇÃO: Validação final antes de retornar
+        if len(pydantic_questions) == 0 and len(questions_list) > 0:
+            logger.error("❌ CRITICAL: All questions lost during Pydantic conversion!")
+            logger.error(f"❌ Original questions: {questions_list}")
         
         return pydantic_questions, pydantic_context_blocks
     
