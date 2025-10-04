@@ -58,10 +58,6 @@ tests/images/
 tests/responses/
 tests/extracted_images/
 
-# Debug scripts - entire debug directory excluded from repository
-tests/debug/
-tests/debug/**
-
 # Debug scripts - only artifacts, preserve code and docs
 tests/debug_scripts/**/extracted_images/
 tests/debug_scripts/**/*.jpg
@@ -70,6 +66,15 @@ tests/debug_scripts/**/*.png
 tests/debug_scripts/**/*.json
 tests/debug_scripts/**/*.txt
 tests/debug_scripts/**/*.log
+
+# Migration scripts - only artifacts, preserve scripts
+tests/migration_scripts/**/*.json
+tests/migration_scripts/**/*.txt
+tests/migration_scripts/**/*.log
+
+# Documentation reports and logs - generated content
+documentation/reports/
+documentation/migration_logs/
 
 # Documentation (arquivos internos de projeto - não versionados)
 documentation/

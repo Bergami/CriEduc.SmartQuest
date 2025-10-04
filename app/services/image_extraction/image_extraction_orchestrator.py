@@ -13,7 +13,6 @@ from app.enums import ImageExtractionMethod
 from app.services.image_extraction.base_image_extractor import BaseImageExtractor
 from app.services.image_extraction.azure_figures_extractor import AzureFiguresImageExtractor
 from app.services.image_extraction.manual_pdf_extractor import ManualPDFImageExtractor
-from app.services.utils.image_saving_service import ImageSavingService
 from app.core.exceptions import DocumentProcessingError
 
 logger = logging.getLogger(__name__)
@@ -23,17 +22,17 @@ class ImageExtractionOrchestrator:
     """
     Orchestrates different image extraction strategies.
 
-    This class provides:
-    - Strategy selection
-    - Fallback mechanisms
+    Uses centralized file management for all extractions.
+    All files are saved to: tests/documents/images/azure/
     """
     
     def __init__(self):
+        """Initialize the orchestrator with centralized file management."""
         self._extractors = {
             ImageExtractionMethod.AZURE_FIGURES: AzureFiguresImageExtractor(),
             ImageExtractionMethod.MANUAL_PDF: ManualPDFImageExtractor()
         }
-        self.image_saver = ImageSavingService()
+        logger.info("🔧 ImageExtractionOrchestrator initialized with centralized file structure")
     
     async def extract_images_single_method(
         self,
