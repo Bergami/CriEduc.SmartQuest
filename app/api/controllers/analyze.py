@@ -52,7 +52,11 @@ async def analyze_document(
 
     # --- ETAPA 2: Orquestração da Análise ---
     structured_logger.debug("Step 2: Orchestrating analysis using AnalyzeService")
-    internal_response = await AnalyzeService.process_document_with_models(
+    
+    # 🎯 FASE 3: Criar instância do AnalyzeService (não é mais estático)
+    analyze_service = AnalyzeService()
+    
+    internal_response = await analyze_service.process_document_with_models(
         extracted_data=extracted_data,
         email=email,
         filename=file.filename,
