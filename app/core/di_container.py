@@ -1,32 +1,8 @@
 """
-🎯 FASE 4: Dependency Injection Container com Auto-wiring
+Dependency Injection Container com Auto-wiring
 
-CONCEITOS FUNDAMENTAIS EXPLICADOS:
-
-1. DEPENDENCY INJECTION (DI):
-   - Padrão onde as dependências são "injetadas" de fora
-   - Em vez de uma classe criar suas dependências, ela as recebe prontas
-   - Reduz acoplamento e facilita testes
-
-2. AUTO-WIRING:
-   - Processo automático de resolver dependências
-   - O container analisa os type hints do construtor
-   - Cria automaticamente todas as dependências necessárias
-
-3. TYPE HINTS + REFLECTION:
-   - Python permite inspecionar tipos em runtime
-   - Usamos inspect para ver os parâmetros do __init__
-   - Resolvemos cada dependência baseado no tipo
-
-4. SINGLETON vs TRANSIENT:
-   - Singleton: Uma única instância reutilizada
-   - Transient: Nova instância a cada resolução
-
-ARQUITETURA:
-- Container registra mapeamentos (Interface -> Implementação)
-- Resolve automaticamente toda a árvore de dependências
-- Detecta dependências circulares
-- Suporte a diferentes escopos (singleton/transient)
+Container nativo para injeção de dependência baseado em type hints.
+Suporta singleton/transient lifecycle e detecção de dependências circulares.
 """
 import logging
 import inspect

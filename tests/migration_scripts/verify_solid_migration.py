@@ -163,7 +163,7 @@ def check_document_orchestrator_migration():
     print("\n🔍 Verificando DocumentProcessingOrchestrator...")
     
     try:
-        orchestrator_file = "d:/Git/CriEduc.SmartQuest/app/services/document_processing_orchestrator.py"
+        orchestrator_file = "d:/Git/CriEduc.SmartQuest/app/services/core/document_analysis_orchestrator.py"
         
         with open(orchestrator_file, 'r', encoding='utf-8') as f:
             content = f.read()

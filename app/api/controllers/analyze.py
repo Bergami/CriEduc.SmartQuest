@@ -1,6 +1,9 @@
 from fastapi import APIRouter, UploadFile, File, Query, Request
 from typing import Dict, Any
 
+# IMPORTANTE: Importar di_config PRIMEIRO para configurar dependências
+from app.config import di_config  # Configura automaticamente todas as dependências
+
 # Importações dos novos serviços e dos existentes
 from app.services.extraction.document_extraction_service import DocumentExtractionService
 from app.services.core.analyze_service import AnalyzeService
@@ -53,7 +56,7 @@ async def analyze_document(
     # --- ETAPA 2: Orquestração da Análise ---
     structured_logger.debug("Step 2: Orchestrating analysis using AnalyzeService")
     
-    # 🔧 FASE 4: Resolver AnalyzeService via DI Container (não instanciar manualmente)
+    # Resolver AnalyzeService via DI Container (não instanciar manualmente)
     from app.core.di_container import container
     from app.core.interfaces import IAnalyzeService
     
@@ -66,7 +69,7 @@ async def analyze_document(
     #     └── IFigureProcessor → AzureFigureProcessor
     analyze_service = container.resolve(IAnalyzeService)
     
-    structured_logger.debug(f"✅ FASE 4: AnalyzeService resolved via DI Container: {type(analyze_service).__name__}")
+    structured_logger.debug(f"AnalyzeService resolved via DI Container: {type(analyze_service).__name__}")
     
     internal_response = await analyze_service.process_document_with_models(
         extracted_data=extracted_data,

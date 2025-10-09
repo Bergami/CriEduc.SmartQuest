@@ -1,23 +1,8 @@
 """
-🎯 FASE 4: Configuração do Dependency Injection Container
+Configuração do Dependency Injection Container
 
-CONCEITO DE CONFIGURAÇÃO CENTRALIZADA:
-- Todos os registros de dependências ficam em um local
-- Facilita mudança de implementações
-- Permite configurações diferentes por ambiente
-- Torna visível toda a arquitetura de dependências
-
-PADRÃO DE CONFIGURAÇÃO:
-1. Importar todas as interfaces e implementações
-2. Registrar mapeamentos Interface -> Implementação
-3. Definir ciclos de vida (singleton/transient)
-4. Exportar função de configuração
-
-BENEFÍCIOS:
-- Visibilidade: Vê toda arquitetura de uma vez
-- Manutenibilidade: Mudanças centralizadas
-- Flexibilidade: Diferentes configs por ambiente
-- Debugging: Fácil rastrear registros
+Configuração centralizada de todas as dependências do sistema.
+Define mapeamentos entre interfaces e implementações com ciclo de vida singleton.
 """
 import logging
 from app.core.di_container import container, ServiceLifetime
