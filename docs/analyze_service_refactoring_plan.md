@@ -111,11 +111,37 @@ manual_images = await orchestrator.extract_images_single_method(
 
 ---
 
-### **📋 FASE 2: Consolidação de Serviços de Imagem**
+### **📋 FASE 2: Consolidação de Serviços de Imagem e Preparação de Testes**
 
-**Objetivo:** Eliminar duplicações nos serviços de imagem
+**Objetivo:** Eliminar duplicações nos serviços de imagem e mitigar riscos críticos identificados na Fase 1
 
-#### **Passo 2.1: Criar Interface para Categorização de Imagens**
+#### **Passo 2.1: Atualizar Testes com Imports Corretos** 🆕
+
+- [ ] **Ação:** Corrigir imports obsoletos nos arquivos de teste
+- [ ] **Justificativa:** **RISCO CRÍTICO** - Resolver imports obsoletos antes de qualquer refatoração
+- [ ] **Arquivos afetados:**
+  - `tests/unit/test_services/test_analyze_service.py`
+  - `tests/unit/test_services/test_analyze_service_with_models.py`
+- [ ] **Mudanças:**
+  - ❌ `from app.services.analyze_service import AnalyzeService`
+  - ✅ `from app.services.core.analyze_service import AnalyzeService`
+- [ ] **Risco:** Baixo
+- [ ] **Tempo estimado:** 30min
+
+#### **Passo 2.2: Criar Testes para Método Crítico** 🆕
+
+- [ ] **Ação:** Criar testes para `_extract_images_with_fallback()` 
+- [ ] **Justificativa:** **RISCO CRÍTICO** - Método sem cobertura que será refatorado
+- [ ] **Arquivos novos:** `tests/unit/test_services/test_analyze_service_image_extraction.py`
+- [ ] **Cenários de teste:**
+  - ✅ Extração bem-sucedida com fallback
+  - ✅ Falha na extração principal, sucesso no fallback
+  - ✅ Falha em ambos os métodos
+  - ✅ Integração com `ImageExtractionOrchestrator`
+- [ ] **Risco:** Baixo
+- [ ] **Tempo estimado:** 1.5h
+
+#### **Passo 2.3: Criar Interface para Categorização de Imagens**
 
 - [ ] **Ação:** Criar `ImageCategorizationInterface` abstrata
 - [ ] **Justificativa:** Aplicar DIP - AnalyzeService dependerá de abstração, não implementação
@@ -140,7 +166,7 @@ class ImageCategorizationInterface(ABC):
         pass
 ```
 
-#### **Passo 2.2: Consolidar Serviços de Categorização**
+#### **Passo 2.4: Consolidar Serviços de Categorização**
 
 - [ ] **Ação:** Escolher uma versão como padrão e deprecar outras
 - [ ] **Justificativa:** Eliminar confusão e manter apenas a versão mais estável
@@ -150,13 +176,24 @@ class ImageCategorizationInterface(ABC):
 - [ ] **Risco:** Médio (pode quebrar imports)
 - [ ] **Tempo estimado:** 2h
 
-#### **Passo 2.3: Remover Lógica de Extração do AnalyzeService**
+#### **Passo 2.5: Remover Lógica de Extração do AnalyzeService**
 
 - [ ] **Ação:** Mover `_extract_images_with_fallback` para usar `ImageExtractionOrchestrator` diretamente
 - [ ] **Justificativa:** Eliminar duplicação e aplicar SRP
 - [ ] **Arquivos afetados:** `app/services/core/analyze_service.py`
-- [ ] **Risco:** Médio
+- [ ] **Risco:** Médio (agora mitigado pelos testes do Passo 2.2)
 - [ ] **Tempo estimado:** 1h
+
+#### **Passo 2.6: Validação de Compatibilidade** 🆕
+
+- [ ] **Ação:** Executar testes e validar endpoint principal
+- [ ] **Justificativa:** **RISCO CRÍTICO** - Garantir que controller não foi afetado
+- [ ] **Validações:**
+  - ✅ Todos os testes passam
+  - ✅ Endpoint `/analyze/analyze_document` funciona
+  - ✅ Imports do controller continuam válidos
+- [ ] **Risco:** Baixo
+- [ ] **Tempo estimado:** 30min
 
 ---
 
@@ -284,14 +321,23 @@ class DocumentAnalysisOrchestrator:
 
 ## 🚦 **6. CRONOGRAMA PROPOSTO**
 
-| **Fase**   | **Duração Estimada** | **Dependências** | **Risco** |
-| ---------- | -------------------- | ---------------- | --------- |
-| **Fase 1** | 1.5h                 | Nenhuma          | 🟢 Baixo  |
-| **Fase 2** | 3.75h                | Fase 1           | 🟡 Médio  |
-| **Fase 3** | 5h                   | Fase 2           | 🔴 Alto   |
-| **Fase 4** | 3h                   | Fase 3           | 🟡 Médio  |
-| **Fase 5** | 5h                   | Fase 4           | 🟢 Baixo  |
-| **TOTAL**  | **~18h**             | -                | -         |
+| **Fase**   | **Duração Estimada** | **Dependências** | **Risco** | **Principais Mudanças** |
+| ---------- | -------------------- | ---------------- | --------- | ----------------------- |
+| **Fase 1** | 1.5h ✅               | Nenhuma          | 🟢 Baixo  | Análise e preparação |
+| **Fase 2** | 5.5h 🔄               | Fase 1           | 🟡 Médio  | **+2h** Testes críticos, mitigação de riscos |
+| **Fase 3** | 5h                   | Fase 2           | 🔴 Alto   | Orquestrador específico |
+| **Fase 4** | 3h                   | Fase 3           | 🟡 Médio  | Dependency injection |
+| **Fase 5** | 5h                   | Fase 4           | 🟢 Baixo  | Limpeza e otimização |
+| **TOTAL**  | **~20h** (+2h)       | -                | -         | **Mais segura e robusta** |
+
+### **📊 Justificativa do Aumento de Tempo na Fase 2:**
+
+**+2h adicionais foram incluídas para:**
+- ✅ **+30min** - Correção de imports obsoletos nos testes
+- ✅ **+1.5h** - Criação de testes para método crítico `_extract_images_with_fallback`
+- ✅ **+30min** - Validação completa de compatibilidade
+
+**💡 Benefício:** Redução significativa do risco das fases subsequentes
 
 ---
 
