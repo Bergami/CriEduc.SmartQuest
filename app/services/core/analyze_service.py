@@ -17,6 +17,7 @@ from fastapi import UploadFile
 
 from app.parsers.header_parser import HeaderParser
 from app.parsers.question_parser import QuestionParser
+from app.services.image.interfaces.image_categorization_interface import ImageCategorizationInterface
 from app.services.image.image_categorization_service_pure_pydantic import ImageCategorizationService
 from app.services.azure.azure_figure_processor import AzureFigureProcessor
 from app.models.internal import (
@@ -36,7 +37,16 @@ class AnalyzeService:
     """
     Serviço de orquestração da análise de documentos.
     Recebe dados brutos e os transforma em um InternalDocumentResponse estruturado.
+    
+    Dependências:
+    - ImageCategorizationInterface: Interface para categorização de imagens (DIP aplicado)
+    - ImageExtractionOrchestrator: Orquestrador de extração de imagens
+    - RefactoredContextBlockBuilder: Constructor de blocos de contexto
+    - AzureFigureProcessor: Processador de figuras Azure
     """
+    
+    # Dependência da interface (DIP - Dependency Inversion Principle)
+    _image_categorizer: ImageCategorizationInterface = ImageCategorizationService()
 
     @staticmethod
     async def process_document_with_models(
@@ -80,7 +90,8 @@ class AnalyzeService:
         header_images_pydantic, content_images_pydantic = [], []
         if isinstance(image_data, dict) and image_data:
             logger.info(f"🔧 Categorizing {len(image_data)} extracted images using PURE PYDANTIC service")
-            header_images_pydantic, content_images_pydantic = ImageCategorizationService.categorize_extracted_images(
+            # 3. Categorizar imagens
+            header_images_pydantic, content_images_pydantic = AnalyzeService._image_categorizer.categorize_extracted_images(
                 image_data, azure_result, document_id=f"analyze_{len(image_data)}_images"
             )
             logger.info(f"🔧 PURE PYDANTIC Categorization complete: {len(header_images_pydantic)} header images, {len(content_images_pydantic)} content images")

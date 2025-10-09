@@ -3,17 +3,20 @@
 
 Serviço simplificado para categorização de imagens extraídas usando apenas Pydantic.
 Substitui a versão legacy sem compatibilidade retroativa.
+
+Implementa ImageCategorizationInterface para aplicar DIP (Dependency Inversion Principle).
 """
 import logging
 from typing import Dict, List, Tuple, Any
 from datetime import datetime
 
 from app.models.internal.image_models import InternalImageData, ImageCategory, ImagePosition, ExtractionMetadata
+from app.services.image.interfaces.image_categorization_interface import ImageCategorizationInterface
 
 logger = logging.getLogger(__name__)
 
 
-class ImageCategorizationService:
+class ImageCategorizationService(ImageCategorizationInterface):
     """
     🆕 Serviço 100% Pydantic para categorização de imagens.
     
