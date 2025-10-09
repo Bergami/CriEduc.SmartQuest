@@ -53,8 +53,20 @@ async def analyze_document(
     # --- ETAPA 2: Orquestração da Análise ---
     structured_logger.debug("Step 2: Orchestrating analysis using AnalyzeService")
     
-    # 🎯 FASE 3: Criar instância do AnalyzeService (não é mais estático)
-    analyze_service = AnalyzeService()
+    # 🔧 FASE 4: Resolver AnalyzeService via DI Container (não instanciar manualmente)
+    from app.core.di_container import container
+    from app.core.interfaces import IAnalyzeService
+    
+    # Container resolve automaticamente TODA a árvore de dependências:
+    # IAnalyzeService → AnalyzeService
+    # └── IDocumentAnalysisOrchestrator → DocumentAnalysisOrchestrator
+    #     ├── IImageCategorizer → ImageCategorizationService
+    #     ├── IImageExtractor → ImageExtractionOrchestrator
+    #     ├── IContextBuilder → RefactoredContextBlockBuilder
+    #     └── IFigureProcessor → AzureFigureProcessor
+    analyze_service = container.resolve(IAnalyzeService)
+    
+    structured_logger.debug(f"✅ FASE 4: AnalyzeService resolved via DI Container: {type(analyze_service).__name__}")
     
     internal_response = await analyze_service.process_document_with_models(
         extracted_data=extracted_data,

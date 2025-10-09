@@ -1,21 +1,31 @@
 """
-🎯 DocumentAnalysisOrchestrator - FASE 3 SOLID Refactoring
+🎯 DocumentAnalysisOrchestrator - FASE 4 SOLID + Dependency Injection
 
-Orquestrador especializado para coordenar todo o pipeline de análise de documentos.
+Orquestrador especializado totalmente desacoplado via Dependency Injection.
 
-Responsabilidades (SRP):
-- Coordenar extração de imagens com fallback
-- Coordenar categorização de imagens  
-- Coordenar parsing de header e questões
-- Coordenar construção de context blocks
-- Agregar resultados finais
+FASE 4 - DEPENDENCY INJECTION APLICADO:
+- Todas as dependências são INTERFACES, não implementações
+- Zero acoplamento entre classes
+- Auto-wiring via DI Container
+- Fácil substituição de implementações
+- Testabilidade máxima com mocks
 
-Princípios SOLID Aplicados:
-- SRP: Uma única responsabilidade - orquestrar o pipeline
-- OCP: Extensível via injeção de estratégias diferentes
-- LSP: Pode ser substituído por orquestradores especializados
-- ISP: Interfaces mínimas e específicas
-- DIP: Depende de abstrações, não implementações concretas
+EVOLUÇÃO ARQUITETURAL:
+- FASE 3: Implementações concretas injetadas manualmente
+- FASE 4: Interfaces abstratas + DI Container auto-wiring
+
+DEPENDENCIES VIA INTERFACES:
+- IImageCategorizer: Categorização de imagens
+- IImageExtractor: Extração de imagens  
+- IContextBuilder: Construção de context blocks
+- IFigureProcessor: Processamento de figuras
+
+BENEFÍCIOS ALCANÇADOS:
+✅ Zero acoplamento (DIP principle)
+✅ Auto-wiring automático de dependências
+✅ Substituição transparente de implementações
+✅ Testes com mocks facilitados
+✅ Configuração centralizada no DI Container
 """
 import logging
 from typing import Dict, Any, List
@@ -24,10 +34,12 @@ from fastapi import UploadFile
 
 from app.parsers.header_parser import HeaderParser
 from app.parsers.question_parser import QuestionParser
-from app.services.image.interfaces.image_categorization_interface import ImageCategorizationInterface
-from app.services.image.extraction.image_extraction_orchestrator import ImageExtractionOrchestrator
-from app.services.azure.azure_figure_processor import AzureFigureProcessor
-from app.services.context.refactored_context_builder import RefactoredContextBlockBuilder
+from app.core.interfaces import (
+    IImageCategorizer,
+    IImageExtractor,
+    IContextBuilder,
+    IFigureProcessor
+)
 from app.models.internal import (
     InternalDocumentResponse,
     InternalDocumentMetadata,
@@ -42,40 +54,79 @@ logger = logging.getLogger(__name__)
 
 class DocumentAnalysisOrchestrator:
     """
-    🎯 Orquestrador especializado para análise completa de documentos.
+    🎯 FASE 4: Orquestrador com Dependency Injection Completo
     
-    Esta classe coordena todo o pipeline de análise, aplicando o princípio SRP
-    ao máximo - o AnalyzeService agora apenas valida e delega.
+    TRANSFORMAÇÃO ARQUITETURAL:
+    - ANTES: Dependências concretas injetadas manualmente
+    - DEPOIS: Interfaces abstratas + auto-wiring via DI Container
     
-    Pipeline de Análise:
-    1. Extração de imagens com fallback
-    2. Categorização de imagens (header vs content)
-    3. Parsing de header e metadados
-    4. Extração de questões dos parágrafos Azure
-    5. Construção de context blocks refatorados
-    6. Associação de figuras às questões
-    7. Agregação final da resposta
+    PRINCÍPIOS SOLID + DI:
+    - SRP: Uma única responsabilidade - orquestrar pipeline
+    - OCP: Extensível via diferentes implementações das interfaces
+    - LSP: Qualquer implementação das interfaces pode ser usada
+    - ISP: Interfaces mínimas e específicas por responsabilidade
+    - DIP: Depende apenas de abstrações (interfaces)
+    
+    DEPENDENCY INJECTION:
+    - Todas as dependências são INTERFACES
+    - Resolvidas automaticamente pelo DI Container
+    - Zero acoplamento com implementações concretas
+    - Configuração centralizada em di_config.py
+    
+    Pipeline de Análise (7 Fases):
+    1. 📋 Preparação de contexto de análise
+    2. 📸 Extração e categorização de imagens
+    3. 📄 Parsing de header e metadados
+    4. ❓ Extração de questões dos parágrafos
+    5. 🧱 Construção de context blocks refatorados
+    6. 🖼️ Associação de figuras às questões
+    7. 📦 Agregação final da resposta
     """
     
     def __init__(self,
-                 image_categorizer: ImageCategorizationInterface,
-                 image_extractor: ImageExtractionOrchestrator,
-                 context_builder: RefactoredContextBlockBuilder,
-                 figure_processor: AzureFigureProcessor):
+                 image_categorizer: IImageCategorizer,  # ← INTERFACE, não implementação
+                 image_extractor: IImageExtractor,      # ← INTERFACE, não implementação
+                 context_builder: IContextBuilder,      # ← INTERFACE, não implementação
+                 figure_processor: IFigureProcessor):   # ← INTERFACE, não implementação
         """
-        Dependency Injection aplicando DIP (Dependency Inversion Principle).
+        🔧 FASE 4: Dependency Injection com INTERFACES PURAS
+        
+        TRANSFORMAÇÃO ARQUITETURAL:
+        - ANTES: Dependências concretas (ImageCategorizationService, etc.)
+        - DEPOIS: Dependências abstratas (IImageCategorizer, etc.)
+        
+        BENEFÍCIOS DA MUDANÇA:
+        1. ZERO ACOPLAMENTO: Não conhece implementações concretas
+        2. SUBSTITUIBILIDADE: Qualquer implementação da interface serve
+        3. TESTABILIDADE: Fácil injetar mocks que implementam as interfaces
+        4. CONFIGURABILIDADE: DI Container resolve automaticamente
+        
+        AUTO-WIRING PROCESS:
+        1. DI Container inspeciona este construtor
+        2. Vê que precisa de IImageCategorizer, IImageExtractor, etc.
+        3. Consulta registros: IImageCategorizer -> ImageCategorizationService
+        4. Resolve recursivamente todas as dependências
+        5. Instancia DocumentAnalysisOrchestrator com tudo injetado
         
         Args:
             image_categorizer: Interface para categorização de imagens
-            image_extractor: Orquestrador de extração de imagens
-            context_builder: Constructor de blocos de contexto refatorado
-            figure_processor: Processador de figuras Azure
+            image_extractor: Interface para extração de imagens
+            context_builder: Interface para construção de context blocks
+            figure_processor: Interface para processamento de figuras
         """
+        # Armazenar dependências (agora são INTERFACES, não implementações)
         self._image_categorizer = image_categorizer
         self._image_extractor = image_extractor
         self._context_builder = context_builder
         self._figure_processor = figure_processor
         self._logger = logging.getLogger(__name__)
+        
+        # Log de inicialização para debug
+        self._logger.info("🎭 DocumentAnalysisOrchestrator initialized with DI interfaces")
+        self._logger.debug(f"  📋 Image Categorizer: {type(image_categorizer).__name__}")
+        self._logger.debug(f"  📸 Image Extractor: {type(image_extractor).__name__}")
+        self._logger.debug(f"  🧱 Context Builder: {type(context_builder).__name__}")
+        self._logger.debug(f"  🖼️ Figure Processor: {type(figure_processor).__name__}")
 
     async def orchestrate_analysis(self,
                                   extracted_data: Dict[str, Any],
@@ -358,14 +409,19 @@ class DocumentAnalysisOrchestrator:
         """
         self._logger.info("🖼️ Phase 6: Executing figure association")
         
-        azure_result = analysis_context["azure_result"]
-        
         try:
-            processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_result)
+            # 🔧 FASE 4: Usar interface ao invés de chamada estática
+            # ANTES: AzureFigureProcessor.process_figures_from_azure_response(azure_result)
+            # DEPOIS: self._figure_processor.process_figures(images, context_blocks)
             
-            enhanced_questions = AzureFigureProcessor.associate_figures_to_pydantic_questions(
-                processed_figures, questions
-            )
+            images = analysis_context.get("categorized_images", [])
+            context_blocks = analysis_context.get("context_blocks", [])
+            
+            # Processar figuras através da interface
+            figure_results = await self._figure_processor.process_figures(images, context_blocks)
+            
+            # Extrair questões melhoradas dos resultados
+            enhanced_questions = figure_results.get("enhanced_questions", questions)
             
             self._logger.info("✅ Phase 6: Questions enhanced with figure associations")
             return enhanced_questions
