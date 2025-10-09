@@ -60,3 +60,66 @@ class ImageExtractionOrchestrator:
         logger.info(f"🔧 Using extraction method: {extractor.get_extraction_method_name()}")
 
         return await extractor.extract_images(file, document_analysis_result, document_id)
+    
+    async def extract_with_fallback(
+        self,
+        file: UploadFile,
+        document_analysis_result: Dict[str, Any],
+        document_id: Optional[str] = None
+    ) -> Dict[str, str]:
+        """
+        Extract images using automatic fallback strategy.
+        
+        Tries MANUAL_PDF first, then falls back to AZURE_FIGURES if needed.
+        This method centralizes the fallback logic previously in AnalyzeService.
+        
+        Args:
+            file: The uploaded PDF file
+            document_analysis_result: The result from document analysis  
+            document_id: Optional document identifier
+            
+        Returns:
+            Dictionary mapping figure IDs to base64 encoded images
+        """
+        logger.info("🔄 Starting image extraction with automatic fallback")
+        await file.seek(0)
+        
+        # Try primary method: MANUAL_PDF
+        try:
+            logger.info("STEP 1: Attempting Manual PDF extraction (primary method)")
+            manual_images = await self.extract_images_single_method(
+                method=ImageExtractionMethod.MANUAL_PDF,
+                file=file,
+                document_analysis_result=document_analysis_result,
+                document_id=document_id
+            )
+            if manual_images:
+                logger.info(f"✅ Manual PDF extraction successful: {len(manual_images)} images extracted.")
+                await file.seek(0)
+                return manual_images
+            logger.warning("⚠️ Manual PDF extraction returned no images, attempting fallback")
+        except Exception as e:
+            logger.warning(f"⚠️ Manual PDF extraction failed: {str(e)}, attempting fallback")
+        
+        await file.seek(0)
+        
+        # Try fallback method: AZURE_FIGURES
+        try:
+            logger.info("STEP 2: Using Azure Figures fallback (secondary method)")
+            azure_images = await self.extract_images_single_method(
+                method=ImageExtractionMethod.AZURE_FIGURES,
+                file=file,
+                document_analysis_result=document_analysis_result,
+                document_id=document_id
+            )
+            if azure_images:
+                logger.info(f"✅ Azure Figures fallback successful: {len(azure_images)} images extracted.")
+                await file.seek(0)
+                return azure_images
+            logger.warning("⚠️ Azure Figures fallback also returned no images")
+        except Exception as e:
+            logger.error(f"❌ Azure Figures fallback failed: {str(e)}")
+        
+        logger.warning("❌ All image extraction methods failed, returning empty result")
+        await file.seek(0)
+        return {}

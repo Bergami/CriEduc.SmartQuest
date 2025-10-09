@@ -76,11 +76,12 @@ class AnalyzeService:
         extracted_text = extracted_data.get("text", "")
         azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
         
-        # 2. Extração de imagens com fallback (ainda necessário aqui, pois depende do azure_result)
-        # Esta lógica poderia ser movida para um ImageExtractionService no futuro.
-        image_data = await AnalyzeService._extract_images_with_fallback(
+        # 2. Extração de imagens com fallback - agora usando orquestrador centralizado
+        from app.services.image.extraction import ImageExtractionOrchestrator
+        image_orchestrator = ImageExtractionOrchestrator()
+        image_data = await image_orchestrator.extract_with_fallback(
             file=file,
-            extracted_data=extracted_data,
+            document_analysis_result=azure_result,
             document_id=f"{email}_{filename}"
         )
         if image_data:
@@ -271,61 +272,6 @@ class AnalyzeService:
         logger.info("✅ Document analysis orchestration completed successfully with Pydantic models")
         return response
 
-    @staticmethod
-    async def _extract_images_with_fallback(
-        file: UploadFile,
-        extracted_data: Dict[str, Any],
-        document_id: str
-    ) -> Dict[str, str]:
-        """
-        Extrai imagens usando estratégia de fallback automático.
-        Esta é uma responsabilidade candidata a ser movida para um futuro ImageExtractionService.
-        """
-        from app.services.image.extraction import ImageExtractionOrchestrator, ImageExtractionMethod
-        
-        logger.info("Starting image extraction with automatic fallback")
-        await file.seek(0)
-        orchestrator = ImageExtractionOrchestrator()
-        azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
-        
-        try:
-            logger.info("STEP 1: Attempting Manual PDF extraction (primary method)")
-            manual_images = await orchestrator.extract_images_single_method(
-                method=ImageExtractionMethod.MANUAL_PDF,
-                file=file,
-                document_analysis_result=azure_result,
-                document_id=document_id
-            )
-            if manual_images:
-                logger.info(f"✅ Manual PDF extraction successful: {len(manual_images)} images extracted.")
-                await file.seek(0)
-                return manual_images
-            logger.warning("⚠️ Manual PDF extraction returned no images, attempting fallback")
-        except Exception as e:
-            logger.warning(f"⚠️ Manual PDF extraction failed: {str(e)}, attempting fallback")
-        
-        await file.seek(0)
-        
-        try:
-            logger.info("STEP 2: Using Azure Figures fallback (secondary method)")
-            azure_images = await orchestrator.extract_images_single_method(
-                method=ImageExtractionMethod.AZURE_FIGURES,
-                file=file,
-                document_analysis_result=azure_result,
-                document_id=document_id
-            )
-            if azure_images:
-                logger.info(f"✅ Azure Figures fallback successful: {len(azure_images)} images extracted.")
-                await file.seek(0)
-                return azure_images
-            logger.warning("⚠️ Azure Figures fallback also returned no images")
-        except Exception as e:
-            logger.error(f"❌ Azure Figures fallback failed: {str(e)}")
-        
-        logger.warning("❌ All primary image extraction methods failed, returning empty result")
-        await file.seek(0)
-        return {}
-
     # ==================================================================================
     # 🧹 MÉTODOS MOCK REMOVIDOS
     # Removidos após confirmação de que o endpoint principal está funcionando
@@ -335,3 +281,4 @@ class AnalyzeService:
     # DEPRECATED METHODS - Removed after FASE 1 migration
     # ==================================================================================
     # _ensure_pydantic_context_blocks() - No longer needed with native Pydantic extraction
+    # _extract_images_with_fallback() - FASE 2.5: Moved to ImageExtractionOrchestrator.extract_with_fallback()
