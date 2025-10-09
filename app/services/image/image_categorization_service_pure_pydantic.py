@@ -193,5 +193,5 @@ class ImageCategorizationService:
     @staticmethod
     def _get_azure_processor():
         """Retorna instância do processador Azure."""
-        from app.services.azure_figure_processor import AzureFigureProcessor
+        from app.services.azure.azure_figure_processor import AzureFigureProcessor
         return AzureFigureProcessor()

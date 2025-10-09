@@ -12,7 +12,7 @@ from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.ai.documentintelligence.models import AnalyzeOutputOption
 from azure.core.credentials import AzureKeyCredential
 
-from app.services.image_extraction.base_image_extractor import BaseImageExtractor
+from app.services.image.extraction.base_image_extractor import BaseImageExtractor
 from app.services.utils.image_saving_service import ImageSavingService
 from app.config import settings
 from app.core.exceptions import DocumentProcessingError
@@ -31,6 +31,8 @@ class AzureFiguresImageExtractor(BaseImageExtractor):
     """
     
     def __init__(self):
+        super().__init__()  # Initialize BaseImageExtractor
+        
         self.endpoint = settings.azure_document_intelligence_endpoint
         self.key = settings.azure_document_intelligence_key
         self.model_id = settings.azure_document_intelligence_model
@@ -42,9 +44,6 @@ class AzureFiguresImageExtractor(BaseImageExtractor):
             endpoint=self.endpoint,
             credential=AzureKeyCredential(self.key)
         )
-        
-        # Initialize image saving service
-        self.image_saver = ImageSavingService()
         
         self._extraction_metrics = {
             "method": "azure_figures",
@@ -86,8 +85,8 @@ class AzureFiguresImageExtractor(BaseImageExtractor):
             logger.info("📊 Analyzing document with AnalyzeOutputOption.FIGURES...")
             
             poller = self.client.begin_analyze_document(
-                model_id=self.model_id,
-                analyze_request=io.BytesIO(file_content),
+                self.model_id,
+                io.BytesIO(file_content),
                 content_type="application/pdf",
                 output=[AnalyzeOutputOption.FIGURES]  # Official way to request figures
             )
@@ -153,14 +152,28 @@ class AzureFiguresImageExtractor(BaseImageExtractor):
             # Save extracted images to disk if any were found
             if extracted_images and document_id:
                 try:
-                    saved_path = self.image_saver.save_images_from_extraction(
-                        images=extracted_images,
-                        method="azure_figures",
-                        document_id=document_id,
-                        filename=getattr(file, 'filename', 'unknown'),
-                        email="extracted_via_azure_figures"
-                    )
-                    logger.info(f"💾 Azure figures images saved to: {saved_path}")
+                    # Use centralized file manager to save images
+                    for figure_id, base64_image in extracted_images.items():
+                        filename = f"{figure_id}.jpg"
+                        # Convert base64 back to bytes for saving
+                        import base64
+                        image_bytes = base64.b64decode(base64_image)
+                        
+                        saved_path = self._save_image(
+                            method="azure_endpoint",
+                            filename=filename,
+                            content=image_bytes,
+                            document_id=document_id,
+                            metadata={
+                                "extraction_method": "azure_figures",
+                                "figure_id": figure_id,
+                                "original_filename": getattr(file, 'filename', 'unknown'),
+                                "processing_time": processing_time
+                            }
+                        )
+                        logger.debug(f"💾 Figure {figure_id} saved to: {saved_path}")
+                    
+                    logger.info(f"💾 All Azure figures images saved to centralized structure")
                 except Exception as e:
                     logger.warning(f"⚠️  Could not save Azure figures images: {str(e)}")
             

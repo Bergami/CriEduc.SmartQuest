@@ -10,8 +10,8 @@ from fastapi import UploadFile
 
 from app.core.logging import logger
 from app.core.exceptions import DocumentProcessingError
-from app.services.azure_response_service import AzureResponseService
-from app.services.mock_document_service import MockDocumentService
+from app.services.azure.azure_response_service import AzureResponseService
+from app.services.mock.mock_document_service import MockDocumentService
 from app.models.internal.document_models import InternalDocumentResponse, InternalDocumentMetadata
 from app.models.internal.image_models import InternalImageData
 from app.models.internal.context_models import InternalContextBlock
@@ -45,7 +45,7 @@ class DocumentProcessingOrchestrator:
         logger.info(f"Orchestrator: Processing document {file.filename} for {email}")
         
         # Importar aqui para evitar importação circular
-        from app.services.analyze_service import AnalyzeService
+        from app.services.core.analyze_service import AnalyzeService
         
         return await AnalyzeService.process_document(
             file=file,
@@ -137,9 +137,9 @@ class DocumentProcessingOrchestrator:
         """
         from app.parsers.header_parser import HeaderParser
         from app.parsers.question_parser import QuestionParser
-        from app.services.azure_figure_processor import AzureFigureProcessor
-        from app.services.refactored_context_builder import RefactoredContextBlockBuilder
-        from app.services.image_categorization_service import ImageCategorizationService
+        from app.services.azure.azure_figure_processor import AzureFigureProcessor
+        from app.services.context.refactored_context_builder import RefactoredContextBlockBuilder
+        from app.services.image.image_categorization_service import ImageCategorizationService
         
         document_id = str(uuid4())
         
@@ -344,7 +344,7 @@ class DocumentProcessingOrchestrator:
         
         # Tentar carregar de arquivos salvos usando IDs das figuras
         try:
-            from app.services.analyze_service import AnalyzeService
+            from app.services.core.analyze_service import AnalyzeService
             
             figures_metadata = []
             for figure in figures:

@@ -6,7 +6,7 @@ Mantém toda a lógica de extração intacta, apenas melhora a categorização.
 """
 from typing import Dict, Any, List, Tuple
 import logging
-from .azure_figure_processor import AzureFigureProcessor
+from app.services.azure.azure_figure_processor import AzureFigureProcessor
 
 logger = logging.getLogger(__name__)
 

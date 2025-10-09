@@ -2,8 +2,8 @@ from fastapi import APIRouter, UploadFile, File, Query, Request
 from typing import Dict, Any
 
 # Importações dos novos serviços e dos existentes
-from app.services.document_extraction_service import DocumentExtractionService
-from app.services.analyze_service import AnalyzeService
+from app.services.extraction.document_extraction_service import DocumentExtractionService
+from app.services.core.analyze_service import AnalyzeService
 from app.validators.analyze_validator import AnalyzeValidator
 from app.dtos.responses.document_response_dto import DocumentResponseDTO
 from app.core.exceptions import (

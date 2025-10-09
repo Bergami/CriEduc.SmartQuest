@@ -13,8 +13,8 @@ from typing import Dict, Any, List
 # Adicionar o diretório raiz ao path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from app.services.image_categorization_service import ImageCategorizationService
-from app.services.image_categorization_service_pydantic import ImageCategorizationServicePydantic
+from app.services.image.image_categorization_service import ImageCategorizationService
+from app.services.image.image_categorization_service_pydantic import ImageCategorizationServicePydantic
 
 # Configurar logging
 logging.basicConfig(

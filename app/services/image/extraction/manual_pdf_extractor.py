@@ -10,7 +10,7 @@ import time
 from typing import Dict, Any, Optional
 from fastapi import UploadFile
 
-from app.services.image_extraction.base_image_extractor import BaseImageExtractor
+from app.services.image.extraction.base_image_extractor import BaseImageExtractor
 from app.services.utils.pdf_image_extractor import PDFImageExtractor
 from app.services.utils.image_saving_service import ImageSavingService
 from app.core.exceptions import DocumentProcessingError

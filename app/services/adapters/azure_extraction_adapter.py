@@ -3,7 +3,7 @@ from typing import Dict, Any
 from fastapi import UploadFile
 from app.services.base.document_extraction_interface import DocumentExtractionInterface
 from app.services.base.text_normalizer import TextNormalizer
-from app.services.azure_document_intelligence_service import AzureDocumentIntelligenceService
+from app.services.azure.azure_document_intelligence_service import AzureDocumentIntelligenceService
 from app.core.exceptions import DocumentProcessingError
 
 logger = logging.getLogger(__name__)

@@ -1,12 +1,10 @@
 """
-Azure-based image extraction strategy.
-Uses Azure Document Intelligence figures API to extract images.
+Azure-based image extraction strategy using official SDK method.
+Uses Azure Document Intelligence figures API following official documentation.
 """
 
 import logging
 import io
-import tempfile
-import os
 import time
 from typing import Dict, Any, Optional
 from fastapi import UploadFile
@@ -14,7 +12,7 @@ from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.ai.documentintelligence.models import AnalyzeOutputOption
 from azure.core.credentials import AzureKeyCredential
 
-from app.services.image_extraction.base_image_extractor import BaseImageExtractor
+from app.services.image.extraction.base_image_extractor import BaseImageExtractor
 from app.services.utils.image_saving_service import ImageSavingService
 from app.config import settings
 from app.core.exceptions import DocumentProcessingError
@@ -26,8 +24,10 @@ class AzureFiguresImageExtractor(BaseImageExtractor):
     """
     Image extraction using Azure Document Intelligence figures functionality.
     
-    This implementation uses Azure's native figure detection and extraction
-    capabilities, which should provide better performance and accuracy.
+    This implementation follows the official Azure SDK documentation and uses:
+    - AnalyzeOutputOption.FIGURES for requesting figures
+    - poller.details["operation_id"] for getting operation ID
+    - client.get_analyze_result_figure() for downloading figures
     """
     
     def __init__(self):
@@ -61,19 +61,18 @@ class AzureFiguresImageExtractor(BaseImageExtractor):
         document_id: Optional[str] = None
     ) -> Dict[str, str]:
         """
-        Extract images using Azure figures API.
+        Extract images using Azure figures API with official SDK method.
         
-        This method:
-        1. Re-analyzes the document with output=figures parameter
-        2. Gets the analysis result ID
-        3. Fetches individual figure images via the figures endpoint
+        This method follows the official Azure documentation:
+        1. Analyzes document with AnalyzeOutputOption.FIGURES
+        2. Gets operation_id from poller.details
+        3. Uses client.get_analyze_result_figure() for each figure
         4. Returns base64 encoded images
         """
-        import time
         start_time = time.time()
         
         try:
-            logger.info("🔄 Starting Azure figures-based image extraction...")
+            logger.info("🔄 Starting Azure figures-based image extraction using official SDK...")
             
             # Reposition file pointer and read content
             await file.seek(0)
@@ -83,35 +82,26 @@ class AzureFiguresImageExtractor(BaseImageExtractor):
                 logger.error("❌ Empty PDF file")
                 return {}
             
-            # Step 1: Analyze document with output parameter for figures
-            logger.info("📊 Analyzing document with figures output...")
+            # Step 1: Analyze document with FIGURES output using official method
+            logger.info("📊 Analyzing document with AnalyzeOutputOption.FIGURES...")
             
-            # Use the correct API - analyze_document with output parameter
             poller = self.client.begin_analyze_document(
                 model_id=self.model_id,
                 analyze_request=io.BytesIO(file_content),
                 content_type="application/pdf",
-                output=["figures"]  # Request figures in output
+                output=[AnalyzeOutputOption.FIGURES]  # Official way to request figures
             )
             
             self._extraction_metrics["api_calls"] += 1
             
-            # Wait for analysis to complete
+            # Step 2: Get result and operation_id (official method)
             result = poller.result()
+            operation_id = poller.details.get("operation_id")
             
-            # Get operation/result ID for figure retrieval
-            operation_location = getattr(poller, '_operation_location', None) 
-            result_id = None
+            logger.info(f"✅ Analysis completed. Operation ID: {operation_id}")
+            logger.info(f"📋 Model ID: {result.model_id}")
             
-            if operation_location:
-                # Extract result ID from operation location
-                # Format: https://endpoint/documentintelligence/operations/{result_id}
-                result_id = operation_location.split('/')[-1]
-                logger.info(f"✅ Analysis completed. Result ID: {result_id}")
-            else:
-                logger.warning("⚠️  Could not extract result ID from operation")
-            
-            # Step 2: Check if figures were detected
+            # Step 3: Check if figures were detected
             figures = getattr(result, 'figures', [])
             if not figures:
                 logger.warning("⚠️  No figures detected in document")
@@ -119,45 +109,38 @@ class AzureFiguresImageExtractor(BaseImageExtractor):
             
             logger.info(f"🎯 Found {len(figures)} figures to extract")
             
-            # Step 3: Extract each figure image
+            # Step 4: Extract each figure using official SDK method
             extracted_images = {}
             
             for figure in figures:
                 figure_id = getattr(figure, 'id', 'unknown')
                 
                 try:
-                    if result_id:
-                        # Use the correct endpoint for getting figure
-                        # According to Azure docs: GET {endpoint}/documentintelligence/operations/{resultId}/figures/{figureId}
-                        figure_url = f"{self.endpoint.rstrip('/')}/documentintelligence/operations/{result_id}/figures/{figure_id}"
+                    if operation_id and result.model_id:
+                        logger.info(f"🔗 Fetching figure {figure_id} using official SDK...")
                         
-                        logger.info(f"🔗 Fetching figure from: {figure_url}")
+                        # Use official SDK method - no manual HTTP requests needed!
+                        figure_response = self.client.get_analyze_result_figure(
+                            model_id=result.model_id,
+                            result_id=operation_id,
+                            figure_id=figure_id
+                        )
                         
-                        # Make direct HTTP request for figure using httpx (already in dependencies)
-                        import httpx
+                        # Convert response to bytes and then base64
+                        figure_bytes = b"".join(figure_response)  # figure_response is iterable
                         
-                        headers = {
-                            'Ocp-Apim-Subscription-Key': self.key
-                        }
-                        
-                        async with httpx.AsyncClient() as client:
-                            response = await client.get(figure_url, headers=headers)
+                        if figure_bytes:
+                            import base64
+                            base64_image = base64.b64encode(figure_bytes).decode('utf-8')
+                            extracted_images[figure_id] = base64_image
                             
-                            if response.status_code == 200:
-                                figure_bytes = response.content
-                                
-                                # Convert to base64
-                                import base64
-                                base64_image = base64.b64encode(figure_bytes).decode('utf-8')
-                                extracted_images[figure_id] = base64_image
-                                
-                                logger.info(f"✅ Figure {figure_id}: {len(figure_bytes)} bytes → {len(base64_image)} chars base64")
-                                self._extraction_metrics["successful_extractions"] += 1
-                            else:
-                                logger.error(f"❌ HTTP {response.status_code} for figure {figure_id}: {response.text}")
-                                self._extraction_metrics["failed_extractions"] += 1
+                            logger.info(f"✅ Figure {figure_id}: {len(figure_bytes)} bytes → {len(base64_image)} chars base64")
+                            self._extraction_metrics["successful_extractions"] += 1
+                        else:
+                            logger.warning(f"⚠️  Figure {figure_id}: Empty response from Azure")
+                            self._extraction_metrics["failed_extractions"] += 1
                     else:
-                        logger.warning(f"⚠️  No result_id available for figure {figure_id}")
+                        logger.warning(f"⚠️  Missing operation_id or model_id for figure {figure_id}")
                         self._extraction_metrics["failed_extractions"] += 1
                         
                 except Exception as e:

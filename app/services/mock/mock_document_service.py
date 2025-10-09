@@ -467,7 +467,7 @@ class MockDocumentService:
         Extrai apenas imagens do PDF usando classe isolada ManualPDFImageExtractor.
         Usado quando queremos centralizar a lógica de extração manual nas classes isoladas.
         """
-        from app.services.image_extraction.manual_pdf_extractor import ManualPDFImageExtractor
+        from app.services.image.extraction.manual_pdf_extractor import ManualPDFImageExtractor
         
         logger.info(f"Extracting images from PDF using isolated ManualPDFImageExtractor: {pdf_path}")
         

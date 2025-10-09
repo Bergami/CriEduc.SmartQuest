@@ -14,7 +14,7 @@ from app.models.internal.image_models import (
     ImagePosition, 
     ExtractionMetadata
 )
-from .azure_figure_processor import AzureFigureProcessor
+from app.services.azure.azure_figure_processor import AzureFigureProcessor
 
 logger = logging.getLogger(__name__)
 

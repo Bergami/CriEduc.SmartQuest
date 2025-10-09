@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from app.parsers.question_parser import QuestionParser
-from app.services.azure_response_service import AzureResponseService
+from app.services.azure.azure_response_service import AzureResponseService
 
 
 def debug_question_parser_extract_typed():

@@ -1,6 +1,6 @@
 from typing import Dict, Type
 from app.services.providers.base_document_provider import BaseDocumentProvider
-from app.services.azure_document_intelligence_service import AzureDocumentIntelligenceService
+from app.services.azure.azure_document_intelligence_service import AzureDocumentIntelligenceService
 from app.services.storage.document_storage_service import DocumentStorageService
 
 class DocumentProviderFactory:

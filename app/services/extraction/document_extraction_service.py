@@ -8,7 +8,7 @@ import logging
 from typing import Dict, Any
 from fastapi import UploadFile
 from app.core.cache import DocumentCacheManager
-from app.services.document_extraction_factory import DocumentExtractionFactory
+from app.services.core.document_extraction_factory import DocumentExtractionFactory
 
 logger = logging.getLogger(__name__)
 
