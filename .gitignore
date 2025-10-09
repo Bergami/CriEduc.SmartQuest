@@ -33,7 +33,8 @@ config/production.py
 # Debug and test files (na raiz - devem ir para tests/debug_scripts/)
 debug_*.py
 check_*.py
-analyze_*.py
+# Exclude service files from being ignored
+!app/services/**/analyze_*.py
 !tests/debug_scripts/**/*.py
 test_*.py
 !tests/test_*.py
