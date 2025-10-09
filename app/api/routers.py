@@ -9,7 +9,6 @@ from app.api.controllers.health import router as health_router
 router = APIRouter()
 
 # 📌 Registra cada módulo na API
-router.include_router(health_router, tags=["Health"])
-router.include_router(health_router, prefix="/health", tags=["Health"])  # Para compatibilidade /health
+router.include_router(health_router, prefix="/health", tags=["Health"])
 router.include_router(analyze_router, prefix="/analyze", tags=["Analyze"])
 
