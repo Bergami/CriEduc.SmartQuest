@@ -26,7 +26,7 @@ async def compare_flows():
         # 1. TESTAR FLUXO MOCK (que sabemos que funciona)
         print("\n📄 1. TESTANDO FLUXO MOCK...")
         
-        from app.services.analyze_service import AnalyzeService
+        from app.services.core.analyze_service import AnalyzeService
         
         mock_response = await AnalyzeService.process_document_with_models_mock()
         

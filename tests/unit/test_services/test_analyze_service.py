@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch, AsyncMock
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from app.services.analyze_service import AnalyzeService
+from app.services.core.analyze_service import AnalyzeService
 from app.core.exceptions import DocumentProcessingError
 from tests.fixtures.test_data import TestDataProvider, TestValidators
 

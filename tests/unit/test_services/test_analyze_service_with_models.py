@@ -4,7 +4,7 @@ Testes unitários para novos métodos do AnalyzeService
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from app.services.analyze_service import AnalyzeService
+from app.services.core.analyze_service import AnalyzeService
 from app.models.internal.document_models import InternalDocumentResponse, InternalDocumentMetadata
 
 
@@ -15,8 +15,8 @@ class TestAnalyzeServiceWithModels:
         """Setup executado antes de cada teste"""
         self.analyze_service = AnalyzeService()
     
-    @patch('app.services.analyze_service.AnalyzeService._get_document_service')
-    @patch('app.services.analyze_service.AnalyzeService._extract_document_metadata')
+    @patch('app.services.core.analyze_service.AnalyzeService._get_document_service')
+    @patch('app.services.core.analyze_service.AnalyzeService._extract_document_metadata')
     def test_process_document_with_models_mock_text_only(self, mock_extract_metadata, mock_get_service):
         """Testa process_document_with_models com mock text only"""
         # Arrange
@@ -105,8 +105,8 @@ class TestAnalyzeServiceWithModels:
         mock_document_service.process_document_mock_text_only.assert_called_once()
         mock_extract_metadata.assert_called_once()
     
-    @patch('app.services.analyze_service.AnalyzeService._get_document_service')
-    @patch('app.services.analyze_service.AnalyzeService._extract_document_metadata')
+    @patch('app.services.core.analyze_service.AnalyzeService._get_document_service')
+    @patch('app.services.core.analyze_service.AnalyzeService._extract_document_metadata')
     def test_process_document_with_models_mock_with_images(self, mock_extract_metadata, mock_get_service):
         """Testa process_document_with_models com mock incluindo imagens"""
         # Arrange
@@ -189,8 +189,8 @@ class TestAnalyzeServiceWithModels:
         # Verificar chamadas dos mocks
         mock_document_service.process_document_mock_images_only.assert_called_once()
     
-    @patch('app.services.analyze_service.AnalyzeService._get_document_service')
-    @patch('app.services.analyze_service.AnalyzeService._extract_document_metadata')
+    @patch('app.services.core.analyze_service.AnalyzeService._get_document_service')
+    @patch('app.services.core.analyze_service.AnalyzeService._extract_document_metadata')
     def test_process_document_with_models_azure_service(self, mock_extract_metadata, mock_get_service):
         """Testa process_document_with_models com Azure Document Intelligence"""
         # Arrange
@@ -292,7 +292,7 @@ class TestAnalyzeServiceWithModels:
         # Verificar chamadas dos mocks
         mock_document_service.process_document.assert_called_once()
     
-    @patch('app.services.analyze_service.AnalyzeService._extract_document_metadata')
+    @patch('app.services.core.analyze_service.AnalyzeService._extract_document_metadata')
     def test_process_document_with_models_handles_metadata_extraction_error(self, mock_extract_metadata):
         """Testa tratamento de erro na extração de metadata"""
         # Arrange
@@ -313,8 +313,8 @@ class TestAnalyzeServiceWithModels:
         
         assert "Erro na extração de metadata" in str(exc_info.value)
     
-    @patch('app.services.analyze_service.AnalyzeService._get_document_service')
-    @patch('app.services.analyze_service.AnalyzeService._extract_document_metadata')
+    @patch('app.services.core.analyze_service.AnalyzeService._get_document_service')
+    @patch('app.services.core.analyze_service.AnalyzeService._extract_document_metadata')
     def test_process_document_with_models_handles_processing_error(self, mock_extract_metadata, mock_get_service):
         """Testa tratamento de erro no processamento do documento"""
         # Arrange
@@ -347,8 +347,8 @@ class TestAnalyzeServiceWithModels:
         
         assert "Erro no processamento" in str(exc_info.value)
     
-    @patch('app.services.analyze_service.AnalyzeService._get_document_service')
-    @patch('app.services.analyze_service.AnalyzeService._extract_document_metadata')
+    @patch('app.services.core.analyze_service.AnalyzeService._get_document_service')
+    @patch('app.services.core.analyze_service.AnalyzeService._extract_document_metadata')
     def test_process_document_with_models_creates_valid_pydantic_objects(self, mock_extract_metadata, mock_get_service):
         """Testa que o método cria objetos Pydantic válidos"""
         # Arrange
