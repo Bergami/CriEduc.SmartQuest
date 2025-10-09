@@ -18,7 +18,7 @@ from fastapi import UploadFile
 from app.parsers.header_parser import HeaderParser
 from app.parsers.question_parser import QuestionParser
 from app.services.image.interfaces.image_categorization_interface import ImageCategorizationInterface
-from app.services.image.image_categorization_service_pure_pydantic import ImageCategorizationService
+from app.services.image.image_categorization_service import ImageCategorizationService
 from app.services.azure.azure_figure_processor import AzureFigureProcessor
 from app.models.internal import (
     InternalDocumentResponse,

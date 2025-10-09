@@ -103,6 +103,7 @@ manual_images = await orchestrator.extract_images_single_method(
 - [x] **Tempo estimado:** 30min ✅ **REALIZADO**
 
 **📊 Resultados da Fase 1:**
+
 - **3 dependências críticas** identificadas (Controller principal)
 - **6 dependências diretas** de classes concretas (alto acoplamento)
 - **~60% cobertura de testes** (testes desatualizados)
@@ -130,7 +131,7 @@ manual_images = await orchestrator.extract_images_single_method(
 
 #### **Passo 2.2: Criar Testes para Método Crítico** 🆕
 
-- [ ] **Ação:** Criar testes para `_extract_images_with_fallback()` 
+- [ ] **Ação:** Criar testes para `_extract_images_with_fallback()`
 - [ ] **Justificativa:** **RISCO CRÍTICO** - Método sem cobertura que será refatorado
 - [ ] **Arquivos novos:** `tests/unit/test_services/test_analyze_service_image_extraction.py`
 - [ ] **Cenários de teste:**
@@ -321,18 +322,19 @@ class DocumentAnalysisOrchestrator:
 
 ## 🚦 **6. CRONOGRAMA PROPOSTO**
 
-| **Fase**   | **Duração Estimada** | **Dependências** | **Risco** | **Principais Mudanças** |
-| ---------- | -------------------- | ---------------- | --------- | ----------------------- |
-| **Fase 1** | 1.5h ✅               | Nenhuma          | 🟢 Baixo  | Análise e preparação |
-| **Fase 2** | 5.5h 🔄               | Fase 1           | 🟡 Médio  | **+2h** Testes críticos, mitigação de riscos |
-| **Fase 3** | 5h                   | Fase 2           | 🔴 Alto   | Orquestrador específico |
-| **Fase 4** | 3h                   | Fase 3           | 🟡 Médio  | Dependency injection |
-| **Fase 5** | 5h                   | Fase 4           | 🟢 Baixo  | Limpeza e otimização |
-| **TOTAL**  | **~20h** (+2h)       | -                | -         | **Mais segura e robusta** |
+| **Fase**   | **Duração Estimada** | **Dependências** | **Risco** | **Principais Mudanças**                      |
+| ---------- | -------------------- | ---------------- | --------- | -------------------------------------------- |
+| **Fase 1** | 1.5h ✅              | Nenhuma          | 🟢 Baixo  | Análise e preparação                         |
+| **Fase 2** | 5.5h 🔄              | Fase 1           | 🟡 Médio  | **+2h** Testes críticos, mitigação de riscos |
+| **Fase 3** | 5h                   | Fase 2           | 🔴 Alto   | Orquestrador específico                      |
+| **Fase 4** | 3h                   | Fase 3           | 🟡 Médio  | Dependency injection                         |
+| **Fase 5** | 5h                   | Fase 4           | 🟢 Baixo  | Limpeza e otimização                         |
+| **TOTAL**  | **~20h** (+2h)       | -                | -         | **Mais segura e robusta**                    |
 
 ### **📊 Justificativa do Aumento de Tempo na Fase 2:**
 
 **+2h adicionais foram incluídas para:**
+
 - ✅ **+30min** - Correção de imports obsoletos nos testes
 - ✅ **+1.5h** - Criação de testes para método crítico `_extract_images_with_fallback`
 - ✅ **+30min** - Validação completa de compatibilidade
