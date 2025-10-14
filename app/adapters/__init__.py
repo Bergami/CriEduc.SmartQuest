@@ -1,7 +1,8 @@
 """
 Adapters package for converting between internal models and API responses
+
+Note: DocumentResponseAdapter was removed as deprecated. 
+Use DocumentResponseDTO.from_internal_response() instead.
 """
 
-from .document_response_adapter import DocumentResponseAdapter
-
-__all__ = ["DocumentResponseAdapter"]
+__all__ = []

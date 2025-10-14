@@ -12,7 +12,6 @@ from datetime import datetime
 # Import enums from centralized location
 from app.enums import ImageCategory
 
-
 class ImagePosition(BaseModel):
     """
     Calculated position of an image after coordinate transformation.
@@ -24,31 +23,11 @@ class ImagePosition(BaseModel):
     y: float = Field(..., description="Y coordinate (top-left corner)")
     width: float = Field(..., description="Width of the image")
     height: float = Field(..., description="Height of the image")
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "x": 344.304,
-                "y": 53.662,
-                "width": 198.67,
-                "height": 154.267
-            }
-        }
-
 
 class PageDimensions(BaseModel):
     """Dimensions of a PDF page in the target coordinate system."""
     width: float = Field(..., description="Page width")
     height: float = Field(..., description="Page height")
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "width": 595.276,
-                "height": 841.890
-            }
-        }
-
 
 class ExtractionMetadata(BaseModel):
     """
@@ -75,23 +54,6 @@ class ExtractionMetadata(BaseModel):
         default=None,
         description="Any special notes about the processing"
     )
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "scale_factor": 72.0,
-                "source": "azure",
-                "bounding_regions": [
-                    {
-                        "pageNumber": 1,
-                        "polygon": [4.783, 0.7453, 7.5413, 0.7457, 7.5403, 2.8879, 4.782, 2.8874]
-                    }
-                ],
-                "confidence": 0.95,
-                "processing_notes": "Standard extraction with 72pt scaling"
-            }
-        }
-
 
 class InternalImageData(BaseModel):
     """

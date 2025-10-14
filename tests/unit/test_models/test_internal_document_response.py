@@ -5,6 +5,9 @@ Testes unitários para InternalDocumentResponse
 import pytest
 from pydantic import ValidationError
 from app.models.internal.document_models import InternalDocumentResponse, InternalDocumentMetadata
+from app.models.internal.question_models import InternalQuestion, InternalAnswerOption, InternalQuestionContent
+from app.models.internal.context_models import InternalContextBlock, InternalContextContent
+from app.models.internal.image_models import InternalImageData
 
 
 class TestInternalDocumentResponse:
@@ -14,396 +17,307 @@ class TestInternalDocumentResponse:
         """Testa criação com dados válidos"""
         # Arrange
         metadata = InternalDocumentMetadata(
-            student_name="João Silva",
-            student_code="12345",
-            evaluation_date="2024-01-15",
+            student="João Silva",
+            school="UMEF Exemplo",
             subject="Matemática",
-            institution="UFMG",
-            city="Belo Horizonte"
+            teacher="Prof. Maria"
+        )
+        
+        question_content = InternalQuestionContent(statement="Qual é a soma de 2 + 2?")
+        answer_option = InternalAnswerOption(label="B", text="4", is_correct=True)
+        question = InternalQuestion(
+            number=1,
+            content=question_content,
+            options=[answer_option]
+        )
+        
+        context_content = InternalContextContent(description=["Resolva as questões a seguir"])
+        context_block = InternalContextBlock(
+            id=1,
+            content=context_content,
+            type=["instruction"]
         )
         
         # Act
         response = InternalDocumentResponse(
-            metadata=metadata,
-            questions=[
-                {
-                    "number": 1,
-                    "text": "Qual é a soma de 2 + 2?",
-                    "alternatives": ["3", "4", "5", "6"],
-                    "correct_answer": "4",
-                    "topic": "Aritmética"
-                }
-            ],
-            context_blocks=[
-                {
-                    "type": "instruction",
-                    "content": "Resolva as questões a seguir",
-                    "page": 1
-                }
-            ],
-            extracted_images=[
-                {
-                    "filename": "figure_1.png",
-                    "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-                    "page": 1,
-                    "dimensions": {"width": 100, "height": 80},
-                    "source": "manual_extraction"
-                }
-            ],
-            processing_metadata={
-                "total_pages": 2,
-                "processing_time_seconds": 1.5,
-                "extraction_method": "mock_with_images",
-                "figures_found": 1,
-                "questions_extracted": 1,
-                "context_blocks_found": 1
-            }
+            email="test@example.com",
+            document_id="doc_123",
+            filename="test.pdf",
+            document_metadata=metadata,
+            questions=[question],
+            context_blocks=[context_block]
         )
         
         # Assert
-        assert response.metadata == metadata
+        assert response.email == "test@example.com"
+        assert response.document_id == "doc_123"
+        assert response.filename == "test.pdf"
+        assert response.document_metadata.student == "João Silva"
         assert len(response.questions) == 1
-        assert response.questions[0]["number"] == 1
         assert len(response.context_blocks) == 1
-        assert response.context_blocks[0]["type"] == "instruction"
-        assert len(response.extracted_images) == 1
-        assert response.extracted_images[0]["filename"] == "figure_1.png"
-        assert response.processing_metadata["total_pages"] == 2
+        assert response.questions[0].number == 1
+        assert response.context_blocks[0].id == 1
     
     def test_create_with_empty_lists(self):
         """Testa criação com listas vazias"""
         # Arrange
         metadata = InternalDocumentMetadata(
-            student_name="Ana Costa",
-            student_code="67890",
-            evaluation_date="2024-01-16",
-            subject="Física",
-            institution="USP",
-            city="São Paulo"
+            subject="Teste",
+            school="Escola Teste"
         )
         
         # Act
         response = InternalDocumentResponse(
-            metadata=metadata,
+            email="empty@example.com",
+            document_id="doc_empty",
+            filename="empty.pdf",
+            document_metadata=metadata,
             questions=[],
             context_blocks=[],
-            extracted_images=[],
-            processing_metadata={
-                "total_pages": 1,
-                "processing_time_seconds": 0.5,
-                "extraction_method": "mock_text_only",
-                "figures_found": 0,
-                "questions_extracted": 0,
-                "context_blocks_found": 0
-            }
+            all_images=[]
         )
         
         # Assert
+        assert response.email == "empty@example.com"
         assert len(response.questions) == 0
         assert len(response.context_blocks) == 0
-        assert len(response.extracted_images) == 0
-        assert response.processing_metadata["figures_found"] == 0
+        assert len(response.all_images) == 0
     
     def test_create_with_multiple_questions(self):
         """Testa criação com múltiplas questões"""
         # Arrange
-        metadata = InternalDocumentMetadata(
-            student_name="Carlos Oliveira",
-            student_code="11111",
-            evaluation_date="2024-01-17",
-            subject="Química",
-            institution="UNICAMP",
-            city="Campinas"
-        )
+        metadata = InternalDocumentMetadata(subject="Matemática")
         
-        questions = [
-            {
-                "number": 1,
-                "text": "Primeira questão",
-                "alternatives": ["A", "B", "C", "D"],
-                "correct_answer": "A",
-                "topic": "Química Orgânica"
-            },
-            {
-                "number": 2,
-                "text": "Segunda questão",
-                "alternatives": ["1", "2", "3", "4"],
-                "correct_answer": "3",
-                "topic": "Química Inorgânica"
-            },
-            {
-                "number": 3,
-                "text": "Terceira questão",
-                "alternatives": ["Sim", "Não", "Talvez", "Depende"],
-                "correct_answer": "Sim",
-                "topic": "Química Analítica"
-            }
-        ]
+        questions = []
+        for i in range(1, 4):
+            content = InternalQuestionContent(statement=f"Questão {i}")
+            option = InternalAnswerOption(label="A", text=f"Resposta {i}", is_correct=True)
+            question = InternalQuestion(
+                number=i,
+                content=content,
+                options=[option]
+            )
+            questions.append(question)
         
         # Act
         response = InternalDocumentResponse(
-            metadata=metadata,
-            questions=questions,
-            context_blocks=[],
-            extracted_images=[],
-            processing_metadata={
-                "total_pages": 3,
-                "processing_time_seconds": 2.1,
-                "extraction_method": "azure_document_intelligence",
-                "figures_found": 0,
-                "questions_extracted": 3,
-                "context_blocks_found": 0
-            }
+            email="multi@example.com",
+            document_id="doc_multi",
+            filename="multi.pdf",
+            document_metadata=metadata,
+            questions=questions
         )
         
         # Assert
         assert len(response.questions) == 3
-        assert response.questions[0]["number"] == 1
-        assert response.questions[1]["number"] == 2
-        assert response.questions[2]["number"] == 3
-        assert response.questions[0]["topic"] == "Química Orgânica"
-        assert response.questions[1]["topic"] == "Química Inorgânica"
-        assert response.questions[2]["topic"] == "Química Analítica"
+        assert response.questions[0].number == 1
+        assert response.questions[1].number == 2
+        assert response.questions[2].number == 3
     
     def test_create_with_multiple_context_blocks(self):
         """Testa criação com múltiplos blocos de contexto"""
         # Arrange
-        metadata = InternalDocumentMetadata(
-            student_name="Maria Santos",
-            student_code="22222",
-            evaluation_date="2024-01-18",
-            subject="Biologia",
-            institution="UFRJ",
-            city="Rio de Janeiro"
-        )
+        metadata = InternalDocumentMetadata(subject="Português")
         
-        context_blocks = [
-            {
-                "type": "instruction",
-                "content": "Leia atentamente as instruções",
-                "page": 1
-            },
-            {
-                "type": "explanation",
-                "content": "As questões seguem um padrão específico",
-                "page": 1
-            },
-            {
-                "type": "example",
-                "content": "Exemplo: Uma célula eucarionte...",
-                "page": 2
-            },
-            {
-                "type": "note",
-                "content": "Observação importante sobre mitose",
-                "page": 2
-            }
-        ]
+        contexts = []
+        for i in range(1, 5):
+            content = InternalContextContent(description=[f"Contexto {i}"])
+            context = InternalContextBlock(
+                id=i,
+                content=content,
+                type=["text"]
+            )
+            contexts.append(context)
         
         # Act
         response = InternalDocumentResponse(
-            metadata=metadata,
-            questions=[],
-            context_blocks=context_blocks,
-            extracted_images=[],
-            processing_metadata={
-                "total_pages": 2,
-                "processing_time_seconds": 1.8,
-                "extraction_method": "manual_extraction",
-                "figures_found": 0,
-                "questions_extracted": 0,
-                "context_blocks_found": 4
-            }
+            email="context@example.com",
+            document_id="doc_context",
+            filename="context.pdf",
+            document_metadata=metadata,
+            context_blocks=contexts
         )
         
         # Assert
         assert len(response.context_blocks) == 4
-        assert response.context_blocks[0]["type"] == "instruction"
-        assert response.context_blocks[1]["type"] == "explanation"
-        assert response.context_blocks[2]["type"] == "example"
-        assert response.context_blocks[3]["type"] == "note"
-        assert all(block["page"] in [1, 2] for block in response.context_blocks)
+        assert response.context_blocks[0].id == 1
+        assert response.context_blocks[3].id == 4
     
     def test_create_with_multiple_images(self):
         """Testa criação com múltiplas imagens"""
         # Arrange
-        metadata = InternalDocumentMetadata(
-            student_name="Pedro Lima",
-            student_code="33333",
-            evaluation_date="2024-01-19",
-            subject="História",
-            institution="UFPE",
-            city="Recife"
-        )
+        metadata = InternalDocumentMetadata(subject="Biologia")
         
-        images = [
-            {
-                "filename": "mapa_1.png",
-                "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-                "page": 1,
-                "dimensions": {"width": 400, "height": 300},
-                "source": "azure_extraction"
-            },
-            {
-                "filename": "grafico_2.jpg",
-                "base64": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/4",
-                "page": 2,
-                "dimensions": {"width": 350, "height": 250},
-                "source": "manual_extraction"
-            },
-            {
-                "filename": "diagrama_3.png",
-                "base64": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAMAAAADCAYAAABWKLW/AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAAdgAAAHYBTnsmCAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAdSURBVAiZY2RgYPgPBAxAwMgABP//MzJgAzAODAAAaAYHA7r0XJUAAAAASUVORK5CYII=",
-                "page": 3,
-                "dimensions": {"width": 200, "height": 180},
-                "source": "hybrid"
-            }
-        ]
+        images = []
+        for i in range(1, 4):
+            image = InternalImageData(
+                id=f"img_{i}",
+                file_path=f"/path/image_{i}.png",
+                base64_data=f"base64_data_{i}",
+                page=1,
+                category="content"
+            )
+            images.append(image)
         
         # Act
         response = InternalDocumentResponse(
-            metadata=metadata,
-            questions=[],
-            context_blocks=[],
-            extracted_images=images,
-            processing_metadata={
-                "total_pages": 3,
-                "processing_time_seconds": 4.2,
-                "extraction_method": "hybrid",
-                "figures_found": 3,
-                "questions_extracted": 0,
-                "context_blocks_found": 0
-            }
+            email="images@example.com",
+            document_id="doc_images",
+            filename="images.pdf",
+            document_metadata=metadata,
+            all_images=images
         )
         
         # Assert
-        assert len(response.extracted_images) == 3
-        assert response.extracted_images[0]["filename"] == "mapa_1.png"
-        assert response.extracted_images[1]["filename"] == "grafico_2.jpg"
-        assert response.extracted_images[2]["filename"] == "diagrama_3.png"
-        assert response.extracted_images[0]["source"] == "azure_extraction"
-        assert response.extracted_images[1]["source"] == "manual_extraction"
-        assert response.extracted_images[2]["source"] == "hybrid"
+        assert len(response.all_images) == 3
+        assert response.all_images[0].id == "img_1"
+        assert response.all_images[2].id == "img_3"
     
     def test_validation_requires_metadata(self):
-        """Testa que metadata é obrigatório"""
+        """Testa que document_metadata é obrigatório"""
         # Act & Assert
         with pytest.raises(ValidationError) as exc_info:
             InternalDocumentResponse(
-                questions=[],
-                context_blocks=[],
-                extracted_images=[],
-                processing_metadata={}
+                email="test@example.com",
+                document_id="doc_test",
+                filename="test.pdf"
+                # Sem document_metadata
             )
-        
-        assert "metadata" in str(exc_info.value)
+        assert "document_metadata" in str(exc_info.value)
     
-    def test_validation_requires_processing_metadata(self):
-        """Testa que processing_metadata é obrigatório"""
-        # Arrange
-        metadata = InternalDocumentMetadata(
-            student_name="Teste",
-            student_code="12345",
-            evaluation_date="2024-01-01",
-            subject="Teste",
-            institution="Teste",
-            city="Teste"
-        )
+    def test_validation_requires_core_fields(self):
+        """Testa que campos principais são obrigatórios"""
+        metadata = InternalDocumentMetadata()
         
-        # Act & Assert
+        # Test missing email
         with pytest.raises(ValidationError) as exc_info:
             InternalDocumentResponse(
-                metadata=metadata,
-                questions=[],
-                context_blocks=[],
-                extracted_images=[]
+                document_id="doc_test",
+                filename="test.pdf",
+                document_metadata=metadata
             )
+        assert "email" in str(exc_info.value)
         
-        assert "processing_metadata" in str(exc_info.value)
+        # Test missing document_id
+        with pytest.raises(ValidationError) as exc_info:
+            InternalDocumentResponse(
+                email="test@example.com",
+                filename="test.pdf",
+                document_metadata=metadata
+            )
+        assert "document_id" in str(exc_info.value)
+        
+        # Test missing filename
+        with pytest.raises(ValidationError) as exc_info:
+            InternalDocumentResponse(
+                email="test@example.com",
+                document_id="doc_test",
+                document_metadata=metadata
+            )
+        assert "filename" in str(exc_info.value)
     
     def test_to_dict_method(self):
-        """Testa o método to_dict se existir"""
+        """Testa método dict()"""
         # Arrange
-        metadata = InternalDocumentMetadata(
-            student_name="Teste Dict",
-            student_code="99999",
-            evaluation_date="2024-01-20",
-            subject="Teste",
-            institution="Teste Dict",
-            city="Cidade Teste"
-        )
+        metadata = InternalDocumentMetadata(subject="Teste")
+        
+        content = InternalQuestionContent(statement="Teste question")
+        option = InternalAnswerOption(label="A", text="Teste", is_correct=True)
+        question = InternalQuestion(number=1, content=content, options=[option])
         
         response = InternalDocumentResponse(
-            metadata=metadata,
-            questions=[
-                {
-                    "number": 1,
-                    "text": "Questão teste",
-                    "alternatives": ["A", "B"],
-                    "correct_answer": "A",
-                    "topic": "Teste"
-                }
-            ],
-            context_blocks=[],
-            extracted_images=[],
-            processing_metadata={
-                "total_pages": 1,
-                "processing_time_seconds": 1.0,
-                "extraction_method": "test",
-                "figures_found": 0,
-                "questions_extracted": 1,
-                "context_blocks_found": 0
-            }
+            email="dict@example.com",
+            document_id="doc_dict",
+            filename="dict.pdf",
+            document_metadata=metadata,
+            questions=[question]
         )
         
         # Act
-        if hasattr(response, 'to_dict'):
-            result_dict = response.to_dict()
-            
-            # Assert
-            assert isinstance(result_dict, dict)
-            assert "metadata" in result_dict
-            assert "questions" in result_dict
-            assert "context_blocks" in result_dict
-            assert "extracted_images" in result_dict
-            assert "processing_metadata" in result_dict
-        else:
-            # Se não tem to_dict, usar dict() do Pydantic
-            result_dict = response.model_dump()
-            assert isinstance(result_dict, dict)
+        result_dict = response.dict()
+        
+        # Assert
+        assert isinstance(result_dict, dict)
+        assert result_dict["email"] == "dict@example.com"
+        assert result_dict["document_id"] == "doc_dict"
+        assert result_dict["filename"] == "dict.pdf"
+        assert "document_metadata" in result_dict
+        assert "questions" in result_dict
+        assert len(result_dict["questions"]) == 1
     
     def test_model_serialization(self):
         """Testa serialização do modelo"""
         # Arrange
         metadata = InternalDocumentMetadata(
-            student_name="Serialization Test",
-            student_code="77777",
-            evaluation_date="2024-01-21",
-            subject="Serialização",
-            institution="Teste Univ",
-            city="Test City"
+            subject="Serialization Test",
+            school="Test School"
         )
         
         response = InternalDocumentResponse(
-            metadata=metadata,
-            questions=[],
-            context_blocks=[],
-            extracted_images=[],
-            processing_metadata={
-                "total_pages": 1,
-                "processing_time_seconds": 0.5,
-                "extraction_method": "test_serialization",
-                "figures_found": 0,
-                "questions_extracted": 0,
-                "context_blocks_found": 0
-            }
+            email="serialize@example.com",
+            document_id="doc_serialize",
+            filename="serialize.pdf",
+            document_metadata=metadata,
+            extracted_text="Sample extracted text",
+            provider_metadata={"source": "azure", "confidence": 0.95}
         )
         
         # Act
-        json_str = response.model_dump_json()
+        json_str = response.json()
+        dict_data = response.dict()
         
         # Assert
         assert isinstance(json_str, str)
-        assert "metadata" in json_str
-        assert "Serialization Test" in json_str
-        assert "test_serialization" in json_str
+        assert isinstance(dict_data, dict)
+        assert "serialize@example.com" in json_str
+        assert "doc_serialize" in json_str
+        assert dict_data["email"] == "serialize@example.com"
+        assert dict_data["extracted_text"] == "Sample extracted text"
+        assert dict_data["provider_metadata"]["source"] == "azure"
+    
+    def test_helper_methods(self):
+        """Testa métodos auxiliares do modelo"""
+        # Arrange
+        metadata = InternalDocumentMetadata()
+        
+        header_image = InternalImageData(
+            id="header_1",
+            file_path="/header.png",
+            base64_data="header_data",
+            page=1,
+            category="header"
+        )
+        
+        content_image = InternalImageData(
+            id="content_1",
+            file_path="/content.png",
+            base64_data="content_data",
+            page=1,
+            category="content"
+        )
+        
+        metadata.header_images = [header_image]
+        metadata.content_images = [content_image]
+        
+        response = InternalDocumentResponse(
+            email="helper@example.com",
+            document_id="doc_helper",
+            filename="helper.pdf",
+            document_metadata=metadata,
+            all_images=[header_image, content_image]
+        )
+        
+        # Act & Assert
+        header_imgs = response.get_header_images()
+        content_imgs = response.get_content_images()
+        page_imgs = response.get_images_by_page(1)
+        summary = response.get_categorization_summary()
+        
+        assert len(header_imgs) == 1
+        assert len(content_imgs) == 1
+        assert len(page_imgs) == 2
+        assert header_imgs[0].id == "header_1"
+        assert content_imgs[0].id == "content_1"
+        assert summary["total_images"] == 2
+        assert summary["header_images"] == 1
+        assert summary["content_images"] == 1
