@@ -9,7 +9,6 @@ from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field
 from ...core.constants.content_types import ContentType
 
-
 class InternalSubContext(BaseModel):
     """
     Internal representation of a sub-context (used in context blocks with multiple sequences).
@@ -30,18 +29,6 @@ class InternalSubContext(BaseModel):
             content=legacy_sub.get("content", ""),
             images=legacy_sub.get("images", [])
         )
-    
-    def to_legacy_format(self) -> Dict[str, Any]:
-        """Convert back to legacy sub-context format."""
-        return {
-            "sequence": self.sequence,
-            "type": self.type,
-            "title": self.title,
-            "content": self.content,
-            "images": self.images
-        }
-
-
 class InternalContextContent(BaseModel):
     """
     Internal representation of context block content.
@@ -118,33 +105,6 @@ class InternalContextContent(BaseModel):
             raw_content=str(legacy_content),
             content_source="legacy_conversion"
         )
-    
-    def to_legacy_format(self) -> Dict[str, List[str]]:
-        """
-        Convert to legacy content format.
-        
-        Returns:
-            Dictionary with description array
-        """
-        return {
-            "description": self.description
-        }
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "description": [
-                    "Reza a lenda que um monge budista desafiou seus discípulos.",
-                    "O primeiro discípulo colocou o feijão em um sapato.",
-                    "O segundo discípulo cozinhou o feijão."
-                ],
-                "raw_content": "Original raw text from document...",
-                "content_source": "document_text",
-                "extraction_confidence": 0.95
-            }
-        }
-
-
 class InternalContextBlock(BaseModel):
     """
     Complete internal representation of a context block.
@@ -249,32 +209,6 @@ class InternalContextBlock(BaseModel):
             extraction_method="legacy_conversion",
             sub_contexts=sub_contexts  # ✅ Include sub_contexts
         )
-    
-    def to_legacy_format(self) -> Dict[str, Any]:
-        """
-        Convert to legacy context block format.
-        
-        Returns:
-            Dictionary in legacy format
-        """
-        legacy_format = {
-            "id": self.id,
-            "type": [t.value for t in self.type],
-            "content": self.content.to_legacy_format(),
-            "title": self.title,
-            "statement": self.statement,
-            "source": self.source,
-            "hasImage": self.has_image
-        }
-        
-        # ✅ Include sub_contexts if they exist
-        if self.sub_contexts:
-            legacy_format["sub_contexts"] = [
-                sub_ctx.to_legacy_format() for sub_ctx in self.sub_contexts
-            ]
-        
-        return legacy_format
-    
     def add_image_association(self, image_id: str) -> None:
         """Add an image association to this context block."""
         if image_id not in self.associated_images:

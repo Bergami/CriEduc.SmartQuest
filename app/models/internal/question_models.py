@@ -11,7 +11,6 @@ from pydantic import BaseModel, Field
 # Import enums from centralized location
 from app.enums import AnswerType
 
-
 class InternalAnswerOption(BaseModel):
     """
     Internal representation of an answer option.
@@ -56,33 +55,6 @@ class InternalAnswerOption(BaseModel):
             extraction_confidence=legacy_option.get("confidence"),
             processing_notes="legacy_conversion"
         )
-    
-    def to_legacy_format(self) -> Dict[str, Any]:
-        """
-        Convert to legacy option format.
-        
-        Returns:
-            Dictionary in legacy format
-        """
-        return {
-            "label": self.label,
-            "text": self.text,
-            "isCorrect": self.is_correct
-        }
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "label": "A",
-                "text": "O primeiro discípulo aplicou a criatividade.",
-                "is_correct": True,
-                "extraction_confidence": 0.95,
-                "processing_notes": "Extracted from document text",
-                "raw_text": "A) O primeiro discípulo aplicou a criatividade."
-            }
-        }
-
-
 class InternalQuestionContent(BaseModel):
     """
     Internal representation of question content.
@@ -134,28 +106,6 @@ class InternalQuestionContent(BaseModel):
             raw_statement=str(legacy_content),
             processing_notes="legacy_conversion"
         )
-    
-    def to_legacy_format(self) -> str:
-        """
-        Convert to legacy content format.
-        
-        Returns:
-            Question statement string
-        """
-        return self.statement
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "statement": "Assinale a alternativa que indica o que fizeram o primeiro e o segundo discípulos.",
-                "instruction": "Leia com atenção e responda:",
-                "raw_statement": "1. Assinale a alternativa que indica o que fizeram o primeiro e o segundo discípulos.",
-                "extraction_confidence": 0.92,
-                "processing_notes": "Extracted from question block"
-            }
-        }
-
-
 class InternalQuestion(BaseModel):
     """
     Complete internal representation of a question.
@@ -253,23 +203,6 @@ class InternalQuestion(BaseModel):
             subject=legacy_question.get("subject"),
             extraction_method="legacy_conversion"
         )
-    
-    def to_legacy_format(self) -> Dict[str, Any]:
-        """
-        Convert to legacy question format.
-        
-        Returns:
-            Dictionary in legacy format
-        """
-        return {
-            "number": self.number,
-            "content": self.content.to_legacy_format(),
-            "options": [opt.to_legacy_format() for opt in self.options],
-            "contextId": self.context_id,
-            "hasImage": self.has_image,
-            "subject": self.subject
-        }
-    
     def get_correct_answer(self) -> Optional[InternalAnswerOption]:
         """Get the correct answer option."""
         for option in self.options:

@@ -53,87 +53,13 @@ class InternalDocumentMetadata(BaseModel):
         description="Notes about header processing"
     )
     
-    @classmethod
-    def from_legacy_header(
-        cls, 
-        legacy_header: Dict[str, Any], 
-        header_images: List[InternalImageData] = None,
-        content_images: List[InternalImageData] = None
-    ) -> "InternalDocumentMetadata":
-        """
-        Create InternalDocumentMetadata from legacy header dictionary.
-        
-        Args:
-            legacy_header: Dictionary from HeaderParser.parse()
-            header_images: List of header images
-            content_images: List of content images
-            
-        Returns:
-            InternalDocumentMetadata instance
-        """
-        return cls(
-            network=legacy_header.get("network"),
-            school=legacy_header.get("school"),
-            city=legacy_header.get("city"),
-            teacher=legacy_header.get("teacher"),
-            subject=legacy_header.get("subject"),
-            exam_title=legacy_header.get("exam_title"),
-            trimester=legacy_header.get("trimester"),
-            grade=legacy_header.get("grade"),
-            class_=legacy_header.get("class"),
-            student=legacy_header.get("student"),
-            grade_value=legacy_header.get("grade_value"),
-            date=legacy_header.get("date"),
-            header_images=header_images or [],
-            content_images=content_images or []
-        )
+
     
-    def to_legacy_format(self) -> Dict[str, Any]:
-        """
-        Convert back to legacy header format for backwards compatibility.
-        
-        Returns:
-            Dictionary in the format expected by current code
-        """
-        result = {
-            "network": self.network,
-            "school": self.school,
-            "city": self.city,
-            "teacher": self.teacher,
-            "subject": self.subject,
-            "exam_title": self.exam_title,
-            "trimester": self.trimester,
-            "grade": self.grade,
-            "class": self.class_,
-            "student": self.student,
-            "grade_value": self.grade_value,
-            "date": self.date,
-            "images": [img.base64_data for img in self.header_images] if self.header_images else []
-        }
-        return result
+
     
     class Config:
         # Allow field alias for 'class' 
         allow_population_by_field_name = True
-        schema_extra = {
-            "example": {
-                "network": "PREFEITURA DE VILA VELHA SEMED",
-                "school": "UMEF Saturnino Rangel Mauro VILA VELHA - ES",
-                "city": "Vila Velha",
-                "teacher": "Danielle",
-                "subject": "Língua Portuguesa",
-                "exam_title": "Prova de recuperação",
-                "trimester": "2º TRIMESTRE",
-                "grade": "7º ano do Ensino Fundamental TURMA:",
-                "class": None,
-                "student": None,
-                "grade_value": "30,0",
-                "date": None,
-                "header_images": [],
-                "content_images": [],
-                "extraction_confidence": 0.95
-            }
-        }
 
 
 class InternalDocumentResponse(BaseModel):
@@ -198,27 +124,10 @@ class InternalDocumentResponse(BaseModel):
             "total_images": len(self.all_images),
             "header_images": len(self.get_header_images()),
             "content_images": len(self.get_content_images()),
-            "uncategorized": len([img for img in self.all_images if img.categorization is None])
+            "uncategorized": len([img for img in self.all_images if img.category is None])
         }
     
-    def to_legacy_format(self) -> Dict[str, Any]:
-        """
-        Convert to legacy format for backwards compatibility.
-        
-        Returns:
-            Dictionary in legacy format expected by current code
-        """
-        return {
-            "email": self.email,
-            "document_id": self.document_id,
-            "filename": self.filename,
-            "header": self.document_metadata.to_legacy_format(),
-            "questions": [q.to_legacy_format() for q in self.questions],
-            "context_blocks": [cb.to_legacy_format() for cb in self.context_blocks],
-            "extracted_text": self.extracted_text,
-            "provider_metadata": self.provider_metadata,
-            "all_images": [img.dict() for img in self.all_images]
-        }
+
     
     @classmethod
     def from_legacy_format(
@@ -259,21 +168,3 @@ class InternalDocumentResponse(BaseModel):
             provider_metadata=legacy_response.get("provider_metadata", {}),
             all_images=all_images or []
         )
-    
-    class Config:
-        schema_extra = {
-            "example": {
-                "email": "user@example.com",
-                "document_id": "12345-abcde",
-                "filename": "prova_3tri.pdf",
-                "document_metadata": {
-                    "network": "PREFEITURA DE VILA VELHA SEMED",
-                    "subject": "Língua Portuguesa",
-                    "header_images": [],
-                    "content_images": []
-                },
-                "questions": [],
-                "context_blocks": [],
-                "all_images": []
-            }
-        }
