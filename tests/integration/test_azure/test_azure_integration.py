@@ -9,7 +9,7 @@ from unittest.mock import patch, Mock, AsyncMock
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from app.services.azure_document_intelligence_service import AzureDocumentIntelligenceService
+from app.services.azure.azure_document_intelligence_service import AzureDocumentIntelligenceService
 from app.core.exceptions import DocumentProcessingError
 from azure.core.exceptions import HttpResponseError
 from tests.fixtures.test_data import TestDataProvider

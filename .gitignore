@@ -27,6 +27,11 @@ venv/
 config/local.py
 config/production.py
 
+# 🆕 Docker and MongoDB
+docker-compose.override.yml
+mongo-data/
+mongodb_data/
+
 # Logs
 *.log
 
@@ -102,3 +107,6 @@ RELATORIO_LIMPEZA_*.md
 # macOS
 .DS_Store
 tests/documents/7c36b9bd-1d8d-464e-a681-7f3e21a28fd2_Recuperacao
+
+# ignore cache files
+cache/documents/*.json

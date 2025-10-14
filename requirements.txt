@@ -17,6 +17,10 @@ Pillow==10.3.0   # Para processamento de imagem
 # HTTP client dependencies
 httpx==0.28.1  # Para testes de API com TestClient e requisições HTTP assíncronas
 
+# MongoDB dependencies
+motor==3.3.2          # MongoDB async driver
+pymongo==4.6.1        # MongoDB sync driver (backup)
+
 # Testing dependencies
 pytest==7.4.3
 pytest-asyncio==0.21.1
