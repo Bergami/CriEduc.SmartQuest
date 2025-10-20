@@ -76,6 +76,7 @@ async def database_health_check():
     Database connectivity health check.
     
     Verifies MongoDB connection and returns environment information.
+    Uses the DI Container's IPersistenceService for unified health checking.
     
     Returns:
         DatabaseHealthResponse: Database health and environment details
@@ -93,7 +94,8 @@ async def database_health_check():
         "connection_status": "unknown",
         "collections": [],
         "indexes": {},
-        "sample_document_exists": False
+        "sample_document_exists": False,
+        "service_health": {}
     }
     
     if not settings.enable_mongodb_persistence:
@@ -107,60 +109,94 @@ async def database_health_check():
         )
     
     try:
+        # Use DI Container to get persistence service
+        from app.core.di_container import container
+        from app.services.persistence import IPersistenceService
+        
+        if container.is_registered(IPersistenceService):
+            # Use the configured persistence service for health check
+            persistence_service = container.resolve(IPersistenceService)
+            service_health = await persistence_service.health_check()
+            
+            mongodb_info["service_health"] = service_health
+            
+            if service_health.get("status") == "healthy":
+                mongodb_info["connection_status"] = "connected"
+                mongodb_info["collections"] = service_health.get("collections_count", 0)
+            else:
+                mongodb_info["connection_status"] = "service_unhealthy"
+                mongodb_info["error"] = service_health.get("error", "Service health check failed")
+                
+        else:
+            # Fallback to direct connection test
+            logger.warning("IPersistenceService not registered, using direct MongoDB connection")
+            # Import here to avoid issues if motor is not installed
+            from motor.motor_asyncio import AsyncIOMotorClient
+            
+            # Test MongoDB connection
+            client = AsyncIOMotorClient(
+                settings.mongodb_url,
+                serverSelectionTimeoutMS=settings.mongodb_connection_timeout
+            )
+            
+            database = client[settings.mongodb_database]
+            
+            # Test connection with server info
+            await asyncio.wait_for(
+                client.admin.command('ping'),
+                timeout=settings.mongodb_connection_timeout / 1000
+            )
+            
+            mongodb_info["connection_status"] = "connected"
+            await client.close()
+        
         # Import here to avoid issues if motor is not installed
         from motor.motor_asyncio import AsyncIOMotorClient
         
-        # Test MongoDB connection
-        client = AsyncIOMotorClient(
-            settings.mongodb_url,
-            serverSelectionTimeoutMS=settings.mongodb_connection_timeout
-        )
-        
-        database = client[settings.mongodb_database]
-        
-        # Test connection with server info
-        await asyncio.wait_for(
-            client.admin.command('ping'),
-            timeout=settings.mongodb_connection_timeout / 1000
-        )
-        
-        mongodb_info["connection_status"] = "connected"
-        
-        # Get collection information
-        collection_names = await database.list_collection_names()
-        mongodb_info["collections"] = collection_names
-        
-        # Get indexes information for analyzeDocuments collection
-        if "analyzeDocuments" in collection_names:
-            collection = database["analyzeDocuments"]
+        # Additional detailed checks if direct connection is needed
+        if mongodb_info["connection_status"] == "connected":
+            client = AsyncIOMotorClient(
+                settings.mongodb_url,
+                serverSelectionTimeoutMS=settings.mongodb_connection_timeout
+            )
             
-            # Get indexes
-            indexes = []
-            async for index in collection.list_indexes():
-                indexes.append({
-                    "name": index.get("name", "unknown"),
-                    "key": index.get("key", {}),
-                    "unique": index.get("unique", False)
-                })
-            mongodb_info["indexes"]["analyzeDocuments"] = indexes
+            database = client[settings.mongodb_database]
             
-            # Check if sample document exists
-            sample_count = await collection.count_documents({"userEmail": "admin@smartquest.com.br"})
-            mongodb_info["sample_document_exists"] = sample_count > 0
+            # Get collection information
+            collection_names = await database.list_collection_names()
+            mongodb_info["collections"] = collection_names
             
-            # Get collection stats
-            try:
-                stats = await database.command("collStats", "analyzeDocuments")
-                mongodb_info["stats"] = {
-                    "documents": stats.get("count", 0),
-                    "size_bytes": stats.get("size", 0),
-                    "storage_size_bytes": stats.get("storageSize", 0)
-                }
-            except Exception as e:
-                logger.warning(f"Could not get collection stats: {e}")
-                mongodb_info["stats"] = {"error": "Could not retrieve stats"}
-        
-        await client.close()
+            # Get indexes information for analyzeDocuments collection
+            if "analyzeDocuments" in collection_names:
+                collection = database["analyzeDocuments"]
+                
+                # Get indexes
+                indexes = []
+                async for index in collection.list_indexes():
+                    indexes.append({
+                        "name": index.get("name", "unknown"),
+                        "key": index.get("key", {}),
+                        "unique": index.get("unique", False)
+                    })
+                mongodb_info["indexes"]["analyzeDocuments"] = indexes
+                
+                # Check if sample document exists
+                sample_count = await collection.count_documents({"userEmail": "admin@smartquest.com.br"})
+                mongodb_info["sample_document_exists"] = sample_count > 0
+                
+                # Get collection stats
+                try:
+                    stats = await database.command("collStats", "analyzeDocuments")
+                    mongodb_info["stats"] = {
+                        "documents": stats.get("count", 0),
+                        "size_bytes": stats.get("size", 0),
+                        "storage_size_bytes": stats.get("storageSize", 0)
+                    }
+                except Exception as e:
+                    logger.warning(f"Could not get collection stats: {e}")
+                    mongodb_info["stats"] = {"error": "Could not retrieve stats"}
+            
+            await client.close()
         
         return DatabaseHealthResponse(
             status="healthy",

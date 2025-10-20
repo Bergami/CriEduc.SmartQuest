@@ -23,6 +23,11 @@ from app.services.azure.azure_figure_processor import AzureFigureProcessor
 from app.services.core.document_analysis_orchestrator import DocumentAnalysisOrchestrator
 from app.services.core.analyze_service import AnalyzeService
 
+# ========== NOVAS IMPORTAÇÕES - FASE 2 MONGODB ==========
+from app.services.persistence import ISimplePersistenceService, MongoDBPersistenceService
+from app.services.infrastructure import MongoDBConnectionService
+from app.config.settings import get_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -111,6 +116,33 @@ def configure_dependencies() -> None:
     )
     logger.debug("✅ IAnalyzeService -> AnalyzeService (Singleton)")
     
+    # ==================================================================================
+    # 💾 MONGODB CONNECTION SERVICE
+    # ==================================================================================
+    container.register(
+        interface_type=MongoDBConnectionService,
+        implementation_type=MongoDBConnectionService,
+        lifetime=ServiceLifetime.SINGLETON  # Singleton para reutilizar conexões
+    )
+    logger.debug("✅ MongoDBConnectionService -> MongoDBConnectionService (Singleton)")
+    
+    # ==================================================================================
+    # 💾 PERSISTENCE SERVICE (MongoDB)
+    # ==================================================================================
+    settings = get_settings()
+    
+    if settings.enable_mongodb_persistence:
+        container.register(
+            interface_type=ISimplePersistenceService,
+            implementation_type=MongoDBPersistenceService,
+            lifetime=ServiceLifetime.SINGLETON  # Singleton para reutilizar conexões
+        )
+        
+        logger.debug("✅ ISimplePersistenceService -> MongoDBPersistenceService (Singleton)")
+        logger.info(f"🔗 MongoDB configured: {settings.mongodb_database} @ {settings.mongodb_url}")
+    else:
+        logger.warning("⚠️ MongoDB persistence disabled in settings")
+    
     logger.info("✅ Dependency configuration completed successfully!")
     logger.info(f"📊 Total services registered: {len(container.get_registrations())}")
 
@@ -190,6 +222,11 @@ def validate_configuration() -> bool:
         IDocumentAnalysisOrchestrator,
         IAnalyzeService
     ]
+    
+    # Se MongoDB está habilitado, também verificar ISimplePersistenceService
+    settings = get_settings()
+    if settings.enable_mongodb_persistence:
+        essential_interfaces.append(ISimplePersistenceService)
     
     try:
         # Verifica se todas as interfaces estão registradas
