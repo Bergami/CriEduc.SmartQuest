@@ -31,9 +31,9 @@ class TestHeaderParser(unittest.TestCase):
         result = HeaderParser.parse_to_pydantic(self.sample_header_text)
         self.assertIsInstance(result, InternalDocumentMetadata)
     
-    def test_parse_to_pydantic_has_same_fields_as_legacy(self):
-        """🆕 Test that Pydantic method extracts same fields as legacy method"""
-        legacy_result = HeaderParser.parse(self.sample_header_text)
+    def test_parse_to_pydantic_has_same_fields_as_dict_method(self):
+        """🆕 Test that Pydantic method extracts same fields as dict method"""
+        dict_result = HeaderParser.parse(self.sample_header_text)
         pydantic_result = HeaderParser.parse_to_pydantic(self.sample_header_text)
         
         # Convert Pydantic back to dict for comparison
@@ -46,9 +46,9 @@ class TestHeaderParser(unittest.TestCase):
         
         for field in main_fields:
             self.assertEqual(
-                legacy_result.get(field), 
+                dict_result.get(field), 
                 pydantic_dict.get(field),
-                f"Field '{field}' differs between legacy and Pydantic methods"
+                f"Field '{field}' differs between dict and Pydantic methods"
             )
     
     def test_parse_to_pydantic_with_images(self):

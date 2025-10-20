@@ -38,6 +38,18 @@ class Settings(BaseSettings):
     azure_document_intelligence_api_version: str = os.getenv("AZURE_DOCUMENT_INTELLIGENCE_API_VERSION", "2023-07-31")
     use_azure_ai: bool = os.getenv("USE_AZURE_AI", "true").lower() == "true"
     
+    # ================================
+    # 🆕 MONGODB CONFIGURATION  
+    # ================================
+    mongodb_url: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+    mongodb_database: str = os.getenv("MONGODB_DATABASE", "smartquest")
+    mongodb_connection_timeout: int = int(os.getenv("MONGODB_CONNECTION_TIMEOUT", "10000"))
+    
+    # ================================
+    # 🆕 FEATURE FLAGS
+    # ================================
+    enable_mongodb_persistence: bool = os.getenv("ENABLE_MONGODB_PERSISTENCE", "true").lower() == "true"
+    
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
@@ -52,9 +64,19 @@ class MockSettings:
     azure_document_intelligence_model = "prebuilt-layout"
     azure_document_intelligence_api_version = "2023-07-31"
     use_azure_ai = False
+    
+    # 🆕 MongoDB Mock Settings
+    mongodb_url = "mongodb://localhost:27017"
+    mongodb_database = "smartquest"
+    mongodb_connection_timeout = 10000
+    enable_mongodb_persistence = False
 
 try:
     settings = Settings()
 except Exception as e:
     print(f"⚠️ Warning: Could not load settings from .env: {e}")
     settings = MockSettings()
+
+def get_settings():
+    """Factory function para obter configurações."""
+    return settings

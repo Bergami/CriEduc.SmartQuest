@@ -34,7 +34,7 @@
                     0.8592,
                     0.154
                   ],
-                  "confidence": 0.985,
+                  "confidence": 0.987,
                   "span": {
                     "offset": 0,
                     "length": 10
@@ -52,7 +52,7 @@
                     1.2538,
                     0.1518
                   ],
-                  "confidence": 0.991,
+                  "confidence": 0.992,
                   "span": {
                     "offset": 11,
                     "length": 2
@@ -142,7 +142,7 @@
                     4.8085,
                     0.1465
                   ],
-                  "confidence": 0.995,
+                  "confidence": 0.994,
                   "span": {
                     "offset": 42,
                     "length": 9
@@ -196,7 +196,7 @@
                     5.7329,
                     0.1464
                   ],
-                  "confidence": 0.995,
+                  "confidence": 0.994,
                   "span": {
                     "offset": 60,
                     "length": 5
@@ -214,7 +214,7 @@
                     4.3149,
                     0.2741
                   ],
-                  "confidence": 0.991,
+                  "confidence": 0.992,
                   "span": {
                     "offset": 66,
                     "length": 4
@@ -284,7 +284,7 @@
                     4.96,
                     0.3951,
                     4.6885,
-                    0.3948
+                    0.3949
                   ],
                   "confidence": 0.992,
                   "span": {
@@ -304,7 +304,7 @@
                     4.9862,
                     0.3952
                   ],
-                  "confidence": 0.994,
+                  "confidence": 0.992,
                   "span": {
                     "offset": 99,
                     "length": 5
@@ -322,7 +322,7 @@
                     5.3806,
                     0.3956
                   ],
-                  "confidence": 0.977,
+                  "confidence": 0.929,
                   "span": {
                     "offset": 105,
                     "length": 1
@@ -610,7 +610,7 @@
                     3.8731,
                     0.8302
                   ],
-                  "confidence": 0.993,
+                  "confidence": 0.992,
                   "span": {
                     "offset": 211,
                     "length": 10
@@ -628,7 +628,7 @@
                     3.7126,
                     0.9594
                   ],
-                  "confidence": 0.282,
+                  "confidence": 0.281,
                   "span": {
                     "offset": 222,
                     "length": 2
@@ -682,7 +682,7 @@
                     0.3826,
                     1.4544
                   ],
-                  "confidence": 0.99,
+                  "confidence": 0.989,
                   "span": {
                     "offset": 246,
                     "length": 4
@@ -826,7 +826,7 @@
                     2.2199,
                     1.6369
                   ],
-                  "confidence": 0.919,
+                  "confidence": 0.916,
                   "span": {
                     "offset": 280,
                     "length": 3
@@ -898,7 +898,7 @@
                     0.8692,
                     2.1473
                   ],
-                  "confidence": 0.995,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 309,
                     "length": 2
@@ -1042,7 +1042,7 @@
                     3.246,
                     2.1459
                   ],
-                  "confidence": 0.952,
+                  "confidence": 0.951,
                   "span": {
                     "offset": 345,
                     "length": 3
@@ -1111,7 +1111,7 @@
                     2.1479,
                     1.5598,
                     2.3064,
-                    1.4186,
+                    1.4187,
                     2.3066
                   ],
                   "confidence": 0.998,
@@ -1204,7 +1204,7 @@
                     3.0343,
                     2.3079
                   ],
-                  "confidence": 0.992,
+                  "confidence": 0.993,
                   "span": {
                     "offset": 387,
                     "length": 12
@@ -1294,7 +1294,7 @@
                     1.3102,
                     2.4641
                   ],
-                  "confidence": 0.974,
+                  "confidence": 0.975,
                   "span": {
                     "offset": 414,
                     "length": 3
@@ -1384,7 +1384,7 @@
                     2.7746,
                     2.4669
                   ],
-                  "confidence": 0.989,
+                  "confidence": 0.992,
                   "span": {
                     "offset": 438,
                     "length": 3
@@ -1402,7 +1402,7 @@
                     3.0496,
                     2.4671
                   ],
-                  "confidence": 0.998,
+                  "confidence": 0.999,
                   "span": {
                     "offset": 442,
                     "length": 2
@@ -1636,7 +1636,7 @@
                     3.6551,
                     2.6251
                   ],
-                  "confidence": 0.995,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 507,
                     "length": 3
@@ -1719,7 +1719,7 @@
                   "polygon": [
                     1.6312,
                     2.624,
-                    2.059,
+                    2.0591,
                     2.624,
                     2.059,
                     2.7882,
@@ -1744,7 +1744,7 @@
                     2.1255,
                     2.7885
                   ],
-                  "confidence": 0.988,
+                  "confidence": 0.989,
                   "span": {
                     "offset": 538,
                     "length": 3
@@ -1792,7 +1792,7 @@
                     3.0743,
                     2.6244,
                     3.3427,
-                    2.6249,
+                    2.625,
                     3.3422,
                     2.7866,
                     3.0739,
@@ -1852,7 +1852,7 @@
                     0.3791,
                     2.9404
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 566,
                     "length": 8
@@ -2032,7 +2032,7 @@
                     3.6557,
                     2.943
                   ],
-                  "confidence": 0.955,
+                  "confidence": 0.956,
                   "span": {
                     "offset": 618,
                     "length": 3
@@ -2266,7 +2266,7 @@
                     0.8284,
                     3.2656
                   ],
-                  "confidence": 0.975,
+                  "confidence": 0.974,
                   "span": {
                     "offset": 684,
                     "length": 2
@@ -2284,7 +2284,7 @@
                     1.0234,
                     3.266
                   ],
-                  "confidence": 0.975,
+                  "confidence": 0.974,
                   "span": {
                     "offset": 687,
                     "length": 1
@@ -2338,7 +2338,7 @@
                     1.9974,
                     3.2677
                   ],
-                  "confidence": 0.99,
+                  "confidence": 0.989,
                   "span": {
                     "offset": 700,
                     "length": 2
@@ -2549,7 +2549,7 @@
                     3.4259,
                     1.4152,
                     3.4255,
-                    1.4152,
+                    1.4153,
                     3.5841,
                     1.0709,
                     3.585
@@ -2662,7 +2662,7 @@
                     3.4622,
                     3.5811
                   ],
-                  "confidence": 0.964,
+                  "confidence": 0.968,
                   "span": {
                     "offset": 795,
                     "length": 5
@@ -2716,7 +2716,7 @@
                     1.8576,
                     3.7377
                   ],
-                  "confidence": 0.873,
+                  "confidence": 0.866,
                   "span": {
                     "offset": 822,
                     "length": 4
@@ -2824,7 +2824,7 @@
                     3.6205,
                     3.7336
                   ],
-                  "confidence": 0.982,
+                  "confidence": 0.981,
                   "span": {
                     "offset": 846,
                     "length": 4
@@ -2914,7 +2914,7 @@
                     2.4053,
                     3.9028
                   ],
-                  "confidence": 0.995,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 882,
                     "length": 1
@@ -2941,7 +2941,7 @@
                 {
                   "content": "o",
                   "polygon": [
-                    2.7548,
+                    2.7549,
                     3.7392,
                     2.829,
                     3.7388,
@@ -2986,7 +2986,7 @@
                     3.2766,
                     3.9
                   ],
-                  "confidence": 0.998,
+                  "confidence": 0.997,
                   "span": {
                     "offset": 897,
                     "length": 2
@@ -3040,7 +3040,7 @@
                     0.8889,
                     4.0665
                   ],
-                  "confidence": 0.986,
+                  "confidence": 0.985,
                   "span": {
                     "offset": 914,
                     "length": 3
@@ -3202,7 +3202,7 @@
                     0.3779,
                     4.2188
                   ],
-                  "confidence": 0.958,
+                  "confidence": 0.959,
                   "span": {
                     "offset": 957,
                     "length": 9
@@ -3238,7 +3238,7 @@
                     1.6548,
                     4.2241
                   ],
-                  "confidence": 0.909,
+                  "confidence": 0.913,
                   "span": {
                     "offset": 974,
                     "length": 3
@@ -3256,7 +3256,7 @@
                     1.9784,
                     4.2241
                   ],
-                  "confidence": 0.914,
+                  "confidence": 0.867,
                   "span": {
                     "offset": 978,
                     "length": 2
@@ -3292,7 +3292,7 @@
                     2.5996,
                     4.2221
                   ],
-                  "confidence": 0.941,
+                  "confidence": 0.942,
                   "span": {
                     "offset": 986,
                     "length": 8
@@ -3418,7 +3418,7 @@
                     1.5898,
                     4.3843
                   ],
-                  "confidence": 0.836,
+                  "confidence": 0.84,
                   "span": {
                     "offset": 1024,
                     "length": 1
@@ -3490,7 +3490,7 @@
                     2.7844,
                     4.384
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.998,
                   "span": {
                     "offset": 1044,
                     "length": 2
@@ -3508,7 +3508,7 @@
                     2.9865,
                     4.3843
                   ],
-                  "confidence": 0.898,
+                  "confidence": 0.893,
                   "span": {
                     "offset": 1047,
                     "length": 6
@@ -3526,7 +3526,7 @@
                     3.4557,
                     4.3853
                   ],
-                  "confidence": 0.992,
+                  "confidence": 0.994,
                   "span": {
                     "offset": 1054,
                     "length": 6
@@ -3814,7 +3814,7 @@
                     1.3935,
                     4.8573
                   ],
-                  "confidence": 0.999,
+                  "confidence": 0.998,
                   "span": {
                     "offset": 1135,
                     "length": 2
@@ -3847,7 +3847,7 @@
                     4.6924,
                     2.2819,
                     4.8575,
-                    2.2116,
+                    2.2117,
                     4.8574
                   ],
                   "confidence": 0.996,
@@ -4030,7 +4030,7 @@
                     1.0102,
                     5.019
                   ],
-                  "confidence": 0.99,
+                  "confidence": 0.989,
                   "span": {
                     "offset": 1188,
                     "length": 2
@@ -4084,7 +4084,7 @@
                     1.9557,
                     5.019
                   ],
-                  "confidence": 0.995,
+                  "confidence": 0.994,
                   "span": {
                     "offset": 1203,
                     "length": 7
@@ -4120,7 +4120,7 @@
                     2.8613,
                     5.019
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.998,
                   "span": {
                     "offset": 1218,
                     "length": 2
@@ -4300,7 +4300,7 @@
                     2.4687,
                     5.177
                   ],
-                  "confidence": 0.993,
+                  "confidence": 0.994,
                   "span": {
                     "offset": 1266,
                     "length": 9
@@ -4354,7 +4354,7 @@
                     0.3779,
                     5.33
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 1288,
                     "length": 6
@@ -4372,7 +4372,7 @@
                     0.8349,
                     5.3328
                   ],
-                  "confidence": 0.994,
+                  "confidence": 0.995,
                   "span": {
                     "offset": 1295,
                     "length": 3
@@ -4498,7 +4498,7 @@
                     3.6537,
                     5.3368
                   ],
-                  "confidence": 0.988,
+                  "confidence": 0.989,
                   "span": {
                     "offset": 1336,
                     "length": 3
@@ -4660,7 +4660,7 @@
                     3.6964,
                     5.4933
                   ],
-                  "confidence": 0.998,
+                  "confidence": 0.999,
                   "span": {
                     "offset": 1392,
                     "length": 3
@@ -4786,7 +4786,7 @@
                     2.5144,
                     5.6578
                   ],
-                  "confidence": 0.995,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 1429,
                     "length": 8
@@ -5308,7 +5308,7 @@
                     2.9827,
                     6.136
                   ],
-                  "confidence": 0.991,
+                  "confidence": 0.992,
                   "span": {
                     "offset": 1580,
                     "length": 1
@@ -5452,7 +5452,7 @@
                     0.8693,
                     6.4569
                   ],
-                  "confidence": 0.996,
+                  "confidence": 0.995,
                   "span": {
                     "offset": 1629,
                     "length": 1
@@ -5574,7 +5574,7 @@
                     3.4405,
                     6.2934,
                     3.4388,
-                    6.4592,
+                    6.4593,
                     3.165,
                     6.4597
                   ],
@@ -5812,7 +5812,7 @@
                     3.3089,
                     6.6159
                   ],
-                  "confidence": 0.996,
+                  "confidence": 0.997,
                   "span": {
                     "offset": 1716,
                     "length": 6
@@ -5974,7 +5974,7 @@
                     2.9269,
                     6.7749
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.998,
                   "span": {
                     "offset": 1760,
                     "length": 5
@@ -6244,7 +6244,7 @@
                     3.6516,
                     6.9396
                   ],
-                  "confidence": 0.999,
+                  "confidence": 0.998,
                   "span": {
                     "offset": 1827,
                     "length": 3
@@ -6472,7 +6472,7 @@
                     0.3764,
                     7.0962,
                     0.4621,
-                    7.096,
+                    7.0959,
                     0.4622,
                     7.2553,
                     0.3764,
@@ -6910,7 +6910,7 @@
                     2.571,
                     7.5691
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 2010,
                     "length": 5
@@ -7018,7 +7018,7 @@
                     1.0159,
                     7.7297
                   ],
-                  "confidence": 0.992,
+                  "confidence": 0.989,
                   "span": {
                     "offset": 2039,
                     "length": 1
@@ -7126,7 +7126,7 @@
                     2.6671,
                     7.7295
                   ],
-                  "confidence": 0.985,
+                  "confidence": 0.984,
                   "span": {
                     "offset": 2065,
                     "length": 9
@@ -7324,7 +7324,7 @@
                     2.6686,
                     7.8882
                   ],
-                  "confidence": 0.996,
+                  "confidence": 0.995,
                   "span": {
                     "offset": 2125,
                     "length": 2
@@ -7369,7 +7369,7 @@
                 {
                   "content": "engolir",
                   "polygon": [
-                    3.4653,
+                    3.4654,
                     7.7288,
                     3.8922,
                     7.7297,
@@ -7396,7 +7396,7 @@
                     0.3777,
                     8.0526
                   ],
-                  "confidence": 0.994,
+                  "confidence": 0.992,
                   "span": {
                     "offset": 2145,
                     "length": 12
@@ -7540,7 +7540,7 @@
                     1.11,
                     8.2101
                   ],
-                  "confidence": 0.975,
+                  "confidence": 0.974,
                   "span": {
                     "offset": 2210,
                     "length": 10
@@ -7702,7 +7702,7 @@
                     2.648,
                     8.3693
                   ],
-                  "confidence": 0.99,
+                  "confidence": 0.989,
                   "span": {
                     "offset": 2266,
                     "length": 9
@@ -7846,7 +7846,7 @@
                     2.8291,
                     8.5266
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.998,
                   "span": {
                     "offset": 2322,
                     "length": 2
@@ -7882,7 +7882,7 @@
                     3.5581,
                     8.5266
                   ],
-                  "confidence": 0.754,
+                  "confidence": 0.751,
                   "span": {
                     "offset": 2334,
                     "length": 1
@@ -8242,7 +8242,7 @@
                     3.7859,
                     8.8437
                   ],
-                  "confidence": 0.945,
+                  "confidence": 0.948,
                   "span": {
                     "offset": 2445,
                     "length": 1
@@ -8350,7 +8350,7 @@
                     2.3087,
                     9.0065
                   ],
-                  "confidence": 0.956,
+                  "confidence": 0.957,
                   "span": {
                     "offset": 2476,
                     "length": 1
@@ -8368,7 +8368,7 @@
                     2.4151,
                     9.0063
                   ],
-                  "confidence": 0.993,
+                  "confidence": 0.994,
                   "span": {
                     "offset": 2478,
                     "length": 5
@@ -8437,7 +8437,7 @@
                     8.8439,
                     3.8922,
                     9.0029,
-                    3.7141,
+                    3.7142,
                     9.0035
                   ],
                   "confidence": 0.998,
@@ -8638,7 +8638,7 @@
                     0.3757,
                     9.3271
                   ],
-                  "confidence": 0.992,
+                  "confidence": 0.993,
                   "span": {
                     "offset": 2554,
                     "length": 10
@@ -8692,7 +8692,7 @@
                     1.6918,
                     9.3265
                   ],
-                  "confidence": 0.992,
+                  "confidence": 0.991,
                   "span": {
                     "offset": 2573,
                     "length": 1
@@ -8728,7 +8728,7 @@
                     2.4655,
                     9.3243
                   ],
-                  "confidence": 0.995,
+                  "confidence": 0.997,
                   "span": {
                     "offset": 2586,
                     "length": 3
@@ -8746,7 +8746,7 @@
                     2.7338,
                     9.3232
                   ],
-                  "confidence": 0.913,
+                  "confidence": 0.935,
                   "span": {
                     "offset": 2590,
                     "length": 5
@@ -8854,7 +8854,7 @@
                     0.8773,
                     9.4868
                   ],
-                  "confidence": 0.983,
+                  "confidence": 0.986,
                   "span": {
                     "offset": 2618,
                     "length": 3
@@ -8890,7 +8890,7 @@
                     1.2238,
                     9.487
                   ],
-                  "confidence": 0.979,
+                  "confidence": 0.978,
                   "span": {
                     "offset": 2624,
                     "length": 3
@@ -8962,7 +8962,7 @@
                     2.4966,
                     9.486
                   ],
-                  "confidence": 0.993,
+                  "confidence": 0.994,
                   "span": {
                     "offset": 2643,
                     "length": 7
@@ -9106,7 +9106,7 @@
                     3.3348,
                     9.6444
                   ],
-                  "confidence": 0.991,
+                  "confidence": 0.992,
                   "span": {
                     "offset": 2688,
                     "length": 4
@@ -9226,13 +9226,13 @@
                     2.7937,
                     9.6453,
                     3.0189,
-                    9.6448,
+                    9.6449,
                     3.0188,
                     9.805,
                     2.7936,
                     9.8053
                   ],
-                  "confidence": 0.962,
+                  "confidence": 0.958,
                   "span": {
                     "offset": 2733,
                     "length": 3
@@ -9385,7 +9385,7 @@
                 {
                   "content": "ali,",
                   "polygon": [
-                    3.3482,
+                    3.3481,
                     9.8055,
                     3.516,
                     9.8056,
@@ -9628,7 +9628,7 @@
                     0.3803,
                     10.2795
                   ],
-                  "confidence": 0.996,
+                  "confidence": 0.995,
                   "span": {
                     "offset": 2857,
                     "length": 8
@@ -9711,7 +9711,7 @@
                   "polygon": [
                     1.8369,
                     10.1194,
-                    2.2091,
+                    2.2092,
                     10.1198,
                     2.209,
                     10.2814,
@@ -10150,7 +10150,7 @@
                     2.1941,
                     10.5956
                   ],
-                  "confidence": 0.995,
+                  "confidence": 0.994,
                   "span": {
                     "offset": 2996,
                     "length": 5
@@ -10168,7 +10168,7 @@
                     2.5902,
                     10.5954
                   ],
-                  "confidence": 0.995,
+                  "confidence": 0.994,
                   "span": {
                     "offset": 3002,
                     "length": 1
@@ -10199,7 +10199,7 @@
                     10.4424,
                     3.3199,
                     10.4432,
-                    3.3198,
+                    3.3199,
                     10.5944,
                     3.1794,
                     10.5946
@@ -10303,7 +10303,7 @@
                 {
                   "content": "semana.",
                   "polygon": [
-                    1.6394,
+                    1.6393,
                     10.5994,
                     2.1611,
                     10.599,
@@ -10357,7 +10357,7 @@
                 {
                   "content": "no",
                   "polygon": [
-                    2.4982,
+                    2.4981,
                     10.5999,
                     2.6679,
                     10.6001,
@@ -10438,7 +10438,7 @@
                     3.6542,
                     10.7509
                   ],
-                  "confidence": 0.912,
+                  "confidence": 0.914,
                   "span": {
                     "offset": 3070,
                     "length": 3
@@ -10456,7 +10456,7 @@
                     0.3775,
                     10.9138
                   ],
-                  "confidence": 0.935,
+                  "confidence": 0.94,
                   "span": {
                     "offset": 3074,
                     "length": 2
@@ -10564,7 +10564,7 @@
                     1.8051,
                     10.9194
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.998,
                   "span": {
                     "offset": 3097,
                     "length": 5
@@ -10600,7 +10600,7 @@
                     2.4058,
                     10.9171
                   ],
-                  "confidence": 0.996,
+                  "confidence": 0.995,
                   "span": {
                     "offset": 3107,
                     "length": 6
@@ -10737,7 +10737,7 @@
                   "polygon": [
                     1.7179,
                     10.9228,
-                    2.1792,
+                    2.1793,
                     10.9231,
                     2.1788,
                     11.0758,
@@ -11500,7 +11500,7 @@
                     4.3642,
                     2.1149
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 3404,
                     "length": 6
@@ -11587,10 +11587,10 @@
                     1.9507,
                     6.2869,
                     2.1122,
-                    5.82,
+                    5.8201,
                     2.1116
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.998,
                   "span": {
                     "offset": 3427,
                     "length": 6
@@ -11673,14 +11673,14 @@
                   "polygon": [
                     7.337,
                     1.9509,
-                    7.6721,
+                    7.6694,
                     1.9493,
-                    7.672,
+                    7.6693,
                     2.1112,
                     7.337,
                     2.1127
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 3451,
                     "length": 5
@@ -12076,7 +12076,7 @@
                     6.9013,
                     2.7437
                   ],
-                  "confidence": 0.994,
+                  "confidence": 0.995,
                   "span": {
                     "offset": 3583,
                     "length": 2
@@ -12454,7 +12454,7 @@
                     5.8815,
                     3.2277
                   ],
-                  "confidence": 0.999,
+                  "confidence": 0.998,
                   "span": {
                     "offset": 3725,
                     "length": 3
@@ -12634,7 +12634,7 @@
                     6.2923,
                     3.398
                   ],
-                  "confidence": 0.991,
+                  "confidence": 0.99,
                   "span": {
                     "offset": 3786,
                     "length": 4
@@ -13426,7 +13426,7 @@
                     5.1316,
                     4.4315
                   ],
-                  "confidence": 0.943,
+                  "confidence": 0.941,
                   "span": {
                     "offset": 4036,
                     "length": 13
@@ -13570,7 +13570,7 @@
                     5.1031,
                     4.6098
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 4087,
                     "length": 6
@@ -13642,7 +13642,7 @@
                     6.6747,
                     4.6059
                   ],
-                  "confidence": 0.997,
+                  "confidence": 0.996,
                   "span": {
                     "offset": 4113,
                     "length": 1
@@ -13660,7 +13660,7 @@
                     6.7906,
                     4.6048
                   ],
-                  "confidence": 0.991,
+                  "confidence": 0.992,
                   "span": {
                     "offset": 4115,
                     "length": 4
@@ -13672,7 +13672,7 @@
                     4.3641,
                     4.7742,
                     5.0586,
-                    4.7738,
+                    4.7739,
                     5.0581,
                     4.9497,
                     4.3642,
@@ -13750,7 +13750,7 @@
                     6.4016,
                     4.9513
                   ],
-                  "confidence": 0.906,
+                  "confidence": 0.905,
                   "span": {
                     "offset": 4144,
                     "length": 2
@@ -13768,7 +13768,7 @@
                     6.6453,
                     4.9508
                   ],
-                  "confidence": 0.931,
+                  "confidence": 0.932,
                   "span": {
                     "offset": 4147,
                     "length": 7
@@ -13912,7 +13912,7 @@
                     6.4704,
                     5.1216
                   ],
-                  "confidence": 0.994,
+                  "confidence": 0.993,
                   "span": {
                     "offset": 4196,
                     "length": 8
@@ -13948,7 +13948,7 @@
                     7.3238,
                     5.1185
                   ],
-                  "confidence": 0.998,
+                  "confidence": 0.997,
                   "span": {
                     "offset": 4208,
                     "length": 5
@@ -14020,7 +14020,7 @@
                     5.5004,
                     5.2961
                   ],
-                  "confidence": 0.989,
+                  "confidence": 0.988,
                   "span": {
                     "offset": 4235,
                     "length": 4
@@ -14236,7 +14236,7 @@
                     4.881,
                     5.6427
                   ],
-                  "confidence": 0.941,
+                  "confidence": 0.937,
                   "span": {
                     "offset": 4305,
                     "length": 1
@@ -14416,7 +14416,7 @@
                     5.9531,
                     5.8118
                   ],
-                  "confidence": 0.996,
+                  "confidence": 0.995,
                   "span": {
                     "offset": 4369,
                     "length": 3
@@ -14449,10 +14449,10 @@
                     5.6448,
                     7.4696,
                     5.8067,
-                    7.2294,
+                    7.2295,
                     5.8071
                   ],
-                  "confidence": 0.856,
+                  "confidence": 0.852,
                   "span": {
                     "offset": 4385,
                     "length": 3
@@ -14758,7 +14758,7 @@
                     7.7509,
                     6.3331
                   ],
-                  "confidence": 0.989,
+                  "confidence": 0.988,
                   "span": {
                     "offset": 4505,
                     "length": 2
@@ -14992,7 +14992,7 @@
                     4.3667,
                     6.8441
                   ],
-                  "confidence": 0.991,
+                  "confidence": 0.992,
                   "span": {
                     "offset": 4592,
                     "length": 2
@@ -15199,7 +15199,7 @@
                 {
                   "content": "tipo",
                   "polygon": [
-                    5.9976,
+                    5.9977,
                     6.8485,
                     6.2219,
                     6.8484,
@@ -15439,7 +15439,7 @@
                     7.0202,
                     7.8758,
                     7.1805,
-                    7.5344,
+                    7.5345,
                     7.1829
                   ],
                   "confidence": 0.997,
@@ -16216,7 +16216,7 @@
                     4.6001,
                     8.5533
                   ],
-                  "confidence": 0.884,
+                  "confidence": 0.882,
                   "span": {
                     "offset": 5028,
                     "length": 2
@@ -16643,7 +16643,7 @@
                     8.7097,
                     6.9331,
                     8.7097,
-                    6.933,
+                    6.9331,
                     8.871,
                     6.8726,
                     8.8711
@@ -16900,7 +16900,7 @@
                     4.3657,
                     9.1906
                   ],
-                  "confidence": 0.999,
+                  "confidence": 0.995,
                   "span": {
                     "offset": 5248,
                     "length": 3
@@ -17026,7 +17026,7 @@
                     6.6961,
                     9.1905
                   ],
-                  "confidence": 0.992,
+                  "confidence": 0.995,
                   "span": {
                     "offset": 5280,
                     "length": 5
@@ -17188,7 +17188,7 @@
                     6.2331,
                     9.3459
                   ],
-                  "confidence": 0.95,
+                  "confidence": 0.908,
                   "span": {
                     "offset": 5324,
                     "length": 7
@@ -17224,7 +17224,7 @@
                     7.2385,
                     9.3443
                   ],
-                  "confidence": 0.998,
+                  "confidence": 0.997,
                   "span": {
                     "offset": 5337,
                     "length": 6
@@ -17260,7 +17260,7 @@
                     4.3657,
                     9.4962
                   ],
-                  "confidence": 0.941,
+                  "confidence": 0.94,
                   "span": {
                     "offset": 5347,
                     "length": 7
@@ -17494,7 +17494,7 @@
                     4.3624,
                     10.0036
                   ],
-                  "confidence": 0.99,
+                  "confidence": 0.991,
                   "span": {
                     "offset": 5455,
                     "length": 2
@@ -19012,13 +19012,13 @@
                   "content": "afastando uma dor aqui, um ressentimento ali, uma",
                   "polygon": [
                     0.3778,
-                    9.8045,
+                    9.8044,
                     3.8893,
-                    9.8053,
+                    9.8055,
                     3.8893,
-                    9.9634,
+                    9.9636,
                     0.3778,
-                    9.9625
+                    9.9624
                   ],
                   "spans": [
                     {
@@ -19151,7 +19151,7 @@
                     3.1346,
                     11.0766,
                     0.3768,
-                    11.076
+                    11.0761
                   ],
                   "spans": [
                     {
@@ -20151,7 +20151,7 @@
                 {
                   "content": "c) uma linguagem regional.",
                   "polygon": [
-                    4.3641,
+                    4.3642,
                     10.0109,
                     6.0509,
                     10.0099,
@@ -28053,7 +28053,7 @@
                     6.0368,
                     0.3965,
                     4.2446,
-                    0.3928
+                    0.3927
                   ]
                 }
               ],
@@ -28508,7 +28508,7 @@
                     1.3131,
                     7.8769,
                     2.2654,
-                    4.3596,
+                    4.3597,
                     2.2644
                   ]
                 }
@@ -30836,7 +30836,7 @@
       "user_email": "wander.bergami@gmail.com"
     }
   },
-  "created_at": "2025-10-04T19:20:46.495504",
-  "expires_at": "2025-10-11T19:20:46.495504",
+  "created_at": "2025-10-13T23:19:13.478653",
+  "expires_at": "2025-10-20T23:19:13.478653",
   "cache_key": "wander.bergamigmail.com_Recuperacao.pdf_478685_73f1a9fa"
 }

@@ -9,13 +9,79 @@ Sistema de análise inteligente de documentos PDF para extração de questões e
 - **Dependency Injection Container** nativo com auto-wiring
 - **SOLID Principles** aplicados em toda a base de código
 - **Clean Architecture** com separação clara de responsabilidades
+- **MongoDB Persistence** com models Pydantic e migrações versionadas
 - **Type Safety** com Pydantic models em toda aplicação
+
+## 🏗️ Arquitetura do Sistema
+
+```mermaid
+graph TB
+    subgraph "🌐 API Layer"
+        A[FastAPI Controllers]
+        B[Health Endpoints]
+    end
+
+    subgraph "🧠 Business Layer"
+        C[AnalyzeService]
+        D[DI Container]
+    end
+
+    subgraph "💾 Persistence Layer"
+        E[MongoDBPersistenceService]
+        F[MongoDB Connection Service]
+        G[(MongoDB Database)]
+    end
+
+    subgraph "☁️ External Services"
+        H[Azure Document Intelligence]
+        I[File Cache System]
+    end
+
+    A --> C
+    B --> F
+    C --> E
+    C --> H
+    C --> I
+    E --> F
+    F --> G
+    D --> E
+    D --> F
+
+    style G fill:#4CAF50
+    style H fill:#0078D4
+    style E fill:#FF9800
+```
+
+### **🔄 Fluxo de Persistência**
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant AnalyzeService
+    participant PersistenceService
+    participant MongoDB
+    participant Azure
+
+    Client->>API: POST /analyze_document
+    API->>AnalyzeService: process_document()
+    AnalyzeService->>Azure: extract_content()
+    Azure-->>AnalyzeService: analysis_result
+    AnalyzeService->>PersistenceService: save_analysis_result()
+    PersistenceService->>MongoDB: insert_document()
+    MongoDB-->>PersistenceService: document_id
+    PersistenceService-->>AnalyzeService: saved_id
+    AnalyzeService-->>API: complete_response
+    API-->>Client: JSON Response + Auto-saved to DB
+```
 
 ### **Tecnologias Utilizadas**
 
 - **FastAPI** - Framework web moderno e rápido
 - **Pydantic** - Validação de dados e serialização
+- **MongoDB** - Banco de dados NoSQL para persistência
 - **Azure Document Intelligence** - Extração de texto e layout
+- **Docker** - Containerização e ambiente de desenvolvimento
 - **Python 3.9+** - Linguagem base com type hints
 
 ### **Funcionalidades**
@@ -24,10 +90,15 @@ Sistema de análise inteligente de documentos PDF para extração de questões e
 - ✅ Extração de questões e alternativas
 - ✅ Categorização de imagens (header/content)
 - ✅ Construção de context blocks estruturados
+- ✅ **Persistência automática MongoDB** - Salvamento de todos os responses
+- ✅ **Sistema de migrações versionadas** - Evolução controlada do banco
+- ✅ **Health monitoring** - Monitoramento de saúde do banco de dados
 - ✅ API REST completa com documentação automática
 - ✅ Sistema de mock para desenvolvimento
 
-## � Quick Start
+## 🚀 Quick Start
+
+### **🐳 Método Recomendado (Docker)**
 
 ```bash
 # 1. Clonar repositório
@@ -35,19 +106,36 @@ git clone [repository-url]
 cd CriEduc.SmartQuest
 
 # 2. Configurar ambiente
+cp .env.example .env
+cp .env-local.example .env-local
+
+# 3. Subir infraestrutura completa
+docker-compose up -d
+
+# 4. Aplicar migrações do banco
+cd scripts
+python run_migrations.py
+
+# 5. Aplicação disponível em http://localhost:8000
+```
+
+### **🐍 Método Manual (Python)**
+
+```bash
+# 1. Configurar ambiente Python
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # ou
 venv\Scripts\activate     # Windows
 
-# 3. Instalar dependências
+# 2. Instalar dependências
 pip install -r requirements.txt
 
-# 4. Configurar variáveis (copiar .env.example)
+# 3. Configurar variáveis
 cp .env.example .env
 cp .env-local.example .env-local
 
-# 5. Executar aplicação
+# 4. Executar aplicação
 python start_simple.py
 ```
 
@@ -57,14 +145,22 @@ python start_simple.py
 app/
 ├── api/                 # Endpoints e controllers
 ├── core/               # DI Container, interfaces, exceções
-├── models/             # Modelos Pydantic (internal/api)
+├── models/             # Modelos Pydantic (internal/api/persistence)
 ├── services/           # Serviços de negócio
+│   ├── infrastructure/ # MongoDB connection service
+│   └── persistence/    # Camada de persistência MongoDB
 ├── parsers/            # Parsers de texto
 ├── utils/              # Utilitários
 └── main.py            # Aplicação principal
 
+scripts/                # Scripts de infraestrutura
+├── migrations/         # Migrações versionadas MongoDB
+├── run_migrations.py   # Executor de migrações
+└── mongo-init.js      # Script inicial Docker
+
 tests/                  # Testes automatizados
 docs/                   # Documentação técnica
+docker-compose.yml      # Infraestrutura Docker
 ```
 
 ## 📚 Documentação
@@ -354,6 +450,80 @@ SmartQuest now features a provider-agnostic storage architecture:
 
 This architecture separates storage concerns from document analysis, making it easier to integrate new storage backends in the future.
 
+## 💾 MongoDB Persistence System
+
+SmartQuest features a **comprehensive MongoDB persistence system** that automatically stores all document analysis results for future reference and analytics.
+
+### 🎯 **Key Features**
+
+| Feature                   | Description                                | Benefit                          |
+| ------------------------- | ------------------------------------------ | -------------------------------- |
+| **Automatic Persistence** | Transparently saves all analysis results   | Complete audit trail and history |
+| **Pydantic Models**       | Type-safe document models with validation  | Data integrity and consistency   |
+| **Migration System**      | Versioned database schema evolution        | Safe production deployments      |
+| **Health Monitoring**     | Real-time database connectivity checks     | Operational reliability          |
+| **Docker Integration**    | MongoDB containerized with automatic setup | Easy development and deployment  |
+
+### 🗄️ **Data Models**
+
+```python
+# Core persistence models
+AnalyzeDocumentRecord:
+- user_email: str
+- file_name: str
+- response: Dict[str, Any]  # Complete API response
+- status: DocumentStatus
+- created_at: datetime
+
+AzureProcessingDataRecord:
+- operation_id: str
+- model_id: str
+- api_version: str
+- response: Dict[str, Any]  # Azure raw response
+- metrics: ProcessingMetrics
+- created_at: datetime
+```
+
+### 🔄 **Migration System**
+
+```bash
+# Apply database migrations
+cd scripts
+python run_migrations.py
+
+# Current migrations:
+- 2025-10-14_001000: Create initial collections
+- 2025-10-14_002000: Add enhanced status field
+- 2025-10-18_001000: Remove duplicate collections
+```
+
+### 📊 **MongoDB Collections**
+
+| Collection              | Purpose                  | Documents |
+| ----------------------- | ------------------------ | --------- |
+| `analyze_documents`     | Analysis results storage | Main data |
+| `azure_processing_data` | Azure processing metrics | Analytics |
+| `migrations`            | Schema version control   | System    |
+
+### ⚙️ **Configuration**
+
+Persistence is controlled via environment variables:
+
+```bash
+# .env-local configuration
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DATABASE=smartquest
+ENABLE_MONGODB_PERSISTENCE=true
+MONGODB_DOCKER_CONTAINER=smartquest-mongodb
+```
+
+### 📈 **Performance**
+
+- **Async Operations**: Non-blocking database operations
+- **Connection Pooling**: Efficient MongoDB connections via Motor
+- **Error Handling**: Graceful fallback if database unavailable
+- **Health Checks**: Real-time monitoring via `/health/database`
+
 ## 💾 Azure Document Intelligence Cache System
 
 SmartQuest features an **intelligent caching system** that automatically stores Azure Document Intelligence responses to avoid redundant API calls and improve performance.
@@ -532,12 +702,15 @@ Cache entries are automatically invalidated when:
 | ---------------------------------- | -------------------------------------------------------- |
 | **Python 3.9+**                    | Tested on versions 3.9+                                  |
 | **FastAPI**                        | High-performance web framework for building RESTful APIs |
+| **MongoDB 7.0**                    | **🆕 NoSQL database for document persistence**           |
+| **PyMongo/Motor**                  | **🆕 MongoDB drivers (sync/async)**                      |
+| **Docker & Docker Compose**        | **🆕 Containerization and infrastructure**               |
 | **Azure AI Document Intelligence** | Cloud-based document processing and extraction           |
 | **PyMuPDF (fitz)**                 | PDF image extraction and processing library              |
 | **Azure SDK for Python**           | Integration with Azure cognitive services                |
 | **Pydantic**                       | Request validation and data modeling                     |
 | **Pytest**                         | Unit testing framework                                   |
-| **File-based Caching**             | **🆕 JSON-based cache system** for Azure API responses   |
+| **File-based Caching**             | JSON-based cache system for Azure API responses          |
 
 ## 🛡️ Professional Exception Handling
 
@@ -583,33 +756,76 @@ async def analyze_document(...):
 
 ## 🚀 Getting Started
 
+### **🐳 Recommended: Docker Setup (Complete Infrastructure)**
+
 📌 1. Clone the Repository
 
-```
+```bash
 git clone https://github.com/your-repository.git
 cd CriEduc.SmartQuest
 ```
 
-📌 2. Create and Activate the Virtual Environment
+📌 2. Configure Environment Variables
 
+Create environment files from templates:
+
+```bash
+cp .env.example .env
+cp .env-local.example .env-local
 ```
+
+Edit `.env-local` with your Azure credentials:
+
+```bash
+# Azure AI Document Intelligence
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-service.cognitiveservices.azure.com/
+AZURE_DOCUMENT_INTELLIGENCE_KEY=your-api-key
+
+# MongoDB (Docker will handle this automatically)
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DATABASE=smartquest
+ENABLE_MONGODB_PERSISTENCE=true
+```
+
+📌 3. Start Complete Infrastructure
+
+```bash
+# Start API + MongoDB with Docker
+docker-compose up -d
+
+# Apply database migrations
+cd scripts
+python run_migrations.py
+
+# API available at: http://localhost:8000
+# MongoDB available at: localhost:27017
+```
+
+### **🐍 Alternative: Manual Python Setup**
+
+📌 1. Create and Activate Virtual Environment
+
+```bash
 python -m venv .venv
 source .venv/bin/activate  # Linux/macOS
 .venv\Scripts\activate     # Windows
 ```
 
-📌 3. Configure Environment Variables
+📌 2. Configure Environment Variables
 
-Create a `.env` file in the project root with your Azure AI Document Intelligence credentials:
+Create a `.env-local` file in the project root:
 
-```
+```bash
 # Azure AI Document Intelligence
 AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-service.cognitiveservices.azure.com/
 AZURE_DOCUMENT_INTELLIGENCE_KEY=your-api-key
-USE_AZURE_AI=true
-
 AZURE_DOCUMENT_INTELLIGENCE_MODEL=prebuilt-layout
 AZURE_DOCUMENT_INTELLIGENCE_API_VERSION=2023-07-31
+
+# MongoDB Configuration (requires local MongoDB installation)
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DATABASE=smartquest
+ENABLE_MONGODB_PERSISTENCE=true
 
 # App configuration
 APP_NAME=SmartQuest API
@@ -780,14 +996,16 @@ The project includes debug configurations in `.vscode/launch.json`:
 
 ## 📡 Available Endpoints
 
-| Method   | Endpoint            | Description                                                                                 |
-| -------- | ------------------- | ------------------------------------------------------------------------------------------- |
-| **GET**  | `/health`           | Checks API health status                                                                    |
-| **POST** | `/analyze_document` | **SIMPLIFIED**: Clean document analysis with Pydantic models and automatic image extraction |
+| Method   | Endpoint            | Description                                                                 |
+| -------- | ------------------- | --------------------------------------------------------------------------- |
+| **GET**  | `/health`           | API health status                                                           |
+| **GET**  | `/health/database`  | **🆕 MongoDB connectivity and metrics**                                     |
+| **POST** | `/analyze_document` | **Main endpoint**: Document analysis with **automatic MongoDB persistence** |
+| **GET**  | `/docs`             | Interactive API documentation (Swagger UI)                                  |
 
-### **🆕 Simplified Document Analysis with Modern Architecture**
+### **🆕 Enhanced Document Analysis with MongoDB Persistence**
 
-The main `/analyze_document` endpoint has been completely refactored with a modern, clean architecture:
+The main `/analyze_document` endpoint now includes **automatic persistence** of all analysis results:
 
 #### **🏗️ New Architecture Features:**
 
@@ -934,10 +1152,11 @@ This analysis was conducted using:
 
 - [ ] Integrate SmartQuest with the CriEduc core platform (REST API)
 - [ ] Develop a dashboard for previewing parsed content
-- [ ] Implement database storage backend for document artifacts
+- [x] **Implement database storage backend** - ✅ **COMPLETED (MongoDB)**
 - [ ] Add support for additional image formats in header extraction
+- [ ] **MongoDB Analytics Dashboard**: Query performance and usage metrics
+- [ ] **Advanced MongoDB Features**: Aggregation pipelines, full-text search
 - [ ] **Cache System Enhancements**: Redis support for distributed caching
-- [ ] **Cache Analytics**: Performance metrics and hit rate monitoring dashboard
 
 🔹 **Long-Term Vision**
 
@@ -945,8 +1164,22 @@ This analysis was conducted using:
 - [ ] Support scanned PDFs with OCR fallback
 - [ ] Implement automatic difficulty level detection
 - [ ] Add support for multiple document analysis providers
+- [ ] **MongoDB Scaling**: Sharding and replica sets for high availability
+- [ ] **Data Analytics**: Historical analysis and reporting from MongoDB data
 - [ ] **Intelligent Cache Invalidation**: Content-based cache invalidation using document fingerprinting
-- [ ] **Cache Optimization**: Compressed cache storage and automatic size management
+
+## 🔄 Recent Updates (October 2025)
+
+### 💾 **MongoDB Persistence System Implementation (NEW)**
+
+- **Complete MongoDB Integration**: Full persistence layer with Pydantic models
+- **Migration System**: Versioned database schema evolution with automatic runners
+- **Docker Infrastructure**: MongoDB containerized with automatic initialization
+- **Health Monitoring**: Real-time database connectivity and performance monitoring
+- **Type Safety**: Complete type safety with Pydantic models for database operations
+- **DI Container Integration**: MongoDB services properly integrated into dependency injection
+- **Automatic Persistence**: All `/analyze_document` responses automatically saved
+- **Professional Architecture**: Clean separation between infrastructure, persistence, and business logic
 
 ## 🔄 Recent Updates (September 2025)
 
