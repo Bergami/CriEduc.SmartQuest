@@ -310,7 +310,7 @@ class DocumentAnalysisOrchestrator:
         try:
             self._logger.info("Phase 5.1: Using parse_to_pydantic() - Native Pydantic Interface")
 
-            enhanced_context_blocks = await self._context_builder.parse_to_pydantic(azure_result, image_data)
+            enhanced_context_blocks = await self._context_builder.parse_to_pydantic(azure_result, image_data, analysis_context["document_id"])
 
             blocks_with_images = sum(1 for cb in enhanced_context_blocks if cb.has_images)
             self._logger.info(f"Phase 5: Created {len(enhanced_context_blocks)} context blocks ({blocks_with_images} with images)")
@@ -321,7 +321,7 @@ class DocumentAnalysisOrchestrator:
             self._logger.warning(f"Phase 5: parse_to_pydantic failed ({e}), using legacy method")
 
             enhanced_context_blocks_dict = await self._context_builder.build_context_blocks_from_azure_figures(
-                azure_result, image_data
+                azure_result, image_data, analysis_context["document_id"]
             )
 
             if enhanced_context_blocks_dict:

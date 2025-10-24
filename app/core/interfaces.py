@@ -123,7 +123,8 @@ class IContextBuilder(Protocol):
     
     async def build_context_blocks_from_azure_figures(self,
                                                      azure_response: Dict[str, Any],
-                                                     images_base64: Dict[str, str] = None) -> List[Dict[str, Any]]:
+                                                     images_base64: Dict[str, str] = None,
+                                                     document_id: str = None) -> List[Dict[str, Any]]:
         """
         Constrói context blocks a partir de figuras do Azure Document Intelligence.
         

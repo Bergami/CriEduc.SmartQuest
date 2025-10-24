@@ -19,7 +19,7 @@ from app.core.interfaces import (
 # Importar implementações concretas
 from app.services.image.image_categorization_service import ImageCategorizationService
 from app.services.image.extraction.image_extraction_orchestrator import ImageExtractionOrchestrator
-from app.services.context.refactored_context_builder import RefactoredContextBlockBuilder
+from app.services.context.context_block_builder import ContextBlockBuilder
 from app.services.azure.azure_figure_processor import AzureFigureProcessor
 from app.services.core.document_analysis_orchestrator import DocumentAnalysisOrchestrator
 from app.services.core.analyze_service import AnalyzeService
@@ -43,7 +43,7 @@ def configure_dependencies() -> None:
     └── DocumentAnalysisOrchestrator
         ├── ImageCategorizationService
         ├── ImageExtractionOrchestrator
-        ├── RefactoredContextBlockBuilder
+        ├── ContextBlockBuilder
         └── AzureFigureProcessor
     
     PROCESSO:
@@ -83,10 +83,10 @@ def configure_dependencies() -> None:
     # ==================================================================================
     container.register(
         interface_type=IContextBuilder,
-        implementation_type=RefactoredContextBlockBuilder,
+        implementation_type=ContextBlockBuilder,
         lifetime=ServiceLifetime.SINGLETON  # Builder stateless
     )
-    logger.debug("✅ IContextBuilder -> RefactoredContextBlockBuilder (Singleton)")
+    logger.debug("✅ IContextBuilder -> ContextBlockBuilder (Singleton)")
     
     # ==================================================================================
     # 🖼️ FIGURE PROCESSOR (Azure)
