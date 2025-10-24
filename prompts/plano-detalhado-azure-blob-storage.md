@@ -210,24 +210,57 @@ async def _add_base64_images_to_figures(self, figures, images_base64):
 ## ⚡ **Implementação em Pequenos Passos**
 
 1. ✅ **Configurar Azure Settings** - **CONCLUÍDO** ✅
-2. ✅ **Criar Serviço de Upload** - **CONCLUÍDO** ✅ 
-3. ⭕ **Remover Images do Header**
+2. ✅ **Criar Serviço de Upload** - **CONCLUÍDO** ✅
+3. ✅ **Remover Images do Header** - **CONCLUÍDO** ✅
 4. ⭕ **Integrar Upload no Context Builder**
 5. ⭕ **Modificar Logic Context Blocks**
 6. ⭕ **Remover Salvamento Local**
 7. ⭕ **Testar Integração Completa**
 
-## 🎯 **Status: Etapa 1 Concluída com Sucesso**
+## 🎯 **Status: Etapa 2 Concluída com Sucesso**
+
+### ✅ **Etapa 2: Remover Images do Header - FINALIZADA**
+
+**🔧 Modificações Implementadas:**
+- ✅ `HeaderParser.parse()` - Removidas linhas 58-61 que adicionavam `result["images"]`
+- ✅ `HeaderDTO` - Removido campo `images: List[str]` da classe
+- ✅ `DocumentResponseDTO.from_internal_response()` - Removida linha que incluía `header_images`
+- ✅ `schema_extra` - Atualizado exemplo removendo campo images do header
+
+**🧪 Validação Implementada:**
+- ✅ Teste unitário completo em `test_header_removal_unit.py`
+- ✅ **TODOS OS 3 TESTES PASSARAM** - Images removidas com sucesso
+- ✅ HeaderParser não retorna mais campo images
+- ✅ HeaderDTO não possui mais campo images
+- ✅ DocumentResponseDTO não inclui mais header_images
+
+**📊 Resultado dos Testes:**
+```
+📊 RESULTADO: 3/3 testes passaram
+🎉 Todos os testes passaram! Images removidas com sucesso do header.
+
+✅ HeaderParser.parse() - Campo 'images' removido
+✅ HeaderDTO - Campo 'images' removido e não possui atributo
+✅ DocumentResponseDTO - Campo 'images' removido do header
+```
+
+**🔍 Transformação Confirmada:**
+- **ANTES:** Header continha `{"images": [...]}`
+- **DEPOIS:** Header SEM campo images - `{"school": "...", "teacher": "...", "subject": "..."}`
+
+---
 
 ### ✅ **Etapa 1: Configuração e Infraestrutura - FINALIZADA**
 
 **🔧 Configurações Implementadas:**
+
 - ✅ Configurações Azure Blob Storage adicionadas em `app/config/settings.py`
 - ✅ Padrão Pydantic BaseSettings mantido para compatibilidade
 - ✅ Propriedades computed (`azure_blob_sas_url`, `azure_blob_enabled`) implementadas
 - ✅ MockSettings atualizado com configurações Azure
 
 **🚀 Serviço Implementado:**
+
 - ✅ `AzureImageUploadService` criado em `app/services/storage/azure_image_upload_service.py`
 - ✅ Upload assíncrono de múltiplas imagens implementado
 - ✅ Nomenclatura segura de blobs com timestamp e UUID
@@ -235,17 +268,19 @@ async def _add_base64_images_to_figures(self, figures, images_base64):
 - ✅ URLs com SAS token para acesso (necessário devido à configuração do storage account)
 
 **🧪 Validação Implementada:**
+
 - ✅ Teste de conectividade completo em `test_azure_blob_connection.py`
 - ✅ **TODOS OS TESTES PASSARAM** - Azure Blob Storage funcionando 100%
 - ✅ Upload real testado com imagem de 1x1 pixel (638 bytes)
 - ✅ URL pública acessível com SAS token
 
 **📊 Resultado dos Testes:**
+
 ```
 Status Geral: PASS
 Resumo: {'PASS': 4, 'FAIL': 0, 'SKIP': 0}
 
-✅ CONFIGURATION: PASS - Todas as configurações Azure estão presentes  
+✅ CONFIGURATION: PASS - Todas as configurações Azure estão presentes
 ✅ CONNECTIVITY: PASS - Conectividade básica OK
 ✅ IMAGE_UPLOAD: PASS - Upload realizado com sucesso
 ✅ PUBLIC_URL: PASS - URL pública acessível - 638 bytes recebidos
@@ -254,6 +289,7 @@ Resumo: {'PASS': 4, 'FAIL': 0, 'SKIP': 0}
 ```
 
 **🔍 Descobertas Importantes:**
+
 - Storage account não permite acesso público direto (status 409)
 - URLs devem incluir SAS token para acesso
 - Metadados personalizados do Azure são sensíveis a caracteres especiais
@@ -264,8 +300,9 @@ Resumo: {'PASS': 4, 'FAIL': 0, 'SKIP': 0}
 ### 🚀 **Pronto para Próximas Etapas**
 
 A infraestrutura Azure está 100% operacional. Próximos passos:
+
 - **Etapa 2:** Remover Images do Header
-- **Etapa 3:** Integrar Upload no Context Builder  
+- **Etapa 3:** Integrar Upload no Context Builder
 - **Etapa 4:** Modificar Logic Context Blocks
 
 ## 📝 **Arquivos Específicos a Modificar**
