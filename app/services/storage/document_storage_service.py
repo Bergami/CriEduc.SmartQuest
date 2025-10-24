@@ -6,6 +6,8 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from uuid import uuid4
 
+from app.config.settings import get_settings
+
 logger = logging.getLogger(__name__)
 
 class DocumentStorageService:
@@ -65,7 +67,7 @@ class DocumentStorageService:
     
     def save_document_images(self, images: Dict[str, str], document_id: str, provider: str) -> Dict[str, str]:
         """
-        Salva imagens extraídas do documento
+        Salva imagens extraídas do documento (opcional via feature flag)
         
         Args:
             images: Dicionário com ID da imagem e conteúdo base64
@@ -75,6 +77,13 @@ class DocumentStorageService:
         Returns:
             Dicionário com IDs das imagens e caminhos dos arquivos salvos
         """
+        settings = get_settings()
+        
+        # ✅ Feature flag: permite desabilitar salvamento local
+        if not settings.enable_local_image_saving:
+            logger.info(f"💡 Local image saving disabled by feature flag - skipping save for document {document_id}")
+            return {}
+        
         saved_paths = {}
         
         try:

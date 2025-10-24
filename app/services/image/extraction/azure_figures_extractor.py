@@ -149,34 +149,6 @@ class AzureFiguresImageExtractor(BaseImageExtractor):
             processing_time = time.time() - start_time
             self._extraction_metrics["total_processing_time"] += processing_time
             
-            # Save extracted images to disk if any were found
-            if extracted_images and document_id:
-                try:
-                    # Use centralized file manager to save images
-                    for figure_id, base64_image in extracted_images.items():
-                        filename = f"{figure_id}.jpg"
-                        # Convert base64 back to bytes for saving
-                        import base64
-                        image_bytes = base64.b64decode(base64_image)
-                        
-                        saved_path = self._save_image(
-                            method="azure_endpoint",
-                            filename=filename,
-                            content=image_bytes,
-                            document_id=document_id,
-                            metadata={
-                                "extraction_method": "azure_figures",
-                                "figure_id": figure_id,
-                                "original_filename": getattr(file, 'filename', 'unknown'),
-                                "processing_time": processing_time
-                            }
-                        )
-                        logger.debug(f"💾 Figure {figure_id} saved to: {saved_path}")
-                    
-                    logger.info(f"💾 All Azure figures images saved to centralized structure")
-                except Exception as e:
-                    logger.warning(f"⚠️  Could not save Azure figures images: {str(e)}")
-            
             logger.info(f"🎉 Azure figures extraction completed: {len(extracted_images)} images in {processing_time:.2f}s")
             return extracted_images
             

@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     # 🆕 FEATURE FLAGS
     # ================================
     enable_mongodb_persistence: bool = os.getenv("ENABLE_MONGODB_PERSISTENCE", "true").lower() == "true"
+    enable_local_image_saving: bool = os.getenv("ENABLE_LOCAL_IMAGE_SAVING", "false").lower() == "true"
     
     @property
     def azure_blob_sas_url(self) -> str:
@@ -95,6 +96,7 @@ class MockSettings:
     mongodb_database = "smartquest"
     mongodb_connection_timeout = 10000
     enable_mongodb_persistence = False
+    enable_local_image_saving = False
     
     # 🆕 Azure Blob Storage Mock Settings
     azure_blob_storage_url = ""
