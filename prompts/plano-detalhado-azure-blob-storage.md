@@ -103,31 +103,86 @@ class AzureImageUploadService:
 
 **Objetivo:** Substituir base64 por URLs do Azure Blob Storage
 
-**3.1 Integrar Upload no RefactoredContextBlockBuilder**
+**🎯 Padrão de Nomenclatura Definido:**
+
+```
+Formato: documents/tests/images/{document_guid}/{sequence}.jpg
+
+Onde:
+- document_guid: GUID único por documento (UUID4 completo)
+- sequence: Sequencial numérico (001, 002, 003...)
+
+Exemplo:
+documents/tests/images/a1b2c3d4-e5f6-7890-abcd-ef1234567890/001.jpg
+documents/tests/images/a1b2c3d4-e5f6-7890-abcd-ef1234567890/002.jpg
+documents/tests/images/a1b2c3d4-e5f6-7890-abcd-ef1234567890/003.jpg
+```
+
+**⚠️ IMPORTANTE:**
+
+- Todas as imagens ficam no diretório: `documents/tests/images/` do container Azure
+- Um GUID único identifica todas as imagens de um documento
+- Sequência numérica garante ordem e unicidade
+
+**3.1 Atualizar AzureImageUploadService**
+
+- **Arquivo:** `app/services/storage/azure_image_upload_service.py`
+- **Método:** `_generate_blob_name()`
+- **Ação:** Implementar novo padrão de nomenclatura com document_guid e sequência
+
+**3.2 Integrar Upload no RefactoredContextBlockBuilder**
 
 - **Arquivo:** `app/services/context/refactored_context_builder.py`
 - **Método:** `_add_base64_images_to_figures()`
-- **Ação:** Antes de adicionar às figuras, fazer upload para Azure e obter URLs
+- **Ação:** Gerar document_guid único e fazer upload para Azure antes de adicionar às figuras
 
-**3.2 Atualizar \_create_individual_context_block**
+**3.3 Atualizar \_create_individual_context_block**
 
 - **Arquivo:** `app/services/context/refactored_context_builder.py`
 - **Linha:** 1086 `context_block['images'] = [figure.base64_image]`
 - **Ação:** Substituir por URLs obtidas do Azure
 
-**3.3 Atualizar \_create_simple_context_block_from_group**
+**3.4 Atualizar \_create_simple_context_block_from_group**
 
 - **Arquivo:** `app/services/context/refactored_context_builder.py`
 - **Linha:** 1228 `context_block['images'] = images`
 - **Ação:** Substituir por URLs
 
-**3.4 Modificar ContextBlockImageProcessor**
+**3.5 Modificar ContextBlockImageProcessor**
 
 - **Arquivo:** `app/parsers/question_parser/context_block_image_processor.py`
 - **Método:** `enrich_context_blocks_with_images()`
 - **Ação:** Processar URLs ao invés de base64
 
-### **📋 Etapa 4: Remover Salvamento Local**
+### **📋 Etapa 4: Impactos e Considerações da Etapa 3**
+
+**🔍 Análise de Impactos:**
+
+**4.1 Gerenciamento de GUID do Documento**
+
+- **Necessidade:** Gerar UUID único por documento para agrupamento
+- **Localização:** Início do processamento (DocumentAnalysisOrchestrator)
+- **Persistência:** Incluir document_guid na resposta para rastreabilidade
+
+**4.2 Sequenciamento de Imagens**
+
+- **Necessidade:** Manter ordem das imagens por documento
+- **Implementação:** Contador sequencial no AzureImageUploadService
+- **Benefício:** URLs organizadas e previsíveis
+
+**4.3 Modificações Estruturais Necessárias**
+
+- **InternalDocumentResponse:** Adicionar campo document_guid
+- **AzureImageUploadService:** Novo parâmetro document_guid
+- **RefactoredContextBlockBuilder:** Integração com upload Azure
+
+**4.4 Compatibilidade e Testes**
+
+- **Validação:** URLs seguem padrão definido
+- **Rastreabilidade:** Todas imagens de um documento têm mesmo GUID
+- **Performance:** Upload assíncrono não bloqueia processamento
+
+### **📋 Etapa 5: Remover Salvamento Local**
 
 **Objetivo:** Eliminar persistência local de imagens, reutilizar lógica para Azure
 
@@ -207,27 +262,46 @@ async def _add_base64_images_to_figures(self, figures, images_base64):
             figure.azure_url = images_urls[figure.id]  # URL ao invés de base64
 ```
 
-## ⚡ **Implementação em Pequenos Passos**
+## ⚡ **Implementação em Pequenos Passos - ATUALIZADO**
 
 1. ✅ **Configurar Azure Settings** - **CONCLUÍDO** ✅
 2. ✅ **Criar Serviço de Upload** - **CONCLUÍDO** ✅
 3. ✅ **Remover Images do Header** - **CONCLUÍDO** ✅
-4. ⭕ **Integrar Upload no Context Builder**
-5. ⭕ **Modificar Logic Context Blocks**
-6. ⭕ **Remover Salvamento Local**
-7. ⭕ **Testar Integração Completa**
+4. ⭕ **Definir Padrão Nomenclatura** - **DEFINIDO** ✅
+5. ⭕ **Integrar Upload no Context Builder**
+6. ⭕ **Modificar Logic Context Blocks**
+7. ⭕ **Remover Salvamento Local** (opcional)
+8. ⭕ **Atualizar DTOs e Documentação**
+9. ⭕ **Testar Integração Completa**
 
-## 🎯 **Status: Etapa 2 Concluída com Sucesso**
+## 🎯 **Status: Padrão de Nomenclatura Definido**
+
+### **📁 Padrão Aprovado:**
+
+```
+documents/tests/images/{document_guid}/{sequence}.jpg
+
+- document_guid: UUID4 completo único por documento
+- sequence: 001, 002, 003... (sequencial numérico)
+```
+
+### **📋 Próximas Etapas Atualizadas:**
+
+- **Etapa 5:** Implementar novo padrão no AzureImageUploadService
+- **Etapa 6:** Integrar upload no Context Builder com document_guid
+- **Etapa 7:** Modificar logic context blocks para usar URLs Azure
 
 ### ✅ **Etapa 2: Remover Images do Header - FINALIZADA**
 
 **🔧 Modificações Implementadas:**
+
 - ✅ `HeaderParser.parse()` - Removidas linhas 58-61 que adicionavam `result["images"]`
 - ✅ `HeaderDTO` - Removido campo `images: List[str]` da classe
 - ✅ `DocumentResponseDTO.from_internal_response()` - Removida linha que incluía `header_images`
 - ✅ `schema_extra` - Atualizado exemplo removendo campo images do header
 
 **🧪 Validação Implementada:**
+
 - ✅ Teste unitário completo em `test_header_removal_unit.py`
 - ✅ **TODOS OS 3 TESTES PASSARAM** - Images removidas com sucesso
 - ✅ HeaderParser não retorna mais campo images
@@ -235,6 +309,7 @@ async def _add_base64_images_to_figures(self, figures, images_base64):
 - ✅ DocumentResponseDTO não inclui mais header_images
 
 **📊 Resultado dos Testes:**
+
 ```
 📊 RESULTADO: 3/3 testes passaram
 🎉 Todos os testes passaram! Images removidas com sucesso do header.
@@ -245,6 +320,7 @@ async def _add_base64_images_to_figures(self, figures, images_base64):
 ```
 
 **🔍 Transformação Confirmada:**
+
 - **ANTES:** Header continha `{"images": [...]}`
 - **DEPOIS:** Header SEM campo images - `{"school": "...", "teacher": "...", "subject": "..."}`
 
@@ -300,10 +376,12 @@ Resumo: {'PASS': 4, 'FAIL': 0, 'SKIP': 0}
 ### 🚀 **Pronto para Próximas Etapas**
 
 **✅ Etapas 1 e 2 Concluídas e Commitadas:**
+
 - **Etapa 1:** Configuração Azure Blob Storage ✅ (Commit: 1af249c)
 - **Etapa 2:** Remover Images do Header ✅ (Commit: fafcfee)
 
 **⭕ Próximas Etapas:**
+
 - **Etapa 3:** Integrar Upload no Context Builder
 - **Etapa 4:** Modificar Logic Context Blocks para URLs
 - **Etapa 5:** Remover Salvamento Local (opcional)
@@ -350,7 +428,7 @@ Resumo: {'PASS': 4, 'FAIL': 0, 'SKIP': 0}
 {
   "header": {
     "school": "UMEF Saturnino Rangel Mauro",
-    "teacher": "Danielle", 
+    "teacher": "Danielle",
     "subject": "Língua Portuguesa",
     "images": ["/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAIBAQEBAQI..."]
   },
@@ -388,17 +466,19 @@ Resumo: {'PASS': 4, 'FAIL': 0, 'SKIP': 0}
   ]
 }
 ```
-  "context_blocks": [
-    {
-      "id": 1,
-      "type": ["text", "image"],
-      "hasImage": true,
-      "images": ["/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAIBAQEBAQI..."],
-      "contentType": "image/jpeg;base64"
-    }
-  ]
+
+"context_blocks": [
+{
+"id": 1,
+"type": ["text", "image"],
+"hasImage": true,
+"images": ["/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAIBAQEBAQI..."],
+"contentType": "image/jpeg;base64"
 }
-```
+]
+}
+
+````
 
 ### **🟢 DEPOIS (Desejado):**
 
@@ -415,13 +495,13 @@ Resumo: {'PASS': 4, 'FAIL': 0, 'SKIP': 0}
       "type": ["text", "image"],
       "hasImage": true,
       "images": [
-        "https://crieducstorage.blob.core.windows.net/crieduc-documents/doc123-img1.jpg"
+        "https://crieducstorage.blob.core.windows.net/crieduc-documents/documents/tests/images/a1b2c3d4-e5f6-7890-abcd-ef1234567890/001.jpg?{sas_token}"
       ],
       "contentType": "image/url"
     }
   ]
 }
-```
+````
 
 ## 🚨 **Riscos e Considerações**
 
@@ -449,11 +529,13 @@ Resumo: {'PASS': 4, 'FAIL': 0, 'SKIP': 0}
 ### ✅ **ETAPAS CONCLUÍDAS E COMMITADAS:**
 
 **🎯 Etapa 1: Configuração e Infraestrutura (Commit: 1af249c)**
+
 - ✅ Azure Blob Storage configurado e testado
 - ✅ AzureImageUploadService implementado e validado
 - ✅ 4/4 testes de conectividade PASS
 
 **🎯 Etapa 2: Remover Images do Header (Commit: fafcfee)**
+
 - ✅ HeaderParser.parse() limpo (sem result["images"])
 - ✅ HeaderDTO sem campo images
 - ✅ DocumentResponseDTO sem header_images

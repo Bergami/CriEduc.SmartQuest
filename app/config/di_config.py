@@ -12,7 +12,8 @@ from app.core.interfaces import (
     IContextBuilder,
     IFigureProcessor,
     IDocumentAnalysisOrchestrator,
-    IAnalyzeService
+    IAnalyzeService,
+    IImageUploadService
 )
 
 # Importar implementações concretas
@@ -22,6 +23,7 @@ from app.services.context.refactored_context_builder import RefactoredContextBlo
 from app.services.azure.azure_figure_processor import AzureFigureProcessor
 from app.services.core.document_analysis_orchestrator import DocumentAnalysisOrchestrator
 from app.services.core.analyze_service import AnalyzeService
+from app.services.storage.azure_image_upload_service import AzureImageUploadService
 
 # ========== NOVAS IMPORTAÇÕES - FASE 2 MONGODB ==========
 from app.services.persistence import ISimplePersistenceService, MongoDBPersistenceService
@@ -115,6 +117,16 @@ def configure_dependencies() -> None:
         lifetime=ServiceLifetime.SINGLETON  # Service layer, stateless
     )
     logger.debug("✅ IAnalyzeService -> AnalyzeService (Singleton)")
+    
+    # ==================================================================================
+    # 🌐 IMAGE UPLOAD SERVICE (Azure Blob Storage)
+    # ==================================================================================
+    container.register(
+        interface_type=IImageUploadService,
+        implementation_type=AzureImageUploadService,
+        lifetime=ServiceLifetime.SINGLETON  # Stateless, reutilizar conexões HTTP
+    )
+    logger.debug("✅ IImageUploadService -> AzureImageUploadService (Singleton)")
     
     # ==================================================================================
     # 💾 MONGODB CONNECTION SERVICE

@@ -31,7 +31,8 @@ class AzureImageUploadService:
     async def upload_images_and_get_urls(
         self,
         images_base64: Dict[str, str],
-        document_id: str
+        document_id: str,
+        document_guid: Optional[str] = None
     ) -> Dict[str, str]:
         """
         Faz upload de múltiplas imagens para Azure Blob Storage.
@@ -39,6 +40,7 @@ class AzureImageUploadService:
         Args:
             images_base64: Dicionário {image_id: base64_string}
             document_id: ID único do documento para organização
+            document_guid: GUID único do documento (gerado se não fornecido)
             
         Returns:
             Dicionário {image_id: public_url}
@@ -55,9 +57,16 @@ class AzureImageUploadService:
             self._logger.info("Nenhuma imagem para upload")
             return {}
         
+        # Gerar GUID único do documento se não fornecido
+        if not document_guid:
+            document_guid = str(uuid.uuid4())
+            self._logger.info(f"Gerado novo document_guid: {document_guid}")
+        
         self._logger.info(f"Iniciando upload de {len(images_base64)} imagens para Azure Blob Storage")
+        self._logger.info(f"Document GUID: {document_guid}")
         
         urls_mapping = {}
+        sequence = 1
         
         async with httpx.AsyncClient() as client:
             for image_id, base64_data in images_base64.items():
@@ -67,12 +76,15 @@ class AzureImageUploadService:
                         client=client,
                         image_id=image_id,
                         base64_data=base64_data,
-                        document_id=document_id
+                        document_id=document_id,
+                        document_guid=document_guid,
+                        sequence=sequence
                     )
                     
                     if public_url:
                         urls_mapping[image_id] = public_url
                         self._logger.debug(f"✅ Upload concluído: {image_id} -> {public_url}")
+                        sequence += 1
                     else:
                         self._logger.error(f"❌ Falha no upload da imagem: {image_id}")
                         
@@ -88,7 +100,9 @@ class AzureImageUploadService:
         client: httpx.AsyncClient,
         image_id: str,
         base64_data: str,
-        document_id: str
+        document_id: str,
+        document_guid: str,
+        sequence: int
     ) -> Optional[str]:
         """
         Faz upload de uma única imagem para Azure Blob Storage.
@@ -97,7 +111,9 @@ class AzureImageUploadService:
             client: Cliente HTTP reutilizável
             image_id: Identificador único da imagem
             base64_data: Dados da imagem em base64
-            document_id: ID do documento para organização
+            document_id: ID do documento para logs
+            document_guid: GUID único do documento
+            sequence: Número sequencial da imagem no documento
             
         Returns:
             URL pública da imagem ou None se falhar
@@ -106,8 +122,8 @@ class AzureImageUploadService:
             # Converter base64 para bytes
             image_bytes = base64.b64decode(base64_data)
             
-            # Gerar nome único para o blob
-            blob_name = self._generate_blob_name(document_id, image_id)
+            # Gerar nome único para o blob com novo padrão
+            blob_name = self._generate_blob_name(document_guid, sequence)
             
             # Construir URL de upload correta (PUT direto no blob)
             upload_url = f"{self._settings.azure_blob_storage_url}/{self._settings.azure_blob_container_name}/{blob_name}?{self._settings.azure_blob_sas_token}"
@@ -145,27 +161,23 @@ class AzureImageUploadService:
             self._logger.error(f"Erro inesperado no upload de {image_id}: {str(e)}")
             return None
     
-    def _generate_blob_name(self, document_id: str, image_id: str) -> str:
+    def _generate_blob_name(self, document_guid: str, sequence: int) -> str:
         """
-        Gera nome único para o blob no Azure Storage.
+        Gera nome único para o blob no Azure Storage seguindo o padrão aprovado.
         
-        Formato: documents/{document_id}/images/{timestamp}_{image_id}_{uuid}.jpg
+        Formato: documents/tests/images/{document_guid}/{sequence}.jpg
         
         Args:
-            document_id: ID do documento
-            image_id: ID da imagem
+            document_guid: GUID único do documento
+            sequence: Número sequencial da imagem (1, 2, 3...)
             
         Returns:
             Nome único do blob
         """
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        unique_id = str(uuid.uuid4())[:8]  # Primeiros 8 caracteres do UUID
+        # Sanitizar GUID para nomes de arquivo seguros
+        safe_guid = self._sanitize_filename(document_guid)
         
-        # Sanitizar IDs para nomes de arquivo seguros
-        safe_document_id = self._sanitize_filename(document_id)
-        safe_image_id = self._sanitize_filename(image_id)
-        
-        return f"documents/{safe_document_id}/images/{timestamp}_{safe_image_id}_{unique_id}.jpg"
+        return f"documents/tests/images/{safe_guid}/{sequence}.jpg"
     
     def _sanitize_filename(self, filename: str) -> str:
         """

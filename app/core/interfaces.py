@@ -120,6 +120,21 @@ class IContextBuilder(Protocol):
             Lista de context blocks estruturados
         """
         ...
+    
+    async def build_context_blocks_from_azure_figures(self,
+                                                     azure_response: Dict[str, Any],
+                                                     images_base64: Dict[str, str] = None) -> List[Dict[str, Any]]:
+        """
+        Constrói context blocks a partir de figuras do Azure Document Intelligence.
+        
+        Args:
+            azure_response: Resposta completa do Azure Document Intelligence
+            images_base64: Dicionário mapeando IDs de figuras para dados base64
+            
+        Returns:
+            Lista de context blocks estruturados
+        """
+        ...
 
 
 class IFigureProcessor(Protocol):
@@ -223,6 +238,44 @@ class IAnalyzeService(Protocol):
             
         Returns:
             Resposta estruturada completa
+        """
+        ...
+
+
+class IImageUploadService(Protocol):
+    """
+    🌐 INTERFACE: Serviço de Upload de Imagens
+    
+    RESPONSABILIDADE:
+    - Fazer upload de imagens para storage externo (Azure Blob Storage)
+    - Converter base64 em URLs públicas
+    - Gerenciar nomenclatura e organização de arquivos
+    
+    IMPLEMENTAÇÕES POSSÍVEIS:
+    - AzureImageUploadService (atual - Azure Blob Storage)
+    - S3ImageUploadService (futuro - AWS S3)
+    - LocalImageUploadService (desenvolvimento local)
+    - MockImageUploadService (testes)
+    """
+    
+    async def upload_images_and_get_urls(self,
+                                       images_base64: Dict[str, str],
+                                       document_id: str,
+                                       document_guid: str = None) -> Dict[str, str]:
+        """
+        Faz upload de múltiplas imagens e retorna URLs públicas.
+        
+        Args:
+            images_base64: Dicionário {image_id: base64_string}
+            document_id: ID único do documento para organização
+            document_guid: GUID único do documento (gerado se não fornecido)
+            
+        Returns:
+            Dicionário {image_id: public_url}
+            
+        Raises:
+            ValueError: Se configurações não estão disponíveis
+            Exception: Se falha no upload
         """
         ...
 

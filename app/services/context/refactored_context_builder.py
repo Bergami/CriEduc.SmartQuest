@@ -5,6 +5,7 @@ Uses separated constants and enums for better maintainability
 from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 import re
 import logging
+import uuid
 from dataclasses import dataclass
 
 from app.core.constants.instruction_patterns import InstructionPatterns
@@ -16,6 +17,9 @@ from app.core.constants.content_types import (
 
 if TYPE_CHECKING:
     from app.models.internal.context_models import InternalContextBlock, InternalSubContext
+
+# Import direto para evitar problemas com DI
+from app.core.interfaces import IImageUploadService
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +40,7 @@ class FigureInfo:
     page_number: int
     bounding_regions: List[Dict]
     base64_image: Optional[str] = None
+    azure_image_url: Optional[str] = None  # URL da imagem no Azure Blob Storage
     associated_texts: List[TextSpan] = None
     azure_figure: Optional[Dict] = None  # Referência para a figura original do Azure
     figure_type: FigureType = FigureType.UNKNOWN
@@ -50,8 +55,9 @@ class RefactoredContextBlockBuilder:
     Refactored context block builder using separated constants and enums
     """
     
-    def __init__(self):
+    def __init__(self, image_upload_service: IImageUploadService = None):
         self.instruction_patterns = InstructionPatterns()
+        self._image_upload_service = image_upload_service
         
         # Content type detection keywords
         self.content_keywords = {
@@ -62,7 +68,7 @@ class RefactoredContextBlockBuilder:
             ContentType.INSTRUCTION: ['analise', 'observe', 'leia', 'responda']
         }
     
-    def build_context_blocks_from_azure_figures(
+    async def build_context_blocks_from_azure_figures(
         self,
         azure_response: Dict[str, Any],
         images_base64: Dict[str, str] = None
@@ -97,8 +103,10 @@ class RefactoredContextBlockBuilder:
             
             # 5. Adicionar imagens base64 às figuras se disponíveis
             if images_base64:
-                self._add_base64_images_to_figures(figures, images_base64)
-                logger.info(f"📷 Added base64 images to {len([f for f in figures if f.base64_image])} figures")
+                # Tentar extrair document_id do azure_response ou usar um padrão
+                document_id = azure_response.get('model_id', 'unknown_document')
+                azure_urls = await self._add_base64_images_to_figures(figures, images_base64, document_id)
+                logger.info(f"📷 Added images to {len([f for f in figures if f.base64_image or (hasattr(f, 'azure_image_url') and f.azure_image_url)])} figures")
             
             # 6. Criar context blocks baseado em análise dinâmica
             context_blocks = self._create_dynamic_context_blocks(
@@ -429,29 +437,70 @@ class RefactoredContextBlockBuilder:
         
         return distance
     
-    def _add_base64_images_to_figures(self, figures: List[FigureInfo], images_base64: Dict[str, str]):
-        """Adiciona imagens base64 às figuras - Versão melhorada com logs"""
+    async def _add_base64_images_to_figures(self, figures: List[FigureInfo], images_base64: Dict[str, str], document_id: str = None) -> Dict[str, str]:
+        """
+        Adiciona imagens às figuras - Versão com Azure Blob Storage
+        
+        Args:
+            figures: Lista de figuras para processar
+            images_base64: Dicionário {image_id: base64_string}
+            document_id: ID do documento para identificação
+            
+        Returns:
+            Dicionário {image_id: azure_url} com URLs das imagens no Azure
+        """
         if not images_base64:
             logger.warning("No images_base64 provided to _add_base64_images_to_figures")
-            return
+            return {}
             
-        logger.info(f"Adding base64 images: {len(images_base64)} images available for {len(figures)} figures")
+        logger.info(f"Processing images: {len(images_base64)} images available for {len(figures)} figures")
         
+        # Se o serviço de upload está disponível, fazer upload para Azure
+        azure_urls = {}
+        if self._image_upload_service:
+            try:
+                # Gerar document_guid se não fornecido
+                document_guid = str(uuid.uuid4()) if not document_id else document_id
+                
+                # Fazer upload das imagens para Azure Blob Storage
+                azure_urls = await self._image_upload_service.upload_images_and_get_urls(
+                    images_base64=images_base64,
+                    document_id=document_id or "unknown",
+                    document_guid=document_guid
+                )
+                
+                logger.info(f"Azure upload completed: {len(azure_urls)}/{len(images_base64)} images uploaded")
+                
+            except Exception as e:
+                logger.error(f"Failed to upload images to Azure: {str(e)}")
+                # Fallback para base64 se upload falhar
+                azure_urls = {}
+        
+        # Aplicar URLs do Azure ou base64 como fallback às figuras
         images_added = 0
         for figure in figures:
-            if figure.id in images_base64:
+            if figure.id in azure_urls:
+                # Usar URL do Azure
+                figure.azure_image_url = azure_urls[figure.id]
+                figure.base64_image = None  # Limpar base64 para economizar memória
+                images_added += 1
+                logger.debug(f"   ✅ Added Azure URL to {figure.id}")
+            elif figure.id in images_base64:
+                # Fallback para base64 se Azure não disponível
                 figure.base64_image = images_base64[figure.id]
                 images_added += 1
-                logger.debug(f"   ✅ Added base64 image to {figure.id}")
+                logger.debug(f"   📦 Added base64 image to {figure.id} (fallback)")
             else:
-                logger.debug(f"   ❌ No base64 image found for {figure.id}")
+                logger.debug(f"   ❌ No image found for {figure.id}")
         
-        logger.info(f"Successfully added base64 images to {images_added}/{len(figures)} figures")
+        logger.info(f"Successfully processed images for {images_added}/{len(figures)} figures")
         
         # Log figuras sem imagens
-        figures_without_images = [f.id for f in figures if not f.base64_image]
+        figures_without_images = [f.id for f in figures if not (hasattr(f, 'azure_image_url') and f.azure_image_url) and not f.base64_image]
         if figures_without_images:
-            logger.warning(f"Figures without base64 images: {figures_without_images}")
+            logger.warning(f"Figures without images: {figures_without_images}")
+            
+        return azure_urls
     
     def _create_dynamic_context_blocks(
         self, 
@@ -1006,8 +1055,17 @@ class RefactoredContextBlockBuilder:
             'type': self._detect_sub_context_type(relevant_texts),
             'title': sequence_title,
             'content': '\n'.join(relevant_texts) if relevant_texts else '',
-            'images': [figure.base64_image] if figure.base64_image else []
+            'images': [],  # Inicializar vazio
+            'azure_image_urls': []  # Novo campo para URLs do Azure
         }
+        
+        # Adicionar imagem se disponível
+        if hasattr(figure, 'azure_image_url') and figure.azure_image_url:
+            sub_context['azure_image_urls'] = [figure.azure_image_url]
+            logger.debug(f"Added Azure URL to sub-context {sequence}")
+        elif figure.base64_image:
+            sub_context['images'] = [figure.base64_image]
+            logger.debug(f"Added base64 image to sub-context {sequence} (fallback)")
         
         return sub_context
     
@@ -1081,14 +1139,19 @@ class RefactoredContextBlockBuilder:
         }
         
         # Adicionar imagens se disponíveis
-        if figure.base64_image:
+        if hasattr(figure, 'azure_image_url') and figure.azure_image_url:
+            context_block['contentType'] = 'image/url'
+            context_block['azure_image_urls'] = [figure.azure_image_url]
+            context_block['images'] = []  # Limpar base64 para economizar memória
+            logger.debug(f"Added Azure URL to individual context block: {title}")
+        elif figure.base64_image:
             context_block['contentType'] = 'image/jpeg;base64'
             context_block['images'] = [figure.base64_image]
-            logger.debug(f"Added base64 image to individual context block: {title}")
+            logger.debug(f"Added base64 image to individual context block: {title} (fallback)")
         else:
-            # Mesmo sem imagem base64, manter estrutura
+            # Mesmo sem imagem, manter estrutura
             context_block['images'] = []
-            logger.warning(f"No base64_image available for figure {figure.id} in context block: {title}")
+            logger.warning(f"No image available for figure {figure.id} in context block: {title}")
         
         logger.debug(f"Created individual context block: {title} with {len(image_texts)} text paragraphs, hasImage={context_block.get('hasImage')}, images_count={len(context_block.get('images', []))}")
         
@@ -1190,11 +1253,15 @@ class RefactoredContextBlockBuilder:
         
         # Collect images and texts
         images = []
+        azure_urls = []
         all_texts = []
         content_types = set()
         
         for figure in group_figures:
-            if figure.base64_image:
+            # Priorizar Azure URLs sobre base64
+            if hasattr(figure, 'azure_image_url') and figure.azure_image_url:
+                azure_urls.append(figure.azure_image_url)
+            elif figure.base64_image:
                 images.append(figure.base64_image)
             
             content_types.add(figure.content_type)
@@ -1215,14 +1282,23 @@ class RefactoredContextBlockBuilder:
             'source': 'exam_document',
             'title': group_name.replace('_', ' ').title(),
             'paragraphs': relevant_texts,
-            'hasImage': len(images) > 0
+            'hasImage': len(azure_urls) > 0 or len(images) > 0
         }
         
-        if len(images) > 0:
+        # Adicionar imagens com prioridade para Azure URLs
+        if len(azure_urls) > 0:
+            context_block['contentType'] = 'image/url'
+            context_block['azure_image_urls'] = azure_urls
+            context_block['images'] = []  # Limpar base64
+            logger.debug(f"Added {len(azure_urls)} Azure URLs to simple context block: {group_name}")
+        elif len(images) > 0:
             context_block['contentType'] = 'image/jpeg;base64'
             context_block['images'] = images
+            logger.debug(f"Added {len(images)} base64 images to simple context block: {group_name} (fallback)")
+        else:
+            context_block['images'] = []
         
-        logger.debug(f"Created simple context block: {group_name} with {len(images)} images")
+        logger.debug(f"Created simple context block: {group_name} with {len(azure_urls)} Azure URLs and {len(images)} base64 images")
         
         return context_block
     
@@ -1283,7 +1359,7 @@ class RefactoredContextBlockBuilder:
     # FASE 2: INTERFACE PYDANTIC NATIVA
     # ============================================
     
-    def parse_to_pydantic(
+    async def parse_to_pydantic(
         self,
         azure_response: Dict[str, Any],
         images_base64: Dict[str, str] = None
@@ -1320,8 +1396,10 @@ class RefactoredContextBlockBuilder:
             
             # 5. Adicionar imagens base64 às figuras se disponíveis
             if images_base64:
-                self._add_base64_images_to_figures(figures, images_base64)
-                logger.info(f"📷 [Pydantic] Added base64 images to {len([f for f in figures if f.base64_image])} figures")
+                # Tentar extrair document_id do azure_response ou usar um padrão
+                document_id = azure_response.get('model_id', 'unknown_document')
+                azure_urls = await self._add_base64_images_to_figures(figures, images_base64, document_id)
+                logger.info(f"📷 [Pydantic] Added images to {len([f for f in figures if f.base64_image or (hasattr(f, 'azure_image_url') and f.azure_image_url)])} figures")
             
             # 6. Criar context blocks DIRETAMENTE como Pydantic objects
             context_blocks = self._create_pydantic_context_blocks(
@@ -1368,13 +1446,22 @@ class RefactoredContextBlockBuilder:
                         sequence_text = f"Content for sequence {sequence}"
                         
                         # Criar InternalSubContext Pydantic object
-                        sub_context = InternalSubContext(
-                            sequence=sequence,
-                            type="text",  # Default type
-                            title=f"TEXTO {sequence}",
-                            content=sequence_text,
-                            images=[figure.base64_image] if figure.base64_image else []
-                        )
+                        sub_context_data = {
+                            "sequence": sequence,
+                            "type": "text",  # Default type
+                            "title": f"TEXTO {sequence}",
+                            "content": sequence_text,
+                            "images": [],  # Inicializar vazio
+                            "azure_image_urls": []  # Novo campo
+                        }
+                        
+                        # Adicionar imagem se disponível
+                        if hasattr(figure, 'azure_image_url') and figure.azure_image_url:
+                            sub_context_data["azure_image_urls"] = [figure.azure_image_url]
+                        elif figure.base64_image:
+                            sub_context_data["images"] = [figure.base64_image]
+                        
+                        sub_context = InternalSubContext(**sub_context_data)
                         sub_contexts.append(sub_context)
                         logger.info(f"✅ [Pydantic] Created sub-context for sequence '{sequence}'")
                 
@@ -1395,14 +1482,24 @@ class RefactoredContextBlockBuilder:
                 )
                 
                 # Criar InternalContextBlock Pydantic object
-                context_block = InternalContextBlock(
-                    id=i+1,  # Use figure index + 1 as ID
-                    type=[ContentType.TEXT] if not figure.base64_image else [ContentType.IMAGE],
-                    content=content_obj,
-                    title=f"Context {i+1}",  # Placeholder title
-                    images=[figure.base64_image] if figure.base64_image and not sub_contexts else [],
-                    sub_contexts=sub_contexts
-                )
+                context_block_data = {
+                    "id": i+1,  # Use figure index + 1 as ID
+                    "type": [ContentType.TEXT] if not (figure.base64_image or (hasattr(figure, 'azure_image_url') and figure.azure_image_url)) else [ContentType.IMAGE],
+                    "content": content_obj,
+                    "title": f"Context {i+1}",  # Placeholder title
+                    "images": [],  # Inicializar vazio
+                    "azure_image_urls": [],  # Novo campo
+                    "sub_contexts": sub_contexts
+                }
+                
+                # Adicionar imagem se disponível e não há sub_contexts
+                if not sub_contexts:
+                    if hasattr(figure, 'azure_image_url') and figure.azure_image_url:
+                        context_block_data["azure_image_urls"] = [figure.azure_image_url]
+                    elif figure.base64_image:
+                        context_block_data["images"] = [figure.base64_image]
+                
+                context_block = InternalContextBlock(**context_block_data)
                 
                 context_blocks.append(context_block)
                 logger.info(f"✅ [Pydantic] Created context block {i+1} with {len(sub_contexts)} sub-contexts")
