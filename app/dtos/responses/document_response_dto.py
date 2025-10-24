@@ -33,7 +33,8 @@ class SubContextDTO(BaseModel):
     type: str = Field(..., description="Tipo do sub-contexto")
     title: str = Field(..., description="Título do sub-contexto")
     content: str = Field(..., description="Conteúdo do sub-contexto")
-    images: List[str] = Field(default_factory=list, description="Imagens base64")
+    images: List[str] = Field(default_factory=list, description="URLs públicas de imagens ou base64 (fallback)")
+    azure_image_urls: List[str] = Field(default_factory=list, description="URLs do Azure Blob Storage")
 
 
 class ContextBlockDTO(BaseModel):
@@ -44,7 +45,8 @@ class ContextBlockDTO(BaseModel):
     statement: Optional[str] = Field(default=None, description="Declaração/instrução")
     title: Optional[str] = Field(default=None, description="Título do context block")
     hasImage: bool = Field(default=False, description="Se tem imagem")
-    images: List[str] = Field(default_factory=list, description="Imagens base64")
+    images: List[str] = Field(default_factory=list, description="URLs públicas de imagens ou base64 (fallback)")
+    azure_image_urls: List[str] = Field(default_factory=list, description="URLs do Azure Blob Storage")
     contentType: Optional[str] = Field(default=None, description="Tipo de conteúdo")
     paragraphs: Optional[List[str]] = Field(default=None, description="Parágrafos de texto")
     sub_contexts: Optional[List[SubContextDTO]] = Field(default=None, description="Sub-contextos")
@@ -62,23 +64,36 @@ class ContextBlockDTO(BaseModel):
                     type=sub.type,
                     title=sub.title,
                     content=sub.content,
-                    images=sub.images
+                    images=sub.azure_image_urls if sub.azure_image_urls else sub.images,  # Priorizar Azure URLs
+                    azure_image_urls=sub.azure_image_urls if sub.azure_image_urls else []
                 )
                 for sub in internal_cb.sub_contexts
             ]
         
         # Determinar images e contentType
         images = []
+        azure_image_urls = []
         content_type = None
         
         if internal_cb.sub_contexts:
             # Context blocks com sub_contexts: imagens ficam nos sub_contexts
             images = []
+            azure_image_urls = []
         else:
             # Context blocks simples: usar imagens do próprio block
-            images = internal_cb.images if internal_cb.images else []
-            if internal_cb.has_image and images:
+            if internal_cb.azure_image_urls:
+                # Priorizar URLs do Azure
+                images = internal_cb.azure_image_urls
+                azure_image_urls = internal_cb.azure_image_urls
+                content_type = "image/url"
+            elif internal_cb.images:
+                # Fallback para base64
+                images = internal_cb.images
+                azure_image_urls = []
                 content_type = "image/jpeg;base64"
+            else:
+                images = []
+                azure_image_urls = []
         
         # Determinar paragraphs
         paragraphs = None
@@ -93,6 +108,7 @@ class ContextBlockDTO(BaseModel):
             title=internal_cb.title,
             hasImage=internal_cb.has_image,
             images=images,
+            azure_image_urls=azure_image_urls,
             contentType=content_type,
             paragraphs=paragraphs,
             sub_contexts=sub_contexts_dto
