@@ -267,12 +267,12 @@ async def _add_base64_images_to_figures(self, figures, images_base64):
 1. ✅ **Configurar Azure Settings** - **CONCLUÍDO** ✅
 2. ✅ **Criar Serviço de Upload** - **CONCLUÍDO** ✅
 3. ✅ **Remover Images do Header** - **CONCLUÍDO** ✅
-4. ⭕ **Definir Padrão Nomenclatura** - **DEFINIDO** ✅
-5. ⭕ **Integrar Upload no Context Builder**
-6. ⭕ **Modificar Logic Context Blocks**
+4. ✅ **Definir Padrão Nomenclatura** - **DEFINIDO** ✅
+5. ✅ **Integrar Upload no Context Builder** - **CONCLUÍDO** ✅
+6. ✅ **Modificar Logic Context Blocks** - **CONCLUÍDO** ✅
 7. ⭕ **Remover Salvamento Local** (opcional)
-8. ⭕ **Atualizar DTOs e Documentação**
-9. ⭕ **Testar Integração Completa**
+8. ⭕ **Atualizar DTOs e Documentação** (opcional)
+9. ✅ **Testar Integração Completa** - **CONCLUÍDO** ✅
 
 ## 🎯 **Status: Padrão de Nomenclatura Definido**
 
@@ -323,6 +323,62 @@ documents/tests/images/{document_guid}/{sequence}.jpg
 
 - **ANTES:** Header continha `{"images": [...]}`
 - **DEPOIS:** Header SEM campo images - `{"school": "...", "teacher": "...", "subject": "..."}`
+
+---
+
+### ✅ **Etapa 3: Integração Azure com Context Blocks - FINALIZADA**
+
+**🔧 Correções Críticas Implementadas:**
+
+- ✅ **Fix URLs Azure:** Corrigida estrutura de `documents/tests/images/{document-prefix-guid}/` para `documents/tests/images/{guid}/`
+- ✅ **Fix GUID Único:** Context builder agora gera GUID único por documento em vez de usar document_id completo
+- ✅ **Fix DTOs:** Removido campo duplicado `azure_image_urls` - mantido apenas campo `images` com URLs Azure
+- ✅ **Fix Nomenclatura:** Renomeado `RefactoredContextBlockBuilder` → `ContextBlockBuilder` 
+- ✅ **Fix Arquivo:** Renomeado `refactored_context_builder.py` → `context_block_builder.py`
+- ✅ **Fix Mock Support:** Adicionado suporte ao argumento `--use-mock` no `start_simple.py`
+
+**🚀 Integração Context Blocks:**
+
+- ✅ `ContextBlockBuilder` - Integração com `IImageUploadService` via dependency injection
+- ✅ `_add_base64_images_to_figures()` - Upload automático para Azure antes de criar context blocks
+- ✅ URLs Azure priorizadas sobre base64 nos DTOs de resposta
+- ✅ Context blocks agora retornam URLs públicas em vez de base64
+- ✅ Fallback para base64 mantido para compatibilidade
+
+**🧪 Validação Implementada:**
+
+- ✅ Teste completo em `test_context_blocks_debug.py`
+- ✅ **TODOS OS UPLOADS AZURE FUNCIONANDO** - HTTP 201 Created para todas as imagens
+- ✅ URLs geradas seguem padrão correto: `documents/tests/images/{guid-único}/sequence.jpg`
+- ✅ Context blocks criados com URLs Azure funcionais
+- ✅ DTOs retornam apenas campo `images` com URLs (sem duplicação)
+
+**📊 Resultado dos Testes:**
+
+```
+✅ Context blocks created: 1
+✅ Azure upload completed: 7/7 images uploaded  
+✅ URLs geradas: documents/tests/images/b86b89df-a3a3-4e53-9186-a472513081e9/1.jpg
+✅ HTTP 201 Created para todas as imagens
+✅ DTOs limpos sem campos duplicados
+```
+
+**🔍 Transformação Confirmada:**
+
+- **ANTES:** Context blocks com base64: `{"images": ["data:image/jpeg;base64,/9j/4AA..."], "azure_image_urls": [...]}`
+- **DEPOIS:** Context blocks com URLs: `{"images": ["https://crieducstorage.blob.core.windows.net/crieduc-documents/documents/tests/images/{guid}/1.jpg?sas..."]}`
+
+**💎 Commit Realizado:**
+
+```
+fix: Corrigir estrutura de URLs do Azure Blob Storage e remover nomenclatura 'refactored'
+- Fix: URLs agora seguem padrão correto documents/tests/images/{guid}/sequence.jpg
+- Fix: Remover campo duplicado azure_image_urls das DTOs
+- Fix: Renomear RefactoredContextBlockBuilder para ContextBlockBuilder
+- Fix: Gerar GUID único para Azure Storage em vez de usar document_id completo
+- Fix: Adicionar suporte ao argumento --use-mock no start_simple.py
+- Fix: Atualizar interfaces para passar document_id aos context builders
+```
 
 ---
 
