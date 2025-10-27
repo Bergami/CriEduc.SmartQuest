@@ -79,8 +79,11 @@ class MongoDBConnectionService:
         """
         Verifica se conexão está funcionando.
         
+        NÃO conecta automaticamente - apenas verifica se há conexão ativa.
+        Use get_database() para garantir conexão antes de chamar health_check().
+        
         Returns:
-            True se conexão está ativa
+            True se conexão está ativa e funcionando
         """
         try:
             if self._client is None:

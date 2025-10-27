@@ -51,6 +51,7 @@ class MongoDBPersistenceService(ISimplePersistenceService):
             PersistenceError: Erro durante salvamento
         """
         try:
+            # get_database() já valida a conexão e lança ConnectionError se falhar
             database = await self._connection_service.get_database()
             collection = database["analyze_documents"]
             
@@ -60,12 +61,32 @@ class MongoDBPersistenceService(ISimplePersistenceService):
             # Insere documento
             result = await collection.insert_one(doc_data)
             
-            self._logger.info(f"Analysis result saved with ID: {result.inserted_id}")
+            self._logger.info({
+                "event": "analysis_result_saved",
+                "status": "success",
+                "document_id": str(result.inserted_id),
+                "operation": "save_analysis_result"
+            })
             return str(result.inserted_id)
             
+        except ConnectionError as e:
+            error_msg = f"MongoDB is unavailable: {str(e)}"
+            self._logger.error({
+                "event": "mongodb_unavailable",
+                "operation": "save_analysis_result",
+                "status": "error",
+                "error": str(e)
+            })
+            raise PersistenceError(error_msg)
         except Exception as e:
-            self._logger.error(f"Error saving analysis result: {e}")
-            raise PersistenceError(f"Failed to save analysis result: {str(e)}")
+            error_msg = f"Failed to save analysis result: {str(e)}"
+            self._logger.error({
+                "event": "save_analysis_error",
+                "status": "error",
+                "operation": "save_analysis_result",
+                "error": str(e)
+            })
+            raise PersistenceError(error_msg)
 
     async def save_azure_processing_data(self, azure_data_record: AzureProcessingDataRecord) -> str:
         """
@@ -81,6 +102,7 @@ class MongoDBPersistenceService(ISimplePersistenceService):
             PersistenceError: Erro durante salvamento
         """
         try:
+            # get_database() já valida a conexão e lança ConnectionError se falhar
             database = await self._connection_service.get_database()
             collection = database["azure_processing_data"]
             
@@ -90,12 +112,32 @@ class MongoDBPersistenceService(ISimplePersistenceService):
             # Insere documento
             result = await collection.insert_one(doc_data)
             
-            self._logger.info(f"Azure processing data saved with ID: {result.inserted_id}")
+            self._logger.info({
+                "event": "azure_data_saved",
+                "status": "success",
+                "document_id": str(result.inserted_id),
+                "operation": "save_azure_processing_data"
+            })
             return str(result.inserted_id)
             
+        except ConnectionError as e:
+            error_msg = f"MongoDB is unavailable: {str(e)}"
+            self._logger.error({
+                "event": "mongodb_unavailable",
+                "operation": "save_azure_processing_data",
+                "status": "error",
+                "error": str(e)
+            })
+            raise PersistenceError(error_msg)
         except Exception as e:
-            self._logger.error(f"Error saving Azure processing data: {e}")
-            raise PersistenceError(f"Failed to save Azure processing data: {str(e)}")
+            error_msg = f"Failed to save Azure processing data: {str(e)}"
+            self._logger.error({
+                "event": "save_azure_data_error",
+                "status": "error",
+                "operation": "save_azure_processing_data",
+                "error": str(e)
+            })
+            raise PersistenceError(error_msg)
 
     async def get_by_document_id(self, document_id: str) -> Optional[AnalyzeDocumentRecord]:
         """

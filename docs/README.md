@@ -86,10 +86,9 @@ python start_simple.py
 AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-service.cognitiveservices.azure.com/
 AZURE_DOCUMENT_INTELLIGENCE_KEY=your-api-key
 
-# MongoDB (Docker configura automaticamente)
+# MongoDB (Docker configura automaticamente - OBRIGATÓRIO)
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DATABASE=smartquest
-ENABLE_MONGODB_PERSISTENCE=true
 ```
 
 ## 🧪 Testes Rápidos

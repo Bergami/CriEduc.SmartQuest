@@ -4,16 +4,16 @@ Documentação técnica da arquitetura e tecnologias utilizadas no SmartQuest.
 
 ## 🛠️ Tech Stack
 
-| Tecnologia | Versão | Propósito |
-|------------|--------|-----------|
-| **Python** | 3.9+ | Linguagem principal |
-| **FastAPI** | Latest | Framework web + API REST |
-| **MongoDB** | 7.0 | Banco de dados NoSQL |
-| **PyMongo/Motor** | Latest | Drivers MongoDB (sync/async) |
-| **Pydantic** | Latest | Validação e serialização |
-| **Azure Document Intelligence** | 2023-07-31 | Extração de texto/imagens |
-| **Docker** | Latest | Containerização |
-| **Pytest** | Latest | Framework de testes |
+| Tecnologia                      | Versão     | Propósito                    |
+| ------------------------------- | ---------- | ---------------------------- |
+| **Python**                      | 3.9+       | Linguagem principal          |
+| **FastAPI**                     | Latest     | Framework web + API REST     |
+| **MongoDB**                     | 7.0        | Banco de dados NoSQL         |
+| **PyMongo/Motor**               | Latest     | Drivers MongoDB (sync/async) |
+| **Pydantic**                    | Latest     | Validação e serialização     |
+| **Azure Document Intelligence** | 2023-07-31 | Extração de texto/imagens    |
+| **Docker**                      | Latest     | Containerização              |
+| **Pytest**                      | Latest     | Framework de testes          |
 
 ## 🏗️ Arquitetura do Sistema
 
@@ -26,24 +26,24 @@ graph TB
         B[Health Endpoints]
         C[Exception Handlers]
     end
-    
+
     subgraph "🧠 Business Layer"
         D[AnalyzeService]
         E[DI Container]
         F[Document Extraction]
     end
-    
+
     subgraph "💾 Persistence Layer"
         G[MongoDBPersistenceService]
         H[MongoDB Connection Service]
         I[(MongoDB Database)]
     end
-    
+
     subgraph "☁️ External Services"
         J[Azure Document Intelligence]
         K[File Cache System]
     end
-    
+
     A --> D
     B --> H
     D --> G
@@ -53,7 +53,7 @@ graph TB
     H --> I
     E --> G
     E --> H
-    
+
     style I fill:#4CAF50
     style J fill:#0078D4
     style E fill:#FF9800
@@ -69,11 +69,11 @@ sequenceDiagram
     participant Azure
     participant Cache
     participant MongoDB
-    
+
     Client->>API: POST /analyze_document
     API->>Service: process_document()
     Service->>Cache: check_cache()
-    
+
     alt Cache Hit
         Cache-->>Service: cached_data
     else Cache Miss
@@ -81,7 +81,7 @@ sequenceDiagram
         Azure-->>Service: extraction_result
         Service->>Cache: store_result()
     end
-    
+
     Service->>MongoDB: save_analysis_result()
     MongoDB-->>Service: document_id
     Service-->>API: analysis_response
@@ -91,6 +91,7 @@ sequenceDiagram
 ## 🏛️ Arquitetura em Camadas
 
 ### 1. **🌐 API Layer**
+
 ```python
 app/api/
 ├── controllers/analyze.py      # Endpoint principal
@@ -99,12 +100,14 @@ app/api/
 ```
 
 **Responsabilidades:**
+
 - Validação de entrada (Pydantic)
 - Serialização de resposta
 - Exception handling
 - Health monitoring
 
 ### 2. **🧠 Business Layer**
+
 ```python
 app/services/
 ├── analyze_service.py          # Orquestração principal
@@ -113,12 +116,14 @@ app/services/
 ```
 
 **Responsabilidades:**
+
 - Lógica de negócio
 - Orquestração de serviços
 - Processamento de documentos
 - Cache management
 
 ### 3. **💾 Persistence Layer**
+
 ```python
 app/services/
 ├── infrastructure/             # Conexões MongoDB
@@ -126,6 +131,7 @@ app/services/
 ```
 
 **Responsabilidades:**
+
 - Operações CRUD MongoDB
 - Gerenciamento de conexões
 - Models Pydantic para DB
@@ -135,11 +141,11 @@ app/services/
 
 ### 🗄️ **Collections**
 
-| Collection | Propósito | Modelo |
-|------------|-----------|--------|
-| `analyze_documents` | Resultados de análise | `AnalyzeDocumentRecord` |
-| `azure_processing_data` | Métricas Azure | `AzureProcessingDataRecord` |
-| `migrations` | Controle de versão DB | System |
+| Collection              | Propósito             | Modelo                      |
+| ----------------------- | --------------------- | --------------------------- |
+| `analyze_documents`     | Resultados de análise | `AnalyzeDocumentRecord`     |
+| `azure_processing_data` | Métricas Azure        | `AzureProcessingDataRecord` |
+| `migrations`            | Controle de versão DB | System                      |
 
 ### 📋 **Models Pydantic**
 
@@ -172,6 +178,7 @@ scripts/migrations/
 ```
 
 **Controle de Versão:**
+
 - Scripts versionados cronologicamente
 - Verificação automática de aplicação
 - Rollback support
@@ -211,6 +218,7 @@ CACHE_DIRECTORY = "./cache/documents"
 ```
 
 **Features:**
+
 - Cache automático de responses Azure
 - Duração configurável (7 dias default)
 - Isolamento por usuário
@@ -228,6 +236,7 @@ container.register(IAnalyzeService, AnalyzeService, lifetime=Singleton)
 ```
 
 **Benefícios:**
+
 - Loose coupling entre componentes
 - Testabilidade (mock injection)
 - Lifecycle management
@@ -255,6 +264,7 @@ async def analyze_document(...):
 ```
 
 **Features:**
+
 - Logging estruturado automático
 - HTTP status codes apropriados
 - Request context preservation
@@ -264,9 +274,9 @@ async def analyze_document(...):
 
 ### ❤️ **Endpoints de Saúde**
 
-| Endpoint | Propósito |
-|----------|-----------|
-| `/health` | Status geral da API |
+| Endpoint           | Propósito             |
+| ------------------ | --------------------- |
+| `/health`          | Status geral da API   |
 | `/health/database` | Conectividade MongoDB |
 
 ### 📈 **Métricas Coletadas**
@@ -293,10 +303,9 @@ async def analyze_document(...):
 AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=
 AZURE_DOCUMENT_INTELLIGENCE_KEY=
 
-# MongoDB
+# MongoDB (obrigatório)
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DATABASE=smartquest
-ENABLE_MONGODB_PERSISTENCE=true
 
 # Cache
 CACHE_DURATION_DAYS=7
@@ -315,7 +324,7 @@ services:
     build: .
     ports: ["8000:8000"]
     depends_on: [mongodb]
-    
+
   mongodb:
     image: mongo:7.0
     ports: ["27017:27017"]
@@ -325,6 +334,7 @@ services:
 ## 🎯 Padrões Arquiteturais
 
 ### 🏗️ **SOLID Principles**
+
 - **S**ingle Responsibility: Cada classe tem propósito único
 - **O**pen/Closed: Extensível via interfaces
 - **L**iskov Substitution: Implementações intercambiáveis
@@ -332,6 +342,7 @@ services:
 - **D**ependency Inversion: DI Container gerencia dependências
 
 ### 🧹 **Clean Architecture**
+
 - **Separation of Concerns**: Camadas bem definidas
 - **Dependency Rule**: Dependências apontam para dentro
 - **Testability**: Business logic isolada de infraestrutura

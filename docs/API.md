@@ -4,27 +4,82 @@
 
 ### GET /health/
 
-**Descrição:** Endpoint de health check consolidado que retorna status da API, configurações e informações do serviço.
+**Descrição:** Health check completo que verifica TODAS as dependências do sistema.
 
-**Resposta:**
+**Dependências Testadas:**
+
+- ✅ **MongoDB** (CRÍTICO) - Persistência obrigatória
+- ✅ **Azure Blob Storage** (CRÍTICO) - Armazenamento de imagens obrigatório
+- ⚠️ **Azure Document Intelligence** (NÃO CRÍTICO) - Pode usar mock
+
+**Status Possíveis:**
+
+- `healthy` - Todas as dependências funcionando
+- `degraded` - Sistema funcionando mas com avisos (ex: Azure AI usando mock)
+- `unhealthy` - Dependências críticas falharam (MongoDB ou Blob Storage indisponíveis)
+
+**Resposta de Sucesso (200 OK):**
 
 ```json
 {
   "status": "healthy",
-  "message": "SmartQuest API is running",
+  "message": "All systems operational",
+  "timestamp": "2025-10-27T22:19:23.561090",
   "service": {
     "name": "SmartQuest API",
-    "version": "0.1.0",
+    "version": "2.0.0",
     "description": "Microservice for analyzing and classifying educational assessments"
   },
-  "configuration": {
-    "azure_ai_configured": true,
-    "azure_ai_enabled": true
+  "environment": "local",
+  "dependencies": {
+    "mongodb": {
+      "status": "healthy",
+      "message": "MongoDB connected and operational",
+      "details": {
+        "database": "smartquest",
+        "collections_count": 3,
+        "collections": [
+          "azure_processing_data",
+          "analyze_documents",
+          "migrations"
+        ]
+      }
+    },
+    "azure_blob_storage": {
+      "status": "healthy",
+      "message": "Azure Blob Storage connected and operational",
+      "details": {
+        "service": "AzureImageUploadService",
+        "azure_blob_enabled": true,
+        "has_storage_url": true,
+        "has_container_name": true,
+        "has_sas_token": true
+      }
+    },
+    "azure_document_intelligence": {
+      "status": "healthy",
+      "message": "Azure Document Intelligence configured",
+      "details": {
+        "enabled": true,
+        "endpoint_configured": true,
+        "key_configured": true
+      }
+    }
   },
   "endpoints": {
-    "health": "/health/ - Health check and API status",
+    "health": "/health/ - Complete health check with all dependencies",
     "analyze": "/analyze/analyze_document - Document analysis endpoint"
   }
+}
+```
+
+**Resposta de Falha (503 Service Unavailable):**
+
+```json
+{
+  "status": "unhealthy",
+  "message": "Critical dependencies unavailable: MongoDB, Azure Blob Storage",
+  "...": "Same structure as success response"
 }
 ```
 

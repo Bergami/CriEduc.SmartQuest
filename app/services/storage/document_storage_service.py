@@ -65,67 +65,6 @@ class DocumentStorageService:
             logger.error(f"Erro ao salvar resposta {provider}: {str(e)}")
             return None
     
-    def save_document_images(self, images: Dict[str, str], document_id: str, provider: str) -> Dict[str, str]:
-        """
-        Salva imagens extraídas do documento (opcional via feature flag)
-        
-        Args:
-            images: Dicionário com ID da imagem e conteúdo base64
-            document_id: ID único do documento
-            provider: Nome do provedor
-            
-        Returns:
-            Dicionário com IDs das imagens e caminhos dos arquivos salvos
-        """
-        settings = get_settings()
-        
-        # ✅ Feature flag: permite desabilitar salvamento local
-        if not settings.enable_local_image_saving:
-            logger.info(f"💡 Local image saving disabled by feature flag - skipping save for document {document_id}")
-            return {}
-        
-        saved_paths = {}
-        
-        try:
-            # Criar diretório para o documento
-            doc_dir = self.base_path / "images" / "by_document" / document_id
-            doc_dir.mkdir(parents=True, exist_ok=True)
-            
-            provider_dir = self.base_path / "images" / "by_provider" / provider / document_id
-            provider_dir.mkdir(parents=True, exist_ok=True)
-            
-            for image_id, base64_content in images.items():
-                try:
-                    # Decodificar base64
-                    import base64
-                    image_bytes = base64.b64decode(base64_content)
-                    
-                    # Nome do arquivo
-                    image_filename = f"{image_id}.jpg"
-                    
-                    # Salvar em ambos os diretórios
-                    doc_path = doc_dir / image_filename
-                    provider_path = provider_dir / image_filename
-                    
-                    with open(doc_path, "wb") as f:
-                        f.write(image_bytes)
-                    
-                    with open(provider_path, "wb") as f:
-                        f.write(image_bytes)
-                    
-                    saved_paths[image_id] = str(doc_path)
-                    
-                except Exception as e:
-                    logger.error(f"Erro ao salvar imagem {image_id}: {str(e)}")
-                    continue
-            
-            logger.info(f"Salvadas {len(saved_paths)} imagens para documento {document_id}")
-            return saved_paths
-            
-        except Exception as e:
-            logger.error(f"Erro ao salvar imagens do documento {document_id}: {str(e)}")
-            return {}
-    
     # REMOVIDO: save_extracted_text() - funcionalidade desnecessária
     # O texto extraído já fica disponível na memória e não precisa ser persistido
     

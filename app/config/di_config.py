@@ -141,19 +141,16 @@ def configure_dependencies() -> None:
     # ==================================================================================
     # 💾 PERSISTENCE SERVICE (MongoDB)
     # ==================================================================================
-    settings = get_settings()
+    container.register(
+        interface_type=ISimplePersistenceService,
+        implementation_type=MongoDBPersistenceService,
+        lifetime=ServiceLifetime.SINGLETON  # Singleton para reutilizar conexões
+    )
     
-    if settings.enable_mongodb_persistence:
-        container.register(
-            interface_type=ISimplePersistenceService,
-            implementation_type=MongoDBPersistenceService,
-            lifetime=ServiceLifetime.SINGLETON  # Singleton para reutilizar conexões
-        )
-        
-        logger.debug("✅ ISimplePersistenceService -> MongoDBPersistenceService (Singleton)")
-        logger.info(f"🔗 MongoDB configured: {settings.mongodb_database} @ {settings.mongodb_url}")
-    else:
-        logger.warning("⚠️ MongoDB persistence disabled in settings")
+    logger.debug("✅ ISimplePersistenceService -> MongoDBPersistenceService (Singleton)")
+    
+    settings = get_settings()
+    logger.info(f"🔗 MongoDB configured: {settings.mongodb_database} @ {settings.mongodb_url}")
     
     logger.info("✅ Dependency configuration completed successfully!")
     logger.info(f"📊 Total services registered: {len(container.get_registrations())}")
@@ -232,13 +229,9 @@ def validate_configuration() -> bool:
         IContextBuilder,
         IFigureProcessor,
         IDocumentAnalysisOrchestrator,
-        IAnalyzeService
+        IAnalyzeService,
+        ISimplePersistenceService  # MongoDB sempre deve estar registrado
     ]
-    
-    # Se MongoDB está habilitado, também verificar ISimplePersistenceService
-    settings = get_settings()
-    if settings.enable_mongodb_persistence:
-        essential_interfaces.append(ISimplePersistenceService)
     
     try:
         # Verifica se todas as interfaces estão registradas

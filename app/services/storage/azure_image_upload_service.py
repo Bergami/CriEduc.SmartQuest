@@ -49,21 +49,42 @@ class AzureImageUploadService:
             ValueError: Se configurações Azure não estão disponíveis
             httpx.HTTPError: Se falha no upload
         """
+        # Validar disponibilidade do Azure Blob Storage
         if not self._settings.azure_blob_enabled:
-            self._logger.warning("Azure Blob Storage não está habilitado ou configurado")
-            return {}
+            error_msg = "Azure Blob Storage is unavailable or not configured"
+            self._logger.error({
+                "event": "azure_blob_unavailable",
+                "operation": "upload_images",
+                "status": "error",
+                "message": error_msg,
+                "config_status": self.get_service_status()
+            })
+            raise ValueError(error_msg)
         
         if not images_base64:
-            self._logger.info("Nenhuma imagem para upload")
+            self._logger.info({
+                "event": "no_images_to_upload",
+                "status": "info",
+                "document_id": document_id
+            })
             return {}
         
         # Gerar GUID único do documento se não fornecido
         if not document_guid:
             document_guid = str(uuid.uuid4())
-            self._logger.info(f"Gerado novo document_guid: {document_guid}")
+            self._logger.info({
+                "event": "document_guid_generated",
+                "document_guid": document_guid,
+                "document_id": document_id
+            })
         
-        self._logger.info(f"Iniciando upload de {len(images_base64)} imagens para Azure Blob Storage")
-        self._logger.info(f"Document GUID: {document_guid}")
+        self._logger.info({
+            "event": "upload_started",
+            "status": "info",
+            "images_count": len(images_base64),
+            "document_id": document_id,
+            "document_guid": document_guid
+        })
         
         urls_mapping = {}
         sequence = 1
@@ -83,16 +104,37 @@ class AzureImageUploadService:
                     
                     if public_url:
                         urls_mapping[image_id] = public_url
-                        self._logger.debug(f"✅ Upload concluído: {image_id} -> {public_url}")
+                        self._logger.debug({
+                            "event": "image_uploaded",
+                            "status": "success",
+                            "image_id": image_id,
+                            "url": public_url,
+                            "sequence": sequence
+                        })
                         sequence += 1
                     else:
-                        self._logger.error(f"❌ Falha no upload da imagem: {image_id}")
+                        self._logger.error({
+                            "event": "image_upload_failed",
+                            "status": "error",
+                            "image_id": image_id
+                        })
                         
                 except Exception as e:
-                    self._logger.error(f"❌ Erro no upload da imagem {image_id}: {str(e)}")
+                    self._logger.error({
+                        "event": "image_upload_error",
+                        "status": "error",
+                        "image_id": image_id,
+                        "error": str(e)
+                    })
                     continue
         
-        self._logger.info(f"Upload finalizado: {len(urls_mapping)}/{len(images_base64)} imagens enviadas com sucesso")
+        self._logger.info({
+            "event": "upload_completed",
+            "status": "success",
+            "uploaded_count": len(urls_mapping),
+            "total_count": len(images_base64),
+            "document_id": document_id
+        })
         return urls_mapping
     
     async def _upload_single_image(
@@ -216,3 +258,50 @@ class AzureImageUploadService:
             "enable_upload_flag": self._settings.enable_azure_blob_upload,
             "service_ready": self._settings.azure_blob_enabled
         }
+    
+    async def health_check(self) -> bool:
+        """
+        Verifica se o Azure Blob Storage está configurado e acessível.
+        
+        Faz uma requisição GET simples para verificar conectividade com o container.
+        
+        Returns:
+            True se o serviço está saudável, False caso contrário
+        """
+        try:
+            if not self._settings.azure_blob_enabled:
+                logger.debug("Azure Blob Storage não está habilitado")
+                return False
+            
+            # Construir URL do container
+            base_url = self._settings.azure_blob_storage_url.rstrip('/')
+            container = self._settings.azure_blob_container_name
+            
+            # URL de verificação: lista blobs com max 1 resultado
+            check_url = f"{base_url}/{container}?restype=container&comp=list&maxresults=1"
+            
+            # Adicionar SAS token se disponível
+            if self._settings.azure_blob_sas_token:
+                sas = self._settings.azure_blob_sas_token.lstrip('?')
+                check_url = f"{check_url}&{sas}"
+            
+            # Fazer requisição GET para verificar acesso
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                response = await client.get(check_url)
+                
+                # 200 = OK, 404 = container não encontrado mas credenciais válidas
+                is_healthy = response.status_code in [200, 404]
+                
+                if is_healthy:
+                    logger.debug(f"Azure Blob Storage health check OK (status: {response.status_code})")
+                else:
+                    logger.warning(f"Azure Blob Storage health check failed (status: {response.status_code})")
+                
+                return is_healthy
+                
+        except httpx.TimeoutException:
+            logger.warning("Azure Blob Storage health check timeout")
+            return False
+        except Exception as e:
+            logger.warning(f"Azure Blob Storage health check error: {e}")
+            return False

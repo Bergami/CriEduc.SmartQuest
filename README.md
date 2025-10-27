@@ -513,8 +513,9 @@ Persistence is controlled via environment variables:
 # .env-local configuration
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DATABASE=smartquest
-ENABLE_MONGODB_PERSISTENCE=true
 MONGODB_DOCKER_CONTAINER=smartquest-mongodb
+
+# Note: MongoDB persistence is now MANDATORY (no feature flag needed)
 ```
 
 ### 📈 **Performance**
@@ -781,10 +782,9 @@ Edit `.env-local` with your Azure credentials:
 AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=https://your-service.cognitiveservices.azure.com/
 AZURE_DOCUMENT_INTELLIGENCE_KEY=your-api-key
 
-# MongoDB (Docker will handle this automatically)
+# MongoDB (Docker will handle this automatically - MANDATORY)
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DATABASE=smartquest
-ENABLE_MONGODB_PERSISTENCE=true
 ```
 
 📌 3. Start Complete Infrastructure
@@ -822,10 +822,9 @@ AZURE_DOCUMENT_INTELLIGENCE_KEY=your-api-key
 AZURE_DOCUMENT_INTELLIGENCE_MODEL=prebuilt-layout
 AZURE_DOCUMENT_INTELLIGENCE_API_VERSION=2023-07-31
 
-# MongoDB Configuration (requires local MongoDB installation)
+# MongoDB Configuration (requires local MongoDB installation - MANDATORY)
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DATABASE=smartquest
-ENABLE_MONGODB_PERSISTENCE=true
 
 # App configuration
 APP_NAME=SmartQuest API

@@ -53,12 +53,6 @@ class Settings(BaseSettings):
     azure_blob_sas_token: str = os.getenv("AZURE_BLOB_SAS_TOKEN", "")
     enable_azure_blob_upload: bool = os.getenv("ENABLE_AZURE_BLOB_UPLOAD", "true").lower() == "true"
     
-    # ================================
-    # 🆕 FEATURE FLAGS
-    # ================================
-    enable_mongodb_persistence: bool = os.getenv("ENABLE_MONGODB_PERSISTENCE", "true").lower() == "true"
-    enable_local_image_saving: bool = os.getenv("ENABLE_LOCAL_IMAGE_SAVING", "false").lower() == "true"
-    
     @property
     def azure_blob_sas_url(self) -> str:
         """Constrói URL completa com SAS token para upload"""
@@ -95,8 +89,6 @@ class MockSettings:
     mongodb_url = "mongodb://localhost:27017"
     mongodb_database = "smartquest"
     mongodb_connection_timeout = 10000
-    enable_mongodb_persistence = False
-    enable_local_image_saving = False
     
     # 🆕 Azure Blob Storage Mock Settings
     azure_blob_storage_url = ""

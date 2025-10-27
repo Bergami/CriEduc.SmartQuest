@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any
 from fastapi import UploadFile
 from app.services.storage.document_storage_service import DocumentStorageService
-from app.config.settings import get_settings
 
 class BaseDocumentProvider(ABC):
     """
@@ -56,10 +55,8 @@ class BaseDocumentProvider(ABC):
             # REMOVIDO: save_extracted_text() - texto extraído não precisa ser persistido
             # O texto já fica disponível na memória através do structured_data
             
-            # Salvar imagens se existirem (condicional por feature flag)
-            settings = get_settings()
-            if "image_data" in structured_data and settings.enable_local_image_saving:
-                self.storage.save_document_images(structured_data["image_data"], document_id, self.provider_name)
+            # REMOVIDO: save_document_images() - salvamento local de imagens removido
+            # As imagens são enviadas diretamente para o Azure Blob Storage
                 
         except Exception as e:
             import logging
