@@ -333,7 +333,7 @@ documents/tests/images/{document_guid}/{sequence}.jpg
 - ✅ **Fix URLs Azure:** Corrigida estrutura de `documents/tests/images/{document-prefix-guid}/` para `documents/tests/images/{guid}/`
 - ✅ **Fix GUID Único:** Context builder agora gera GUID único por documento em vez de usar document_id completo
 - ✅ **Fix DTOs:** Removido campo duplicado `azure_image_urls` - mantido apenas campo `images` com URLs Azure
-- ✅ **Fix Nomenclatura:** Renomeado `RefactoredContextBlockBuilder` → `ContextBlockBuilder` 
+- ✅ **Fix Nomenclatura:** Renomeado `RefactoredContextBlockBuilder` → `ContextBlockBuilder`
 - ✅ **Fix Arquivo:** Renomeado `refactored_context_builder.py` → `context_block_builder.py`
 - ✅ **Fix Mock Support:** Adicionado suporte ao argumento `--use-mock` no `start_simple.py`
 
@@ -357,7 +357,7 @@ documents/tests/images/{document_guid}/{sequence}.jpg
 
 ```
 ✅ Context blocks created: 1
-✅ Azure upload completed: 7/7 images uploaded  
+✅ Azure upload completed: 7/7 images uploaded
 ✅ URLs geradas: documents/tests/images/b86b89df-a3a3-4e53-9186-a472513081e9/1.jpg
 ✅ HTTP 201 Created para todas as imagens
 ✅ DTOs limpos sem campos duplicados
@@ -644,7 +644,7 @@ Resumo: {'PASS': 4, 'FAIL': 0, 'SKIP': 0}
 **🎯 Etapa 7: Remover Salvamento Local (Último commit)**
 
 - ✅ Feature flag `ENABLE_LOCAL_IMAGE_SAVING=false` implementada
-- ✅ Image extractors sem salvamento local redundante  
+- ✅ Image extractors sem salvamento local redundante
 - ✅ DocumentStorageService opcional via feature flag
 - ✅ Sistema funcionando 100% apenas com Azure Blob Storage
 

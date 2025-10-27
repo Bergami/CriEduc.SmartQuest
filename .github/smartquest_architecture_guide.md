@@ -3,6 +3,7 @@
 ## 📋 Visão Geral do Projeto
 
 O **SmartQuest** é uma API FastAPI que processa documentos de prova usando Azure Document Intelligence para extrair:
+
 - **Header**: Metadados da prova (escola, série, matéria, etc.)
 - **Context Blocks**: Textos com sub-contextos organizados por sequência
 - **Questions**: Questões com alternativas e associações a contextos
@@ -10,6 +11,7 @@ O **SmartQuest** é uma API FastAPI que processa documentos de prova usando Azur
 ## 🎯 Arquitetura Principal
 
 ### 📁 Estrutura de Diretórios
+
 ```
 app/
 ├── api/                    # Controllers e rotas
@@ -46,15 +48,17 @@ app/
 ## 📦 Padrões de DTOs e Modelos
 
 ### 🔧 Estrutura de Modelos Pydantic (Internal)
+
 ```python
 # Localização: app/models/internal/
 - document_models.py  # InternalDocumentResponse, InternalDocumentMetadata
-- context_models.py   # InternalContextBlock, InternalContextContent  
+- context_models.py   # InternalContextBlock, InternalContextContent
 - question_models.py  # InternalQuestion, InternalAnswerOption
 - image_models.py     # InternalImageData, ImagePosition
 ```
 
 ### 🔧 Estrutura de DTOs (API)
+
 ```python
 # Localização: app/dtos/
 - api/document_dtos.py    # DocumentResponseDTO (principal)
@@ -64,6 +68,7 @@ app/
 ```
 
 ### 🔄 Adaptadores (Pydantic → Dict)
+
 ```python
 # Localização: app/adapters/
 - document_response_adapter.py # DocumentResponseAdapter
@@ -72,6 +77,7 @@ app/
 **⚠️ Nota de Migração**: O sistema está migrando de Dict para Pydantic. Alguns componentes ainda usam Dict internamente e requerem conversões.
 
 ### 🎨 Padrão de Conversão
+
 ```python
 # Para Modelos Pydantic Internos
 class InternalModel(BaseModel):
@@ -102,6 +108,7 @@ class ResponseAdapter:
 ## 🏗️ Context Blocks e Sub-Contexts
 
 ### 📝 Estrutura de Context Block
+
 ```json
 {
   "id": 1,
@@ -114,7 +121,9 @@ class ResponseAdapter:
       "type": "charge",
       "title": "TEXTO A: charge",
       "content": "Texto da charge...",
-      "images": ["base64_image_data"]
+      "images": [
+        // URL da imagem
+      ]
     }
   ],
   "hasImage": true
@@ -122,6 +131,7 @@ class ResponseAdapter:
 ```
 
 ### 🎯 Sub-Context Types
+
 - **charge**: Charges/cartuns
 - **propaganda**: Textos publicitários
 - **text**: Textos simples
@@ -130,6 +140,7 @@ class ResponseAdapter:
 ## 🔧 Azure Document Intelligence
 
 ### 📍 Arquivos Principais
+
 - `azure_document_intelligence_service.py`: Client do Azure
 - `document_extraction_factory.py`: Factory para diferentes provedores
 - `advanced_context_builder.py`: Processamento avançado de contextos
@@ -138,6 +149,7 @@ class ResponseAdapter:
 - `mock_document_service.py`: Serviço mock para testes
 
 ### 🎨 Dados do Azure (Estrutura Esperada)
+
 ```python
 {
     "analyzeResult": {
@@ -160,12 +172,14 @@ class ResponseAdapter:
 ## 🎯 Padrões de Nomenclatura
 
 ### 📝 Convenções de Código
+
 - **Classes**: PascalCase (`ContextBlockDTO`)
 - **Funções/Variáveis**: snake_case (`from_internal_context`)
 - **Constantes**: UPPER_CASE (`MAX_IMAGE_SIZE`)
 - **Arquivos**: snake_case (`context_dtos.py`)
 
 ### 🌐 Convenções de API
+
 - **Endpoints**: `/analyze/analyze_document`
 - **Campos JSON**: camelCase no output (`hasImage`, `contextId`)
 - **Campos internos**: snake_case (`has_image`, `context_id`)
@@ -173,6 +187,7 @@ class ResponseAdapter:
 ## 🔄 Migração e Versionamento
 
 ### 📋 Formato Legacy vs Novo
+
 ```python
 # Legacy (mantido para compatibilidade)
 "contexts": [...]  # Nome antigo
@@ -184,37 +199,43 @@ class ResponseAdapter:
 ### 🎯 Migração Pydantic vs Dict (Status Setembro 2025)
 
 #### ✅ Componentes Migrados para Pydantic
+
 - **Modelos Internos**: `InternalDocumentResponse`, `InternalDocumentMetadata`
 - **DTOs de API**: Todos os DTOs principais
 - **Validação**: Metadados de documento e estrutura básica
 
 #### ⚠️ Componentes Híbridos (Em Migração)
+
 - **Endpoint Principal**: `/analyze_document` usa Pydantic + Dict interno
 - **InternalDocumentResponse**: Campos `questions` e `context_blocks` ainda são Dict
 - **Parsers**: `HeaderParser` e `QuestionParser` retornam Dict
 
 #### ❌ Componentes Ainda em Dict
+
 - **Processamento Interno**: Pipeline de parsing usa Dict
-- **Endpoint Legacy**: `/analyze_document_with_figures` 
+- **Endpoint Legacy**: `/analyze_document_with_figures`
 - **Context Builders**: Alguns ainda processam apenas Dict
 
 #### 🔄 Conversões Desnecessárias
+
 - **DocumentResponseAdapter**: Converte Pydantic → Dict (temporário)
 - **Header Processing**: Dict → Pydantic → uso interno
 
 ## 🧪 Testing e Debug
 
 ### 📁 Estrutura de Testes
+
 ```
 tests/
 ├── documents/          # Documentos de teste
 ├── extracted_images/   # Imagens extraídas
-├── extracted_text/     # Textos extraídos  
+├── extracted_text/     # Textos extraídos
 ├── responses/         # Respostas do Azure salvas
 └── unit/              # Testes unitários
 ```
 
 ### 🔧 Comandos de Debug
+
 ```powershell
 # Rodar com mock (endpoint principal)
 python start_simple.py --use-mock
@@ -225,7 +246,7 @@ python start_simple.py --use-mock
 # Rodar testes completos
 python run_tests.py
 
-# Rodar apenas testes unitários  
+# Rodar apenas testes unitários
 python run_tests.py --unit
 
 # Rodar com coverage
@@ -238,6 +259,7 @@ python check_first_questions.py
 ## 🚨 Pontos Críticos de Atenção
 
 ### ⚠️ Validação de Dados - Estado Híbrido
+
 ```python
 # ⚠️ ATENÇÃO: Sistema em migração Pydantic/Dict
 # Alguns campos ainda são Dict mesmo em modelos "Pydantic"
@@ -254,17 +276,19 @@ else:
     pass
 
 # Campos híbridos em InternalDocumentResponse:
-# ✅ Pydantic: metadata, email, document_id  
+# ✅ Pydantic: metadata, email, document_id
 # ❌ Dict: questions, context_blocks
 ```
 
 ### 🔒 Campos Obrigatórios na Resposta
+
 - `header`: Sempre presente com metadados
 - `context_blocks`: Array de contextos (pode ser vazio)
 - `questions`: Array de questões (pode ser vazio)
 - `sub_contexts`: Array dentro de cada context_block
 
 ### 🎯 Response Structure (NUNCA ALTERAR)
+
 ```json
 {
   "header": {...},
@@ -276,22 +300,26 @@ else:
 ## 📚 Recursos e Referências
 
 ### 🔗 Links Importantes
+
 - Azure Document Intelligence API
 - FastAPI Documentation
 - Pydantic Models
 
 ### 📝 Arquivos de Configuração
+
 - `.env`: Configurações principais
 - `.env-local`: Chaves do Azure
 - `pyproject.toml`: Dependências Python
 
 ### 🎯 Mock Response
+
 - Usar `--use-mock` para testar sem Azure
 - Mock simula resposta completa com dados realistas
 
 ## 🎨 Exemplo de Implementação
 
 ### 🔧 Adicionando Novo Campo ao Sistema Híbrido
+
 ```python
 # 1. Se adicionando a modelo Pydantic interno
 class InternalDocumentResponse(BaseModel):
@@ -300,7 +328,7 @@ class InternalDocumentResponse(BaseModel):
 # 2. Se adicionando a DTO de API
 class DocumentResponseDTO(BaseModel):
     novo_campo: Optional[str] = Field(default=None)
-    
+
     @classmethod
     def from_internal_response(cls, internal_response):
         return cls(
@@ -324,12 +352,14 @@ class DocumentResponseAdapter:
 ## 🎯 Regras de Negócio Específicas
 
 ### 📋 Context Builder Rules
+
 - Sequences são identificadas como A, B, C, etc.
 - Cada sequence pode ter múltiplas figures
 - Sub-contexts são criados por sequence + figure
 - Título formatado: "TEXTO {sequence}: {type}"
 
 ### 🎨 Image Processing
+
 - Imagens são armazenadas como base64
 - Azure extrai boundingRegions para localização
 - Imagens associadas a contexts via sequence
@@ -337,13 +367,16 @@ class DocumentResponseAdapter:
 ## 🔧 Separação de Responsabilidades - Extração de Imagens
 
 ### 📋 Problema Identificado (Agosto 2025)
+
 Durante manutenção do endpoint `/analyze/analyze_document_with_last_azure_response`, foi identificado que a **separação de responsabilidades** na extração de imagens não estava clara, causando demora em manutenções simples.
 
 ### 🎯 Responsabilidades Corretas
 
 #### 📊 AzureFigureProcessor
+
 **Localização**: `app/services/azure_figure_processor.py`
 **Responsabilidade**: Processar APENAS metadados das figuras
+
 ```python
 # ✅ FAZ (correto):
 - Extrair coordenadas (polygon, boundingRegions)
@@ -358,8 +391,10 @@ Durante manutenção do endpoint `/analyze/analyze_document_with_last_azure_resp
 ```
 
 #### 🔧 ImageExtractionOrchestrator
+
 **Localização**: `app/services/image_extraction/image_extraction_orchestrator.py`
 **Responsabilidade**: Orquestrar extração de imagens reais
+
 ```python
 # ✅ FAZ (correto):
 - Gerenciar estratégias de extração
@@ -376,7 +411,9 @@ ImageExtractionMethod.MANUAL_PDF     # Coordenadas manuais
 ### 🚨 Problema Específico Identificado
 
 #### ❌ Situação Incorreta (Agosto 2025)
+
 No método `process_document_with_azure_response()`:
+
 ```python
 # ❌ PROBLEMA: Só processava metadados
 processed_figures = AzureFigureProcessor.process_figures_from_azure_response(azure_response)
@@ -389,6 +426,7 @@ image_data = InternalImageData(
 ```
 
 #### ✅ Solução Correta
+
 ```python
 # ✅ SEPARAR RESPONSABILIDADES:
 
@@ -406,8 +444,10 @@ image_data = await orchestrator.extract_images_single_method(
 
 ### 📋 Diferenças Entre Métodos de Processamento
 
-#### 🔧 process_document_with_models() 
+#### 🔧 process_document_with_models()
+
 **Status**: ✅ Implementação Correta
+
 ```python
 # Usa AMBAS as responsabilidades corretamente:
 1. Extração de texto/metadados (Document Extraction Factory)
@@ -416,7 +456,9 @@ image_data = await orchestrator.extract_images_single_method(
 ```
 
 #### ⚠️ process_document_with_azure_response()
+
 **Status**: ❌ Implementação Incompleta (Identificado em Agosto 2025)
+
 ```python
 # Estava usando APENAS metadados:
 1. Processamento de metadados (AzureFigureProcessor) ✅
@@ -427,12 +469,14 @@ image_data = await orchestrator.extract_images_single_method(
 ### 🎯 Regras de Arquitetura
 
 #### ✅ Princípios Corretos
+
 1. **Single Responsibility**: Cada classe tem UMA responsabilidade clara
 2. **Separation of Concerns**: Metadados ≠ Extração de Imagens
 3. **Orchestration Pattern**: ImageExtractionOrchestrator gerencia estratégias
 4. **Strategy Pattern**: Múltiplas formas de extrair (Azure SDK vs Manual)
 
 #### ❌ Anti-Patterns a Evitar
+
 1. **God Class**: Uma classe fazendo tudo (metadados + extração + processamento)
 2. **Mixed Responsibilities**: Processar metadados e extrair imagens no mesmo lugar
 3. **Tight Coupling**: Hardcoded para uma única estratégia de extração
@@ -447,7 +491,8 @@ Antes de modificar extração de imagens, verificar:
 - [ ] **Fallback**: Tem fallback automático implementado?
 - [ ] **Testes**: Ambos os casos (com/sem arquivo PDF) funcionam?
 
-### 🔍 Question Processing  
+### 🔍 Question Processing
+
 - Questions referenciam contexts via `context_id`
 - Alternativas têm `letter` (A, B, C...) e `text`
 - Campo `isCorrect` foi REMOVIDO (ETAPA 1)
@@ -459,7 +504,9 @@ Antes de modificar extração de imagens, verificar:
 ## 🎯 Próximos Passos da Migração
 
 ### 🔴 Prioridade Alta
+
 1. **Completar campos Pydantic em InternalDocumentResponse**
+
    - Migrar `questions: List[Dict]` → `questions: List[InternalQuestion]`
    - Migrar `context_blocks: List[Dict]` → `context_blocks: List[InternalContextBlock]`
 
@@ -467,8 +514,10 @@ Antes de modificar extração de imagens, verificar:
    - `HeaderParser.parse()` retornar `InternalDocumentMetadata` diretamente
    - `QuestionParser.extract()` retornar objetos Pydantic tipados
 
-### � Prioridade Média  
+### � Prioridade Média
+
 3. **Eliminar DocumentResponseAdapter**
+
    - Usar `response_model` do FastAPI diretamente
    - Remover conversões Pydantic → Dict desnecessárias
 
@@ -477,6 +526,7 @@ Antes de modificar extração de imagens, verificar:
    - Padronizar processamento em todos os endpoints
 
 ### 📊 Métricas de Progresso
+
 - **Atual**: 37% migrado para Pydantic
 - **Meta**: 75% migrado (Outubro 2025)
 - **Status**: Nenhum endpoint 100% Pydantic ainda
