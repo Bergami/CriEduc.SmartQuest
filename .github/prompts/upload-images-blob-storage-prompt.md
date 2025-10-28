@@ -4,10 +4,6 @@
 
 Atualmente, as imagens extraídas dos documentos enviados são retornadas no response como byte array (base64). Para melhorar a eficiência e escalabilidade, as imagens extraídas devem ser enviadas para um Azure Blob Storage. O sistema deverá retornar URLs públicas no lugar dos dados base64.
 
-Dados para acesso:
-URL BLOB
-https://crieducstorage.blob.core.windows.net/crieduc-documents?sp=racwdl&st=2025-10-20T16:23:40Z&se=2026-10-21T00:38:40Z&spr=https&sv=2024-11-04&sr=c&sig=0ybRfUveCI7GnHm9DxgR%2Fd82oKDGnXba8QgqaqFkC2M%3D
-
 ## Requisitos Macros
 
 ### 1. Ajuste na header
