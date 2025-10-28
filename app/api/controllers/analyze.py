@@ -9,12 +9,14 @@ from app.services.extraction.document_extraction_service import DocumentExtracti
 from app.services.core.analyze_service import AnalyzeService
 from app.validators.analyze_validator import AnalyzeValidator
 from app.dtos.responses.document_response_dto import DocumentResponseDTO
+from app.dtos.responses.analyze_document_response_dto import AnalyzeDocumentResponseDTO
 from app.core.exceptions import (
     DocumentProcessingError,
     ValidationException
 )
 from app.core.utils import handle_exceptions
 from app.core.logging import structured_logger
+from fastapi import HTTPException
 
 
 router = APIRouter()
@@ -134,6 +136,102 @@ async def analyze_document(
     )
 
     return api_response
+
+@router.get("/analyze_document/{id}", response_model=AnalyzeDocumentResponseDTO)
+@handle_exceptions("document_retrieval")
+async def get_analyze_document(
+    id: str,
+    request: Request
+) -> AnalyzeDocumentResponseDTO:
+    """
+    Recupera informações sobre um documento que já foi processado e armazenado.
+    
+    Consulta a coleção 'analyze_documents' no MongoDB usando o parâmetro 'id' fornecido.
+    Se um documento com o 'id' fornecido existir, retorna seus detalhes na resposta.
+    Se nenhum documento for encontrado, retorna o status 404 Not Found.
+    
+    Args:
+        id: ID do documento no MongoDB
+        request: Request context para logging
+        
+    Returns:
+        Dados do documento analisado
+        
+    Raises:
+        HTTPException: 404 se documento não encontrado
+        HTTPException: 400 se ID inválido
+        HTTPException: 500 para erros internos
+    """
+    structured_logger.info(
+        "Starting document retrieval",
+        context={"document_id": id}
+    )
+    
+    # Validação básica do ID
+    if not id or not id.strip():
+        structured_logger.warning(
+            "Invalid document ID provided", 
+            context={"document_id": id}
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="ID do documento é obrigatório e não pode estar vazio"
+        )
+    
+    # Resolver serviço de persistência via DI Container
+    from app.core.di_container import container
+    from app.services.persistence import ISimplePersistenceService
+    
+    try:
+        structured_logger.debug("Resolving persistence service via DI Container")
+        persistence_service = container.resolve(ISimplePersistenceService)
+        
+        # Buscar documento no MongoDB
+        structured_logger.debug(
+            "Searching for document in MongoDB",
+            context={"document_id": id}
+        )
+        
+        document_record = await persistence_service.get_by_document_id(id)
+        
+        if document_record is None:
+            structured_logger.info(
+                "Document not found",
+                context={"document_id": id}
+            )
+            raise HTTPException(
+                status_code=404,
+                detail="Documento não encontrado"
+            )
+        
+        # Converter para DTO de resposta
+        response_dto = AnalyzeDocumentResponseDTO.from_analyze_document_record(document_record)
+        
+        structured_logger.info(
+            "Document retrieved successfully",
+            context={
+                "document_id": id,
+                "user_email": document_record.user_email,
+                "file_name": document_record.file_name,
+                "status": document_record.status
+            }
+        )
+        
+        return response_dto
+        
+    except HTTPException:
+        # Re-propagar HTTPExceptions (400, 404, etc.)
+        raise
+        
+    except Exception as e:
+        structured_logger.error(
+            "Error retrieving document",
+            context={"document_id": id, "error": str(e)}
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro interno ao buscar documento: {str(e)}"
+        )
 
 # ==================================================================================
 # 🧹 ENDPOINTS REMOVIDOS: analyze_document_mock e analyze_document_with_figures
