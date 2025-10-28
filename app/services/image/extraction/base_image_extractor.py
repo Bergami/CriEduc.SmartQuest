@@ -1,6 +1,9 @@
 """
 Base class for image extraction strategies.
 This provides an interface for different image extraction approaches.
+
+Note: Images are now stored in Azure Blob Storage, not locally.
+This base class focuses on extraction logic only.
 """
 
 from abc import ABC, abstractmethod
@@ -18,51 +21,13 @@ class BaseImageExtractor(ABC):
     This class defines the interface that all image extraction implementations
     must follow, allowing for easy switching between different approaches.
     
-    Uses centralized file management with unified directory structure:
-    tests/documents/images/azure/azure_endpoint/
-    tests/documents/images/azure/azure_manual/
+    Images are returned as base64 strings and uploaded to Azure Blob Storage
+    by the orchestrator, not saved locally.
     """
 
     def __init__(self):
-        """Initialize the base extractor with centralized file manager."""
-        from app.services.utils.centralized_file_manager import CentralizedFileManager
-        
-        self.file_manager = CentralizedFileManager()
-        logger.debug("BaseImageExtractor initialized with centralized file manager")
-
-    def _save_image(
-        self, 
-        method: str, 
-        filename: str, 
-        content: bytes, 
-        document_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> str:
-        """
-        Save image using centralized file manager.
-        
-        Args:
-            method: Extraction method ("azure_endpoint" or "azure_manual")
-            filename: Name of the image file
-            content: Image content as bytes
-            document_id: Optional document identifier
-            metadata: Optional metadata
-            
-        Returns:
-            Path to saved file
-        """
-        logger.debug(f"💾 Saving image with method {method} to centralized structure")
-        
-        if method == "azure_endpoint":
-            return self.file_manager.save_image_azure_endpoint(
-                filename, content, document_id, metadata
-            )
-        elif method == "azure_manual":
-            return self.file_manager.save_image_azure_manual(
-                filename, content, document_id, metadata
-            )
-        else:
-            raise ValueError(f"Unknown extraction method: {method}")
+        """Initialize the base extractor."""
+        logger.debug("BaseImageExtractor initialized")
 
     @abstractmethod
     async def extract_images(
