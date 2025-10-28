@@ -3,7 +3,6 @@ from .detect_context_blocks import detect_context_blocks
 from .detect_questions import detect_questions
 from .match_context_to_questions import match_context_to_questions
 from .context_question_mapper import ContextQuestionMapper
-from .context_block_image_processor import ContextBlockImageProcessor
 from .legacy_adapter import extract_questions_from_paragraphs_legacy_compatible
 
 class QuestionParser:

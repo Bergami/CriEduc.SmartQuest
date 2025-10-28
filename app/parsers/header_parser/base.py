@@ -57,12 +57,6 @@ class HeaderParser:
             "grade_value": parse_grade_value(header),
             "date": parse_date(student_line),
         }
-        
-        # Add images array if header_images are provided
-        if header_images:
-            result["images"] = header_images
-        else:
-            result["images"] = []
 
         return result
 

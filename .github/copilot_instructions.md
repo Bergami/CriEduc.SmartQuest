@@ -1,6 +1,11 @@
+---
+applyTo: "**"
+---
+
 # Instruções para o Copilot – Projeto SmartQuest
 
 ## Regra principal
+
 - NUNCA PODEMOS ALTERAR A ESTRUTURA DE RESPONSE DE UM ENDPOINT SEM ANTES PEDIR AUTORIZAÇÃO, APRESENTANDO TODOS OS IMPACTOS E O MOTIVO.
 - Avalie como um profissional sênior todo o cenário envolvido no escopo, antes de realizar uma alteração.
 - Não invente uma solução qualquer sem embasamento no contexto, o código escrito deve ser assêncial e acertivo.
@@ -13,39 +18,52 @@
 - Sempre que gerar arquivos para debugar algo temporariamente, delete assim que concluir o objetivo.
 - É proíbido pegar trecho de textos para definir regras. Exemplo: " if 'Eu sei, mas não devia' in content and 'Marina Colasanti' in content:"
 
-## Estilo Geral
+## Instruções Python
+
 - Seguir o padrão PEP8 para formatação e nomes.
-- Utilizar type hints em todas as funções.
-- Priorizar legibilidade e manutenção do código.
+- Escreva comentários claros e concisos para cada função.
+- Garanta que as funções tenham nomes descritivos e incluam dicas de tipo.
+- Forneça docstrings seguindo as convenções do PEP 257.
+- Use o typingmódulo para anotações de tipo (por exemplo, List[str], Dict[str, int]).
+- Divida funções complexas em funções menores e mais gerenciáveis.
 - Utilize o princípio SOLID
 
 ## Estrutura com FastAPI
+
 - Usar os decoradores `@app.get`, `@app.post`, etc. para definir rotas.
 - Criar modelos de entrada e saída com `pydantic.BaseModel`.
 - Sempre utilizar o parâmetro `response_model` para garantir estrutura fixa de resposta.
 - Separar rotas em módulos (ex: `routes/usuario.py`, `routes/produto.py`).
 
 ## Convenções de Nomenclatura
+
 - Funções e variáveis: snake_case
 - Classes: PascalCase
 - Constantes: UPPER_CASE
 - Rotas: substantivos no plural (ex: /usuarios, /produtos)
 
 ## Alterações no Código
+
+- Sempre antes de fazer uma modificação analise todo o contexto que envolve a alteração.
+- Sempre que algo não tiver claro, busque esclarecer a questão com perguntas detalhadas.
 - Sempre que for fazer uma modificação, apresente o motivo e a melhoria que irá trazer.
 - Sempre aguarde a autorização para executar a modificação.
+- Após alterar o código certifique que não adicionou funcionalidades duplicadas.
+- Após alterar o código certifique que não adicinou excesso de complexidade ou que feriu padrões de qualidade de software, como o SOLID.
 
 ## Para rodar scripts no terminal
+
 - Use sintaxe do PowerShell
-- Não use emoji no PowerShell
+- Não use emoji no PowerShell e nem em arquivos de testes
 
 ## Estrutura da Resposta
+
 - Todas as respostas da API devem seguir uma estrutura JSON fixa.
 - Exemplo de resposta para o endpoint `/analyze/analyze_document`:
 - Atualmente o sistema salva em tests informações relevantes para análise, como:
--- images/by_provider (imagens presentes no documento)
--- responses/azure (estrutura retornada pelo azure)
-- Observação: Este modelo apresenta a saída esperada após um processamento de uma prova. 
+  -- images/by_provider (imagens presentes no documento)
+  -- responses/azure (estrutura retornada pelo azure)
+- Observação: Este modelo apresenta a saída esperada após um processamento de uma prova.
 - A estrutura não pode sofrer alteração
 
 ```json
@@ -65,10 +83,7 @@
     "class": null,
     "student": null,
     "grade_value": "12,0",
-    "date": null,
-    "images": [
-     // imagem em base 64
-    ]
+    "date": null
   },
   "questions": [
     {
@@ -299,9 +314,7 @@
   "context_blocks": [
     {
       "id": 1,
-      "type": [
-        "text"
-      ],
+      "type": ["text"],
       "source": "exam_document",
       "statement": "Após ler atentamente o texto a seguir, responda as três próximas questões.",
       "paragraphs": [
@@ -317,9 +330,7 @@
     },
     {
       "id": 2,
-      "type": [
-        "text"
-      ],
+      "type": ["text"],
       "source": "exam_document",
       "statement": "Leia o texto a seguir para responder as duas próximas questões.",
       "paragraphs": [
@@ -331,9 +342,7 @@
     },
     {
       "id": 3,
-      "type": [
-        "text"
-      ],
+      "type": ["text"],
       "source": "exam_document",
       "statement": "LEIA O TEXTO A SEGUIR",
       "paragraphs": [
@@ -346,9 +355,7 @@
     },
     {
       "id": 4,
-      "type": [
-        "text"
-      ],
+      "type": ["text"],
       "source": "exam_document",
       "statement": "Leia este texto",
       "paragraphs": [
@@ -360,15 +367,10 @@
     },
     {
       "id": 5,
-      "type": [
-        "text",
-        "image"
-      ],
+      "type": ["text", "image"],
       "source": "exam_document",
       "statement": "Analise a imagem abaixo",
-      "paragraphs": [
-        "FAVOR NÃO DEXAR OBIGETOS NO CORREDOR"
-      ],
+      "paragraphs": ["FAVOR NÃO DEXAR OBIGETOS NO CORREDOR"],
       "title": "FAVOR NÃO DEXAR OBIGETOS NO CORREDOR",
       "hasImage": true,
       "contentType": "image/jpeg;base64",
@@ -378,44 +380,42 @@
           "type": "charge",
           "title": "TEXTO I: charge",
           "content": "ANALISE OS TEXTO A SEGUIR:\nCIERRE\nFoto b\nPRONTO, MEU FILHO! AGORA VOCÊ PODE IR PARA A ESCOLA.",
-          "images": [ 
-            // Imagem em base 64 
-            ]
+          "images": [
+            // URL da imagem
+          ]
         },
         {
           "sequence": "II",
           "type": "charge",
           "title": "TEXTO II: charge",
           "content": "30.10\nFOFOQUEIRA NÃO, QUERIDA! EU SOU PRODUTORA DE BIOGRAFIAS ORAIS NÃO AUTORIZADAS!\nTEXTO III: propaganda",
-          "images": [ 
-            //Imagem em Base 64
-            ]
+          "images": [
+            // URL da imagem
+          ]
         },
         {
           "sequence": "III",
           "type": "charge",
           "title": "TEXTO III: propaganda",
           "content": "30.10\nFOFOQUEIRA NÃO, QUERIDA! EU SOU PRODUTORA DE BIOGRAFIAS ORAIS NÃO AUTORIZADAS!\nTEXTO II: charge",
-          "images": [ 
-            //Imagem em Base 64
-            ]
+          "images": [
+            // URL da imagem
+          ]
         },
         {
           "sequence": "IV",
           "type": "propaganda",
           "title": "TEXTO IV: propaganda",
           "content": "BIS\nLACTA\npara deixar você de boca aberta. Fechada Aberta Fechada Aberta Fechada. Aberta.",
-          "images": [ 
-            //Imagem em Base 64
-            ]
+          "images": [
+            // URL da imagem
+          ]
         }
       ]
     },
     {
       "id": 6,
-      "type": [
-        "text"
-      ],
+      "type": ["text"],
       "source": "exam_document",
       "statement": "Leia a crônica e depois resolva as próximas questões.",
       "paragraphs": [
@@ -429,3 +429,12 @@
     }
   ]
 }
+```
+
+## Casos extremos e testes
+
+- Sempre inclua casos de teste para caminhos críticos do aplicativo.
+- Considere casos extremos comuns, como entradas vazias, tipos de dados inválidos e grandes conjuntos de dados.
+- Inclua comentários para casos extremos e o comportamento esperado nesses casos.
+- Escreva testes unitários para funções e documente-os com docstrings explicando os casos de teste.
+- Os testes devem ser escritos no diretório "CriEduc.SmartQuest\tests\unit\*"

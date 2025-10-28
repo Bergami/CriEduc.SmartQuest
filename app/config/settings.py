@@ -46,9 +46,29 @@ class Settings(BaseSettings):
     mongodb_connection_timeout: int = int(os.getenv("MONGODB_CONNECTION_TIMEOUT", "10000"))
     
     # ================================
-    # 🆕 FEATURE FLAGS
+    # 🆕 AZURE BLOB STORAGE CONFIGURATION
     # ================================
-    enable_mongodb_persistence: bool = os.getenv("ENABLE_MONGODB_PERSISTENCE", "true").lower() == "true"
+    azure_blob_storage_url: str = os.getenv("AZURE_BLOB_STORAGE_URL", "")
+    azure_blob_container_name: str = os.getenv("AZURE_BLOB_CONTAINER_NAME", "")
+    azure_blob_sas_token: str = os.getenv("AZURE_BLOB_SAS_TOKEN", "")
+    enable_azure_blob_upload: bool = os.getenv("ENABLE_AZURE_BLOB_UPLOAD", "true").lower() == "true"
+    
+    @property
+    def azure_blob_sas_url(self) -> str:
+        """Constrói URL completa com SAS token para upload"""
+        if not self.azure_blob_storage_url or not self.azure_blob_container_name or not self.azure_blob_sas_token:
+            return ""
+        return f"{self.azure_blob_storage_url}/{self.azure_blob_container_name}?{self.azure_blob_sas_token}"
+    
+    @property
+    def azure_blob_enabled(self) -> bool:
+        """Verifica se Azure Blob Storage está configurado e habilitado"""
+        return (
+            self.enable_azure_blob_upload and 
+            bool(self.azure_blob_storage_url) and 
+            bool(self.azure_blob_container_name) and 
+            bool(self.azure_blob_sas_token)
+        )
     
     class Config:
         env_file = ".env"
@@ -69,7 +89,22 @@ class MockSettings:
     mongodb_url = "mongodb://localhost:27017"
     mongodb_database = "smartquest"
     mongodb_connection_timeout = 10000
-    enable_mongodb_persistence = False
+    
+    # 🆕 Azure Blob Storage Mock Settings
+    azure_blob_storage_url = ""
+    azure_blob_container_name = "mock-container"
+    azure_blob_sas_token = ""
+    enable_azure_blob_upload = False
+    
+    @property
+    def azure_blob_sas_url(self) -> str:
+        """Mock sempre retorna string vazia"""
+        return ""
+    
+    @property
+    def azure_blob_enabled(self) -> bool:
+        """Mock sempre desabilitado"""
+        return False
 
 try:
     settings = Settings()

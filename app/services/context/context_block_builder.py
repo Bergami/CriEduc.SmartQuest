@@ -1,6 +1,7 @@
 """
-Advanced Context Block Builder - Refactored Version
-Uses separated constants and enums for better maintainability
+Advanced Context Block Builder
+Uses separated constants and enums for better maintainability.
+Integrates with Azure Blob Storage for image handling and storage.
 """
 from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 import re
@@ -71,7 +72,8 @@ class ContextBlockBuilder:
     async def build_context_blocks_from_azure_figures(
         self,
         azure_response: Dict[str, Any],
-        images_base64: Dict[str, str] = None
+        images_base64: Dict[str, str] = None,
+        document_id: str = None
     ) -> List[Dict[str, Any]]:
         """
         Builds context blocks from Azure figures dynamically without hardcoding.
@@ -103,9 +105,9 @@ class ContextBlockBuilder:
             
             # 5. Adicionar imagens base64 às figuras se disponíveis
             if images_base64:
-                # Tentar extrair document_id do azure_response ou usar um padrão
-                document_id = azure_response.get('model_id', 'unknown_document')
-                azure_urls = await self._add_base64_images_to_figures(figures, images_base64, document_id)
+                # Usar document_id passado como parâmetro ou fallback
+                effective_document_id = document_id or azure_response.get('model_id', 'unknown_document')
+                azure_urls = await self._add_base64_images_to_figures(figures, images_base64, effective_document_id)
                 logger.info(f"📷 Added images to {len([f for f in figures if f.base64_image or (hasattr(f, 'azure_image_url') and f.azure_image_url)])} figures")
             
             # 6. Criar context blocks baseado em análise dinâmica
@@ -459,14 +461,15 @@ class ContextBlockBuilder:
         azure_urls = {}
         if self._image_upload_service:
             try:
-                # Gerar document_guid se não fornecido
-                document_guid = str(uuid.uuid4()) if not document_id else document_id
+                # Usar document_id como GUID se fornecido, caso contrário gerar novo
+                # O document_id pode ser usado tanto para identificação interna quanto para storage
+                effective_document_guid = document_id if document_id else str(uuid.uuid4())
                 
                 # Fazer upload das imagens para Azure Blob Storage
                 azure_urls = await self._image_upload_service.upload_images_and_get_urls(
                     images_base64=images_base64,
-                    document_id=document_id or "unknown",
-                    document_guid=document_guid
+                    document_id=effective_document_guid,
+                    document_guid=effective_document_guid
                 )
                 
                 logger.info(f"Azure upload completed: {len(azure_urls)}/{len(images_base64)} images uploaded")
@@ -1362,7 +1365,8 @@ class ContextBlockBuilder:
     async def parse_to_pydantic(
         self,
         azure_response: Dict[str, Any],
-        images_base64: Dict[str, str] = None
+        images_base64: Dict[str, str] = None,
+        document_id: str = None
     ) -> List['InternalContextBlock']:
         """
         FASE 2: Interface Pydantic nativa - retorna diretamente objetos Pydantic
@@ -1396,9 +1400,9 @@ class ContextBlockBuilder:
             
             # 5. Adicionar imagens base64 às figuras se disponíveis
             if images_base64:
-                # Tentar extrair document_id do azure_response ou usar um padrão
-                document_id = azure_response.get('model_id', 'unknown_document')
-                azure_urls = await self._add_base64_images_to_figures(figures, images_base64, document_id)
+                # Usar document_id passado como parâmetro ou fallback
+                effective_document_id = document_id or azure_response.get('model_id', 'unknown_document')
+                azure_urls = await self._add_base64_images_to_figures(figures, images_base64, effective_document_id)
                 logger.info(f"📷 [Pydantic] Added images to {len([f for f in figures if f.base64_image or (hasattr(f, 'azure_image_url') and f.azure_image_url)])} figures")
             
             # 6. Criar context blocks DIRETAMENTE como Pydantic objects

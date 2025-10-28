@@ -67,7 +67,8 @@ AZURE_DOCUMENT_INTELLIGENCE_KEY=your-key
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DATABASE=smartquest
 DEBUG=true
-ENABLE_MONGODB_PERSISTENCE=true
+
+# Note: MongoDB e Azure Blob Storage são OBRIGATÓRIOS (sem feature flags)
 ```
 
 ## 🏗️ Estrutura do Projeto

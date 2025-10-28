@@ -55,9 +55,8 @@ class BaseDocumentProvider(ABC):
             # REMOVIDO: save_extracted_text() - texto extraído não precisa ser persistido
             # O texto já fica disponível na memória através do structured_data
             
-            # Salvar imagens se existirem
-            if "image_data" in structured_data:
-                self.storage.save_document_images(structured_data["image_data"], document_id, self.provider_name)
+            # REMOVIDO: save_document_images() - salvamento local de imagens removido
+            # As imagens são enviadas diretamente para o Azure Blob Storage
                 
         except Exception as e:
             import logging

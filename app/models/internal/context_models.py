@@ -18,6 +18,7 @@ class InternalSubContext(BaseModel):
     title: str = Field(..., description="Title of the sub-context")
     content: str = Field(..., description="Text content of the sub-context")
     images: List[str] = Field(default_factory=list, description="Base64 images for this sub-context")
+    azure_image_urls: List[str] = Field(default_factory=list, description="Azure Blob Storage URLs for this sub-context")
     
     @classmethod
     def from_legacy_sub_context(cls, legacy_sub: Dict[str, Any]) -> "InternalSubContext":
@@ -27,7 +28,8 @@ class InternalSubContext(BaseModel):
             type=legacy_sub.get("type", "image"),
             title=legacy_sub.get("title", ""),
             content=legacy_sub.get("content", ""),
-            images=legacy_sub.get("images", [])
+            images=legacy_sub.get("images", []),
+            azure_image_urls=legacy_sub.get("azure_image_urls", [])
         )
 class InternalContextContent(BaseModel):
     """
@@ -127,6 +129,10 @@ class InternalContextBlock(BaseModel):
         default_factory=list,
         description="Base64 images directly in this context block"
     )
+    azure_image_urls: List[str] = Field(
+        default_factory=list,
+        description="Azure Blob Storage URLs for images in this context block"
+    )
     associated_images: List[str] = Field(
         default_factory=list,
         description="IDs of images associated with this context block"
@@ -204,6 +210,7 @@ class InternalContextBlock(BaseModel):
             statement=legacy_block.get("statement"),
             source=legacy_block.get("source", "exam_document"),
             images=legacy_block.get("images", []),  # ✅ Preserve images from legacy format
+            azure_image_urls=legacy_block.get("azure_image_urls", []),  # ✅ Support Azure URLs
             associated_images=legacy_block.get("associated_images", []),
             has_image=legacy_block.get("hasImage", False),
             extraction_method="legacy_conversion",

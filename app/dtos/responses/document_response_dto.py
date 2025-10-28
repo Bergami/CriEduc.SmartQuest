@@ -33,7 +33,7 @@ class SubContextDTO(BaseModel):
     type: str = Field(..., description="Tipo do sub-contexto")
     title: str = Field(..., description="Título do sub-contexto")
     content: str = Field(..., description="Conteúdo do sub-contexto")
-    images: List[str] = Field(default_factory=list, description="Imagens base64")
+    images: List[str] = Field(default_factory=list, description="URLs públicas de imagens ou base64 (fallback)")
 
 
 class ContextBlockDTO(BaseModel):
@@ -44,7 +44,7 @@ class ContextBlockDTO(BaseModel):
     statement: Optional[str] = Field(default=None, description="Declaração/instrução")
     title: Optional[str] = Field(default=None, description="Título do context block")
     hasImage: bool = Field(default=False, description="Se tem imagem")
-    images: List[str] = Field(default_factory=list, description="Imagens base64")
+    images: List[str] = Field(default_factory=list, description="URLs públicas de imagens ou base64 (fallback)")
     contentType: Optional[str] = Field(default=None, description="Tipo de conteúdo")
     paragraphs: Optional[List[str]] = Field(default=None, description="Parágrafos de texto")
     sub_contexts: Optional[List[SubContextDTO]] = Field(default=None, description="Sub-contextos")
@@ -62,7 +62,7 @@ class ContextBlockDTO(BaseModel):
                     type=sub.type,
                     title=sub.title,
                     content=sub.content,
-                    images=sub.images
+                    images=sub.azure_image_urls if sub.azure_image_urls else sub.images,  # Priorizar Azure URLs
                 )
                 for sub in internal_cb.sub_contexts
             ]
@@ -76,9 +76,16 @@ class ContextBlockDTO(BaseModel):
             images = []
         else:
             # Context blocks simples: usar imagens do próprio block
-            images = internal_cb.images if internal_cb.images else []
-            if internal_cb.has_image and images:
+            if internal_cb.azure_image_urls:
+                # Priorizar URLs do Azure
+                images = internal_cb.azure_image_urls
+                content_type = "image/url"
+            elif internal_cb.images:
+                # Fallback para base64
+                images = internal_cb.images
                 content_type = "image/jpeg;base64"
+            else:
+                images = []
         
         # Determinar paragraphs
         paragraphs = None
@@ -106,7 +113,6 @@ class HeaderDTO(BaseModel):
     subject: Optional[str] = Field(default=None, description="Matéria")
     student: Optional[str] = Field(default=None, description="Nome do estudante")
     series: Optional[str] = Field(default=None, description="Série/turma")
-    images: List[str] = Field(default_factory=list, description="Imagens do header")
 
 
 class DocumentResponseDTO(BaseModel):
@@ -134,7 +140,6 @@ class DocumentResponseDTO(BaseModel):
             subject=internal_response.document_metadata.subject,
             student=internal_response.document_metadata.student,
             series=None,  # series field does not exist in InternalDocumentMetadata
-            images=[img.base64_data for img in internal_response.document_metadata.header_images]
         )
         
         # Converter questions
@@ -176,8 +181,7 @@ class DocumentResponseDTO(BaseModel):
                 "header": {
                     "school": "UMEF Escola Exemplo",
                     "teacher": "Professor Silva",
-                    "subject": "Matemática",
-                    "images": []
+                    "subject": "Matemática"
                 },
                 "questions": [
                     {

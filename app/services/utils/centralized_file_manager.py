@@ -16,8 +16,6 @@ logger = logging.getLogger(__name__)
 class FileLocations:
     """Centralized constants for file storage locations."""
     DOCUMENTS_ORIGINAL = "tests/documents"
-    DOCUMENTS_IMAGES_AZURE_ENDPOINT = "tests/documents/images/azure/azure_endpoint"
-    DOCUMENTS_IMAGES_AZURE_MANUAL = "tests/documents/images/azure/azure_manual"
     DOCUMENTS_RESPONSES = "tests/documents/responses"
 
 
@@ -33,11 +31,9 @@ class CentralizedFileManager:
     
     Directory structure:
     tests/documents/                    # Original documents (PDFs)
-    tests/documents/images/             # Extracted images
-    ├── azure/
-    │   ├── azure_endpoint/            # Azure Document Intelligence API
-    │   └── azure_manual/              # Manual PDF cropping
     tests/documents/responses/          # Processing responses (JSON)
+    
+    Note: Images are now stored in Azure Blob Storage, not locally.
     """
     
     def __init__(self, base_path: Optional[str] = None):
@@ -60,8 +56,6 @@ class CentralizedFileManager:
         """Create all required directories if they don't exist."""
         locations = [
             FileLocations.DOCUMENTS_ORIGINAL,
-            FileLocations.DOCUMENTS_IMAGES_AZURE_ENDPOINT,
-            FileLocations.DOCUMENTS_IMAGES_AZURE_MANUAL,
             FileLocations.DOCUMENTS_RESPONSES
         ]
         for location in locations:
@@ -111,98 +105,6 @@ class CentralizedFileManager:
             
         except Exception as e:
             logger.error(f"❌ Error saving document {filename}: {str(e)}")
-            raise
-    
-    def save_image_azure_endpoint(
-        self, 
-        filename: str, 
-        content: bytes, 
-        document_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> str:
-        """
-        Save image extracted via Azure Document Intelligence endpoint.
-        
-        Args:
-            filename: Name of the image file
-            content: Image content as bytes
-            document_id: Optional document identifier for organization
-            metadata: Optional metadata
-            
-        Returns:
-            Full path to saved file
-        """
-        return self._save_image(
-            FileLocations.DOCUMENTS_IMAGES_AZURE_ENDPOINT,
-            filename,
-            content,
-            document_id,
-            metadata,
-            "azure_endpoint"
-        )
-    
-    def save_image_azure_manual(
-        self, 
-        filename: str, 
-        content: bytes, 
-        document_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> str:
-        """
-        Save image extracted via manual PDF processing.
-        
-        Args:
-            filename: Name of the image file
-            content: Image content as bytes
-            document_id: Optional document identifier for organization
-            metadata: Optional metadata
-            
-        Returns:
-            Full path to saved file
-        """
-        return self._save_image(
-            FileLocations.DOCUMENTS_IMAGES_AZURE_MANUAL,
-            filename,
-            content,
-            document_id,
-            metadata,
-            "azure_manual"
-        )
-    
-    def _save_image(
-        self,
-        location: str,
-        filename: str,
-        content: bytes,
-        document_id: Optional[str],
-        metadata: Optional[Dict[str, Any]],
-        method: str
-    ) -> str:
-        """Internal method to save images with consistent logic."""
-        try:
-            # Determine target directory
-            if document_id:
-                # Organize by document ID
-                target_dir = self.get_path(location) / document_id
-                target_dir.mkdir(parents=True, exist_ok=True)
-                file_path = target_dir / filename
-            else:
-                # Save directly in method directory
-                file_path = self.get_path(location, filename)
-            
-            # Save image
-            with open(file_path, 'wb') as f:
-                f.write(content)
-            
-            # Save metadata if provided
-            if metadata:
-                self._save_metadata(file_path.parent, filename, metadata, method)
-            
-            logger.info(f"🖼️ Image saved ({method}): {file_path} ({len(content)} bytes)")
-            return str(file_path)
-            
-        except Exception as e:
-            logger.error(f"❌ Error saving image {filename} ({method}): {str(e)}")
             raise
     
     def save_response(self, filename: str, response_data: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None) -> str:
@@ -276,21 +178,6 @@ class CentralizedFileManager:
         path = self.get_path(FileLocations.DOCUMENTS_ORIGINAL, filename)
         return path if path.exists() else None
     
-    def get_images_path(self, method: str, document_id: Optional[str] = None) -> Optional[Path]:
-        """Get path to images directory for a specific method."""
-        if method == "azure_endpoint":
-            base_path = self.get_path(FileLocations.DOCUMENTS_IMAGES_AZURE_ENDPOINT)
-        elif method == "azure_manual":
-            base_path = self.get_path(FileLocations.DOCUMENTS_IMAGES_AZURE_MANUAL)
-        else:
-            return None
-        
-        if document_id:
-            path = base_path / document_id
-            return path if path.exists() else None
-        
-        return base_path if base_path.exists() else None
-    
     def get_response_path(self, filename: str) -> Optional[Path]:
         """Get path to a response file if it exists."""
         if not filename.endswith('.json'):
@@ -306,47 +193,6 @@ class CentralizedFileManager:
             return []
         
         return [f.name for f in docs_dir.iterdir() if f.is_file()]
-    
-    def list_images(self, method: Optional[str] = None) -> Dict[str, list]:
-        """List all images, optionally filtered by method."""
-        images = {}
-        
-        methods_to_check = []
-        if method == "azure_endpoint":
-            methods_to_check = [("azure_endpoint", FileLocations.DOCUMENTS_IMAGES_AZURE_ENDPOINT)]
-        elif method == "azure_manual":
-            methods_to_check = [("azure_manual", FileLocations.DOCUMENTS_IMAGES_AZURE_MANUAL)]
-        else:
-            # List all methods
-            methods_to_check = [
-                ("azure_endpoint", FileLocations.DOCUMENTS_IMAGES_AZURE_ENDPOINT),
-                ("azure_manual", FileLocations.DOCUMENTS_IMAGES_AZURE_MANUAL)
-            ]
-        
-        for method_name, location in methods_to_check:
-            method_dir = self.get_path(location)
-            images[method_name] = []
-            
-            if method_dir.exists():
-                for item in method_dir.iterdir():
-                    if item.is_dir():
-                        # Document ID directory
-                        image_files = list(item.glob("*.jpg")) + list(item.glob("*.png"))
-                        if image_files:
-                            images[method_name].append({
-                                "document_id": item.name,
-                                "image_count": len(image_files),
-                                "images": [f.name for f in image_files]
-                            })
-                    elif item.is_file() and item.suffix.lower() in ['.jpg', '.png']:
-                        # Direct image file
-                        images[method_name].append({
-                            "document_id": None,
-                            "image_count": 1,
-                            "images": [item.name]
-                        })
-        
-        return images
     
     def list_responses(self) -> list:
         """List all response files."""
@@ -366,8 +212,6 @@ class CentralizedFileManager:
         
         locations = [
             ("DOCUMENTS_ORIGINAL", FileLocations.DOCUMENTS_ORIGINAL),
-            ("DOCUMENTS_IMAGES_AZURE_ENDPOINT", FileLocations.DOCUMENTS_IMAGES_AZURE_ENDPOINT),
-            ("DOCUMENTS_IMAGES_AZURE_MANUAL", FileLocations.DOCUMENTS_IMAGES_AZURE_MANUAL),
             ("DOCUMENTS_RESPONSES", FileLocations.DOCUMENTS_RESPONSES)
         ]
         

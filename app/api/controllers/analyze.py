@@ -83,47 +83,43 @@ async def analyze_document(
     # Converte a resposta interna (Pydantic) para o DTO da API (mantém compatibilidade)
     api_response = DocumentResponseDTO.from_internal_response(internal_response)
     
-    # --- ETAPA 4: PERSISTÊNCIA CONFORME PROMPT ORIGINAL ---
-    from app.config.settings import get_settings
+    # --- ETAPA 4: PERSISTÊNCIA OBRIGATÓRIA NO MONGODB ---
     from app.services.persistence import ISimplePersistenceService
     from app.models.persistence import AnalyzeDocumentRecord, DocumentStatus
     
-    settings = get_settings()
-    
-    if settings.enable_mongodb_persistence:
-        try:
-            structured_logger.debug("Step 4: Persisting analysis result to MongoDB")
-            
-            # Resolver serviço de persistência via DI Container
-            persistence_service = container.resolve(ISimplePersistenceService)
-            
-            # Criar registro conforme prompt original
-            analysis_record = AnalyzeDocumentRecord.create_from_request(
-                user_email=email,
-                file_name=file.filename,
-                response=api_response.dict(),  # Response JSON completo
-                status=DocumentStatus.COMPLETED
-            )
-            
-            # Salvar no MongoDB
-            document_id = await persistence_service.save_analysis_result(analysis_record)
-            
-            structured_logger.info(
-                "Analysis result persisted successfully",
-                context={
-                    "document_id": document_id,
-                    "user_email": email,
-                    "file_name": file.filename
-                }
-            )
-            
-        except Exception as e:
-            # Log do erro mas não falha a operação principal
-            structured_logger.error(
-                "Failed to persist analysis result",
-                context={"error": str(e), "email": email, "filename": file.filename}
-            )
-            # Continua execução normal - persistência é opcional
+    try:
+        structured_logger.debug("Step 4: Persisting analysis result to MongoDB")
+        
+        # Resolver serviço de persistência via DI Container
+        persistence_service = container.resolve(ISimplePersistenceService)
+        
+        # Criar registro conforme prompt original
+        analysis_record = AnalyzeDocumentRecord.create_from_request(
+            user_email=email,
+            file_name=file.filename,
+            response=api_response.dict(),  # Response JSON completo
+            status=DocumentStatus.COMPLETED
+        )
+        
+        # Salvar no MongoDB (lança erro se MongoDB estiver indisponível)
+        document_id = await persistence_service.save_analysis_result(analysis_record)
+        
+        structured_logger.info(
+            "Analysis result persisted successfully",
+            context={
+                "document_id": document_id,
+                "user_email": email,
+                "file_name": file.filename
+            }
+        )
+        
+    except Exception as e:
+        # Log do erro e propaga a exceção (persistência é obrigatória)
+        structured_logger.error(
+            "Failed to persist analysis result - MongoDB required",
+            context={"error": str(e), "email": email, "filename": file.filename}
+        )
+        raise DocumentProcessingError(f"Failed to persist analysis result: {str(e)}")
     
     structured_logger.info(
         "Document analysis completed successfully",
