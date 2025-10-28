@@ -1,6 +1,7 @@
 """
 Advanced Context Block Builder
-Uses separated constants and enums for better maintainability
+Uses separated constants and enums for better maintainability.
+Integrates with Azure Blob Storage for image handling and storage.
 """
 from typing import Dict, List, Any, Optional, Tuple, TYPE_CHECKING
 import re
