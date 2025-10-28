@@ -4,6 +4,10 @@
 
 Atualmente, as imagens extraídas dos documentos enviados são retornadas no response como byte array (base64). Para melhorar a eficiência e escalabilidade, as imagens extraídas devem ser enviadas para um Azure Blob Storage. O sistema deverá retornar URLs públicas no lugar dos dados base64.
 
+Dados para acesso:
+URL BLOB
+https://<storage-account>.blob.core.windows.net/<container>?<SAS-token>
+
 ## Requisitos Macros
 
 ### 1. Ajuste na header
