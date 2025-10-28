@@ -8,7 +8,7 @@ import base64
 import logging
 import uuid
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 import httpx
 from app.config.settings import get_settings
 
@@ -243,7 +243,7 @@ class AzureImageUploadService:
         
         return safe_name if safe_name else 'unnamed'
     
-    def get_service_status(self) -> Dict[str, any]:
+    def get_service_status(self) -> Dict[str, Any]:
         """
         Retorna status atual do serviço para diagnóstico.
         

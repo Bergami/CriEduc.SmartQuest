@@ -460,15 +460,15 @@ class ContextBlockBuilder:
         azure_urls = {}
         if self._image_upload_service:
             try:
-                # Sempre gerar um GUID único para o documento
-                # O document_id é usado para identificação interna, mas o GUID é para o storage
-                document_guid = str(uuid.uuid4())
+                # Usar document_id como GUID se fornecido, caso contrário gerar novo
+                # O document_id pode ser usado tanto para identificação interna quanto para storage
+                effective_document_guid = document_id if document_id else str(uuid.uuid4())
                 
                 # Fazer upload das imagens para Azure Blob Storage
                 azure_urls = await self._image_upload_service.upload_images_and_get_urls(
                     images_base64=images_base64,
-                    document_id=document_id or "unknown",
-                    document_guid=document_guid
+                    document_id=effective_document_guid,
+                    document_guid=effective_document_guid
                 )
                 
                 logger.info(f"Azure upload completed: {len(azure_urls)}/{len(images_base64)} images uploaded")
