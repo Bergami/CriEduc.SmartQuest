@@ -1,54 +1,70 @@
-# SmartQuest
+# SmartQuest API v2.0.0
 
-Sistema de análise inteligente de documentos PDF para extração de questões e context blocks.
+Sistema de análise inteligente de documentos PDF educacionais com arquitetura moderna e persistência robusta.
 
 ## 🎯 Características Principais
 
-### **Arquitetura Moderna**
+### **Arquitetura Moderna v2.0.0**
 
-- **Dependency Injection Container** nativo com auto-wiring
-- **SOLID Principles** aplicados em toda a base de código
-- **Clean Architecture** com separação clara de responsabilidades
-- **MongoDB Persistence** com models Pydantic e migrações versionadas
-- **Type Safety** com Pydantic models em toda aplicação
+- ✅ **Dependency Injection Container** nativo com auto-wiring completo
+- ✅ **SOLID Principles** aplicados rigorosamente em toda a base de código
+- ✅ **Clean Architecture** com separação clara de responsabilidades
+- ✅ **MongoDB Persistence** obrigatória com models Pydantic e migrações versionadas
+- ✅ **Type Safety** com Pydantic models em toda aplicação
+- ✅ **Cache Transparente** para otimização de performance
+- ✅ **Health Check Robusto** com monitoramento de todas as dependências
 
-## 🏗️ Arquitetura do Sistema
+## 🏗️ Arquitetura do Sistema v2.0.0
 
 ```mermaid
 graph TB
     subgraph "🌐 API Layer"
-        A[FastAPI Controllers]
-        B[Health Endpoints]
+        A[Health Controller /health/]
+        B[Analyze Controller /analyze/]
     end
 
     subgraph "🧠 Business Layer"
-        C[AnalyzeService]
-        D[DI Container]
+        C[AnalyzeService via DI]
+        D[DocumentExtractionService]
+        E[DocumentAnalysisOrchestrator]
+    end
+
+    subgraph "🔧 DI Container"
+        F[Automatic Dependency Resolution]
+        G[Service Lifecycle Management]
     end
 
     subgraph "💾 Persistence Layer"
-        E[MongoDBPersistenceService]
-        F[MongoDB Connection Service]
-        G[(MongoDB Database)]
+        H[SimplePersistenceService]
+        I[MongoDB Connection Service]
+        J[(MongoDB smartquest)]
     end
 
-    subgraph "☁️ External Services"
-        H[Azure Document Intelligence]
-        I[File Cache System]
+    subgraph "☁️ Azure Services"
+        K[Azure Document Intelligence]
+        L[Azure Blob Storage]
+        M[Cache System]
     end
 
-    A --> C
-    B --> F
+    A --> I
+    B --> C
+    C --> D
     C --> E
     C --> H
-    C --> I
-    E --> F
-    F --> G
-    D --> E
-    D --> F
+    D --> M
+    D --> K
+    E --> L
+    H --> I
+    I --> J
+    F --> C
+    F --> H
+    F --> I
 
-    style G fill:#4CAF50
-    style H fill:#0078D4
+    style J fill:#4CAF50
+    style K fill:#0078D4
+    style L fill:#0078D4
+    style F fill:#FF9800
+```
     style E fill:#FF9800
 ```
 
@@ -993,79 +1009,92 @@ The project includes debug configurations in `.vscode/launch.json`:
 - Check Azure AI quota and limits
 - Review error logs for specific issues
 
-## 📡 Available Endpoints
+## 📡 Available Endpoints v2.0.0
 
-| Method   | Endpoint            | Description                                                                 |
-| -------- | ------------------- | --------------------------------------------------------------------------- |
-| **GET**  | `/health`           | API health status                                                           |
-| **GET**  | `/health/database`  | **🆕 MongoDB connectivity and metrics**                                     |
-| **POST** | `/analyze_document` | **Main endpoint**: Document analysis with **automatic MongoDB persistence** |
-| **GET**  | `/docs`             | Interactive API documentation (Swagger UI)                                  |
+| Method   | Endpoint                         | Description                                    | Status |
+| -------- | -------------------------------- | ---------------------------------------------- | ------ |
+| **GET**  | `/health/`                       | Sistema de health check completo               | ✅     |
+| **POST** | `/analyze/analyze_document`      | Análise de documentos com persistência         | ✅     |
+| **GET**  | `/analyze/analyze_document/{id}` | Recuperação de documentos por ID               | ✅     |
+| **GET**  | `/docs`                          | Documentação Swagger UI interativa             | ✅     |
 
-### **🆕 Enhanced Document Analysis with MongoDB Persistence**
+### **🆕 Endpoint Consolidado: Health Check Completo**
 
-The main `/analyze_document` endpoint now includes **automatic persistence** of all analysis results:
+O endpoint `/health/` agora realiza verificação abrangente de todas as dependências:
 
-#### **🏗️ New Architecture Features:**
+#### **🔍 Dependências Monitoradas:**
 
-- **Pydantic Models**: Type-safe internal processing with `InternalDocumentResponse` and `InternalDocumentMetadata`
-- **Adapter Pattern**: Clean separation between internal models and API responses via `DocumentResponseAdapter`
-- **Simplified Interface**: Removed complex parameters (`use_mock`, `use_refactored`, `image_extraction_method`)
-- **Automatic Behavior**: Intelligent document processing with built-in fallback strategies
+- ✅ **MongoDB** (CRÍTICO) - Persistência obrigatória  
+- ✅ **Azure Blob Storage** (CRÍTICO) - Armazenamento de imagens  
+- ⚠️ **Azure Document Intelligence** (NÃO CRÍTICO) - Pode usar mock  
 
-#### **📋 Simplified Request Format:**
+#### **📊 Status Possíveis:**
+
+- `200 healthy` - Todas as dependências funcionando  
+- `200 degraded` - Sistema operacional com avisos não-críticos  
+- `503 unhealthy` - Dependências críticas indisponíveis  
+
+### **🆕 Enhanced Document Analysis with Mandatory MongoDB Persistence**
+
+O endpoint principal `/analyze/analyze_document` agora inclui **persistência obrigatória** de todos os resultados:
+
+#### **🏗️ Características da Arquitetura:**
+
+- ✅ **Pipeline em 4 Etapas**: Validação → Extração → Análise → Persistência  
+- ✅ **Cache Transparente**: Otimização automática da extração  
+- ✅ **DI Container**: Resolução automática de toda árvore de dependências  
+- ✅ **Type Safety**: Validação completa com Pydantic models  
+- ✅ **Error Handling**: Tratamento robusto de exceções  
+
+#### **📋 Request Format:**
 
 ```bash
-POST /analyze_document
+POST /analyze/analyze_document
 Content-Type: multipart/form-data
 
-# Parameters:
-# - file: PDF document (required)
-# - Optional query parameters handled automatically
+# Parâmetros obrigatórios:
+# - email: Email do usuário (query string)
+# - file: Arquivo PDF (form data)
 ```
 
-#### **🎯 Key Improvements:**
+#### **🎯 Pipeline de Processamento:**
 
-- **Type Safety**: Full Pydantic validation throughout the processing pipeline
-- **Clean Code**: Separation of concerns with adapters and internal models
-- **Maintainability**: Easier to test, modify, and extend
-- **Backward Compatibility**: Same API response format maintained
+```
+1. Validação → AnalyzeValidator.validate_all()
+2. Extração → DocumentExtractionService (com cache)
+3. Análise → AnalyzeService via DI Container
+4. Persistência → SimplePersistenceService (obrigatória)
+```
 
-### **Enhanced API Response Format**
+### **🆕 Document Retrieval Endpoint**
 
-The API now returns header images along with document metadata:
+O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documentos processados:
+
+#### **📝 Características:**
+
+- ✅ **Busca por ID**: ID único gerado durante análise  
+- ✅ **Validação Robusta**: Verificação de formato e existência  
+- ✅ **Error Handling**: 400 (ID inválido), 404 (não encontrado), 500 (erro interno)  
+- ✅ **DTO Dedicado**: `AnalyzeDocumentResponseDTO` para resposta  
+
+#### **📊 Response Format:**
 
 ```json
 {
-  "document_metadata": {
-    "network": "Prefeitura Municipal",
-    "school": "UMEF Saturnino Rangel Mauro",
-    "city": "Vila Velha",
-    "teacher": "Danielle",
-    "subject": "Língua Portuguesa",
-    "exam_title": "Prova Trimestral",
-    "trimester": "3º TRIMESTRE",
-    "grade": "7º ano",
-    "class": null,
-    "student": null,
-    "grade_value": "12,0",
-    "date": null,
-    "images": [
-      {
-        "content": "base64_encoded_image_data...",
-        "page": 1,
-        "position": {
-          "x": 100,
-          "y": 50,
-          "width": 200,
-          "height": 150
-        }
-      }
-    ]
+  "_id": "49ad106b-787b-4c9a-80ac-4c81388355ca",
+  "document_name": "prova_matematica.pdf",
+  "status": "completed",
+  "analysis_results": {
+    "document_id": "doc_20241029_abc123",
+    "email": "professor@escola.edu.br",
+    "questions": [...],
+    "context_blocks": [...],
+    "document_metadata": {...}
   },
-  "context_blocks": [...],
-  "questions": [...]
+  "created_at": "2024-10-29T10:30:00Z",
+  "user_email": "professor@escola.edu.br"
 }
+```
 ```
 
 ## 🖼️ **Image Extraction Performance Analysis**
