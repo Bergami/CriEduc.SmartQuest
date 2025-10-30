@@ -79,6 +79,12 @@ class InternalContextContent(BaseModel):
         Returns:
             InternalContextContent instance
         """
+        # Log the input for debugging
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug("[from_legacy_content] Received legacy_content:")
+        logger.debug(legacy_content)
+
         # Handle different legacy formats
         if isinstance(legacy_content, dict):
             if "description" in legacy_content:
@@ -101,7 +107,11 @@ class InternalContextContent(BaseModel):
                 description = legacy_content
             else:
                 description = [str(legacy_content)]
-        
+
+        # Log the output for debugging
+        logger.debug("[from_legacy_content] Generated description:")
+        logger.debug(description)
+
         return cls(
             description=description,
             raw_content=str(legacy_content),

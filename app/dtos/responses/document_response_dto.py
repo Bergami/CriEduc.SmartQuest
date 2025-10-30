@@ -89,9 +89,9 @@ class ContextBlockDTO(BaseModel):
         
         # Determinar paragraphs
         paragraphs = None
-        if internal_cb.content and internal_cb.content.description:
+        if internal_cb.content and internal_cb.content.description is not None:
             paragraphs = internal_cb.content.description
-        
+
         return cls(
             id=internal_cb.id,
             type=[t.value for t in internal_cb.type],

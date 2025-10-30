@@ -126,18 +126,37 @@ class DocumentAnalysisOrchestrator:
                 analysis_context, image_analysis, use_refactored
             )
 
+            # 🔍 DEBUG: Verificar context blocks após phase 5
+            if enhanced_context_blocks:
+                self._logger.error(f"🔍 [ORCHESTRATOR] After phase 5: {len(enhanced_context_blocks)} blocks")
+                for i, cb in enumerate(enhanced_context_blocks[:2]):  # First 2 only
+                    self._logger.error(f"🔍   Block {i+1}: '{cb.title}' - Content: {cb.content is not None}")
+                    if cb.content:
+                        self._logger.error(f"🔍     Description: {len(cb.content.description) if cb.content.description else 0} items")
+            else:
+                self._logger.error(f"🔍 [ORCHESTRATOR] Phase 5 returned None")
+
             # Phase 6: Associação de figuras (se aplicável)
             enhanced_questions = await self._execute_figure_association_phase(
                 analysis_context, questions_and_context["questions"]
             )
 
             # Phase 7: Agregação final
+            final_context_blocks = enhanced_context_blocks or questions_and_context["context_blocks"]
+            
+            # 🔍 DEBUG: Verificar context blocks antes da agregação final
+            self._logger.error(f"🔍 [ORCHESTRATOR] Before aggregation: {len(final_context_blocks)} blocks")
+            for i, cb in enumerate(final_context_blocks[:2]):  # First 2 only
+                self._logger.error(f"🔍   Final Block {i+1}: '{cb.title}' - Content: {cb.content is not None}")
+                if cb.content:
+                    self._logger.error(f"🔍     Description: {len(cb.content.description) if cb.content.description else 0} items")
+            
             final_response = await self._aggregate_final_response(
                 analysis_context,
                 image_analysis,
                 header_metadata,
                 enhanced_questions,
-                enhanced_context_blocks or questions_and_context["context_blocks"]
+                final_context_blocks
             )
 
             self._logger.info(f"Document analysis orchestration completed successfully for {filename}")
@@ -312,7 +331,8 @@ class DocumentAnalysisOrchestrator:
 
             enhanced_context_blocks = await self._context_builder.parse_to_pydantic(azure_result, image_data, analysis_context["document_id"])
 
-            blocks_with_images = sum(1 for cb in enhanced_context_blocks if cb.has_images)
+            blocks_with_images = sum(1 for cb in enhanced_context_blocks if cb.has_image)
+            
             self._logger.info(f"Phase 5: Created {len(enhanced_context_blocks)} context blocks ({blocks_with_images} with images)")
 
             return enhanced_context_blocks

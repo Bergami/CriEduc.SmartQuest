@@ -85,6 +85,12 @@ async def analyze_document(
     # Converte a resposta interna (Pydantic) para o DTO da API (mantém compatibilidade)
     api_response = DocumentResponseDTO.from_internal_response(internal_response)
     
+    # 🔍 DEBUG: Verificar resposta final da API
+    structured_logger.debug(f"🔍 [API DEBUG] Final API response context blocks:")
+    for i, cb in enumerate(api_response.context_blocks[:3]):  # Só os primeiros 3
+        structured_logger.debug(f"🔍   DTO Block {i+1}: ID={cb.id}, Title='{cb.title}', Statement='{cb.statement}'")
+        structured_logger.debug(f"🔍     - Paragraphs: {cb.paragraphs is not None} (length: {len(cb.paragraphs) if cb.paragraphs else 0})")
+    
     # --- ETAPA 4: PERSISTÊNCIA OBRIGATÓRIA NO MONGODB ---
     from app.services.persistence import ISimplePersistenceService
     from app.models.persistence import AnalyzeDocumentRecord, DocumentStatus

@@ -50,6 +50,8 @@ applyTo: "**"
 - Sempre aguarde a autorização para executar a modificação.
 - Após alterar o código certifique que não adicionou funcionalidades duplicadas.
 - Após alterar o código certifique que não adicinou excesso de complexidade ou que feriu padrões de qualidade de software, como o SOLID.
+- Nunca deixe códigos obsoletos no sistema, se não é mais necessário apague.
+- Não utilize a nomenclatura "legacy ou refactored", se precisarmos refatorar ou migrar uma funcionalidade significa que não vamos precisar manter a versão antiga. Se tiver dúvida sempre me pergunte, assim podemos analisar juntos.
 
 ## Para rodar scripts no terminal
 
