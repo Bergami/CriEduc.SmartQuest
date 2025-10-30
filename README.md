@@ -65,8 +65,10 @@ graph TB
     style L fill:#0078D4
     style F fill:#FF9800
 ```
+
     style E fill:#FF9800
-```
+
+````
 
 ### **🔄 Fluxo de Persistência**
 
@@ -89,7 +91,7 @@ sequenceDiagram
     PersistenceService-->>AnalyzeService: saved_id
     AnalyzeService-->>API: complete_response
     API-->>Client: JSON Response + Auto-saved to DB
-```
+````
 
 ### **Tecnologias Utilizadas**
 
@@ -1011,12 +1013,12 @@ The project includes debug configurations in `.vscode/launch.json`:
 
 ## 📡 Available Endpoints v2.0.0
 
-| Method   | Endpoint                         | Description                                    | Status |
-| -------- | -------------------------------- | ---------------------------------------------- | ------ |
-| **GET**  | `/health/`                       | Sistema de health check completo               | ✅     |
-| **POST** | `/analyze/analyze_document`      | Análise de documentos com persistência         | ✅     |
-| **GET**  | `/analyze/analyze_document/{id}` | Recuperação de documentos por ID               | ✅     |
-| **GET**  | `/docs`                          | Documentação Swagger UI interativa             | ✅     |
+| Method   | Endpoint                         | Description                            | Status |
+| -------- | -------------------------------- | -------------------------------------- | ------ |
+| **GET**  | `/health/`                       | Sistema de health check completo       | ✅     |
+| **POST** | `/analyze/analyze_document`      | Análise de documentos com persistência | ✅     |
+| **GET**  | `/analyze/analyze_document/{id}` | Recuperação de documentos por ID       | ✅     |
+| **GET**  | `/docs`                          | Documentação Swagger UI interativa     | ✅     |
 
 ### **🆕 Endpoint Consolidado: Health Check Completo**
 
@@ -1024,15 +1026,15 @@ O endpoint `/health/` agora realiza verificação abrangente de todas as depend�
 
 #### **🔍 Dependências Monitoradas:**
 
-- ✅ **MongoDB** (CRÍTICO) - Persistência obrigatória  
-- ✅ **Azure Blob Storage** (CRÍTICO) - Armazenamento de imagens  
-- ⚠️ **Azure Document Intelligence** (NÃO CRÍTICO) - Pode usar mock  
+- ✅ **MongoDB** (CRÍTICO) - Persistência obrigatória
+- ✅ **Azure Blob Storage** (CRÍTICO) - Armazenamento de imagens
+- ⚠️ **Azure Document Intelligence** (NÃO CRÍTICO) - Pode usar mock
 
 #### **📊 Status Possíveis:**
 
-- `200 healthy` - Todas as dependências funcionando  
-- `200 degraded` - Sistema operacional com avisos não-críticos  
-- `503 unhealthy` - Dependências críticas indisponíveis  
+- `200 healthy` - Todas as dependências funcionando
+- `200 degraded` - Sistema operacional com avisos não-críticos
+- `503 unhealthy` - Dependências críticas indisponíveis
 
 ### **🆕 Enhanced Document Analysis with Mandatory MongoDB Persistence**
 
@@ -1040,11 +1042,11 @@ O endpoint principal `/analyze/analyze_document` agora inclui **persistência ob
 
 #### **🏗️ Características da Arquitetura:**
 
-- ✅ **Pipeline em 4 Etapas**: Validação → Extração → Análise → Persistência  
-- ✅ **Cache Transparente**: Otimização automática da extração  
-- ✅ **DI Container**: Resolução automática de toda árvore de dependências  
-- ✅ **Type Safety**: Validação completa com Pydantic models  
-- ✅ **Error Handling**: Tratamento robusto de exceções  
+- ✅ **Pipeline em 4 Etapas**: Validação → Extração → Análise → Persistência
+- ✅ **Cache Transparente**: Otimização automática da extração
+- ✅ **DI Container**: Resolução automática de toda árvore de dependências
+- ✅ **Type Safety**: Validação completa com Pydantic models
+- ✅ **Error Handling**: Tratamento robusto de exceções
 
 #### **📋 Request Format:**
 
@@ -1072,10 +1074,10 @@ O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documento
 
 #### **📝 Características:**
 
-- ✅ **Busca por ID**: ID único gerado durante análise  
-- ✅ **Validação Robusta**: Verificação de formato e existência  
-- ✅ **Error Handling**: 400 (ID inválido), 404 (não encontrado), 500 (erro interno)  
-- ✅ **DTO Dedicado**: `AnalyzeDocumentResponseDTO` para resposta  
+- ✅ **Busca por ID**: ID único gerado durante análise
+- ✅ **Validação Robusta**: Verificação de formato e existência
+- ✅ **Error Handling**: 400 (ID inválido), 404 (não encontrado), 500 (erro interno)
+- ✅ **DTO Dedicado**: `AnalyzeDocumentResponseDTO` para resposta
 
 #### **📊 Response Format:**
 
@@ -1095,6 +1097,7 @@ O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documento
   "user_email": "professor@escola.edu.br"
 }
 ```
+
 ```
 
 ## 🖼️ **Image Extraction Performance Analysis**
@@ -1159,8 +1162,10 @@ Both methods successfully extract all 7 figures, but with different quality char
 **Performance vs Quality Trade-off:**
 
 ```
+
 Manual PDF: ⚡ Ultra-fast + 📈 Higher resolution + 💾 Smaller files
 Azure API: 🔄 Slower + 🎨 Lossless quality + 🛡️ Enterprise support
+
 ```
 
 #### **🧪 Test Methodology**
@@ -1267,3 +1272,4 @@ Let's build the future of smart education together! 🚀
 - ✅ Improved project structure descriptions for better readability
 - ✅ Expanded the Getting Started section with install instructions
 - ✅ Divided roadmap into short-term and long-term tasks for better planning
+```

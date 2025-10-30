@@ -78,7 +78,11 @@ A SmartQuest API é um microserviço especializado na análise e classificação
       "details": {
         "database": "smartquest",
         "collections_count": 3,
-        "collections": ["azure_processing_data", "analyze_documents", "migrations"]
+        "collections": [
+          "azure_processing_data",
+          "analyze_documents",
+          "migrations"
+        ]
       }
     },
     "azure_blob_storage": {
@@ -127,7 +131,7 @@ A SmartQuest API é um microserviço especializado na análise e classificação
     "mongodb": {
       "status": "unhealthy",
       "message": "MongoDB connection failed",
-      "details": {"error": "Connection timeout"}
+      "details": { "error": "Connection timeout" }
     }
   }
 }
@@ -176,10 +180,10 @@ A SmartQuest API é um microserviço especializado na análise e classificação
 
 #### Parâmetros de Entrada
 
-| Parâmetro | Tipo | Obrigatório | Descrição |
-|-----------|------|-------------|-----------|
-| `email` | Query String | ✅ | Email do usuário para análise |
-| `file` | Form Data (File) | ✅ | Arquivo PDF para análise |
+| Parâmetro | Tipo             | Obrigatório | Descrição                     |
+| --------- | ---------------- | ----------- | ----------------------------- |
+| `email`   | Query String     | ✅          | Email do usuário para análise |
+| `file`    | Form Data (File) | ✅          | Arquivo PDF para análise      |
 
 #### Dependências Críticas
 
@@ -207,10 +211,10 @@ A SmartQuest API é um microserviço especializado na análise e classificação
       "number": 1,
       "question": "Calcule o valor de x na equação: 2x + 5 = 15",
       "alternatives": [
-        {"letter": "A", "text": "x = 3"},
-        {"letter": "B", "text": "x = 5"},
-        {"letter": "C", "text": "x = 7"},
-        {"letter": "D", "text": "x = 10"}
+        { "letter": "A", "text": "x = 3" },
+        { "letter": "B", "text": "x = 5" },
+        { "letter": "C", "text": "x = 7" },
+        { "letter": "D", "text": "x = 10" }
       ],
       "hasImage": false,
       "context_id": 1
@@ -269,13 +273,14 @@ A SmartQuest API é um microserviço especializado na análise e classificação
 
 #### Parâmetros de Entrada
 
-| Parâmetro | Tipo | Obrigatório | Descrição |
-|-----------|------|-------------|-----------|
-| `id` | Path Parameter | ✅ | ID único do documento no MongoDB |
+| Parâmetro | Tipo           | Obrigatório | Descrição                        |
+| --------- | -------------- | ----------- | -------------------------------- |
+| `id`      | Path Parameter | ✅          | ID único do documento no MongoDB |
 
 #### Respostas da API
 
 **Sucesso (200 OK):**
+
 ```json
 {
   "_id": "49ad106b-787b-4c9a-80ac-4c81388355ca",
@@ -297,10 +302,10 @@ A SmartQuest API é um microserviço especializado na análise e classificação
         "number": 1,
         "question": "Calcule o valor de x na equação: 2x + 5 = 15",
         "alternatives": [
-          {"letter": "A", "text": "x = 3"},
-          {"letter": "B", "text": "x = 5"},
-          {"letter": "C", "text": "x = 7"},
-          {"letter": "D", "text": "x = 10"}
+          { "letter": "A", "text": "x = 3" },
+          { "letter": "B", "text": "x = 5" },
+          { "letter": "C", "text": "x = 7" },
+          { "letter": "D", "text": "x = 10" }
         ],
         "hasImage": false,
         "context_id": 1
@@ -332,6 +337,7 @@ A SmartQuest API é um microserviço especializado na análise e classificação
 ```
 
 **Documento Não Encontrado (404):**
+
 ```json
 {
   "detail": "Documento não encontrado"
@@ -339,6 +345,7 @@ A SmartQuest API é um microserviço especializado na análise e classificação
 ```
 
 **ID Inválido (400):**
+
 ```json
 {
   "detail": "ID do documento é obrigatório e não pode estar vazio"
@@ -346,6 +353,7 @@ A SmartQuest API é um microserviço especializado na análise e classificação
 ```
 
 **Erro Interno (500):**
+
 ```json
 {
   "detail": "Erro interno ao buscar documento: [detalhes do erro]"
@@ -356,16 +364,16 @@ A SmartQuest API é um microserviço especializado na análise e classificação
 
 ## 3. Códigos de Status HTTP
 
-| Código | Endpoint | Significado |
-|--------|----------|-------------|
-| **200** | `/health/` | Sistema saudável ou degradado |
-| **200** | `/analyze/analyze_document` | Análise concluída com sucesso |
-| **200** | `/analyze/analyze_document/{id}` | Documento encontrado |
-| **400** | `/analyze/analyze_document/{id}` | ID inválido ou malformado |
-| **404** | `/analyze/analyze_document/{id}` | Documento não encontrado |
-| **422** | `/analyze/analyze_document` | Dados de entrada inválidos |
-| **500** | Todos | Erro interno do servidor |
-| **503** | `/health/` | Dependências críticas indisponíveis |
+| Código  | Endpoint                         | Significado                         |
+| ------- | -------------------------------- | ----------------------------------- |
+| **200** | `/health/`                       | Sistema saudável ou degradado       |
+| **200** | `/analyze/analyze_document`      | Análise concluída com sucesso       |
+| **200** | `/analyze/analyze_document/{id}` | Documento encontrado                |
+| **400** | `/analyze/analyze_document/{id}` | ID inválido ou malformado           |
+| **404** | `/analyze/analyze_document/{id}` | Documento não encontrado            |
+| **422** | `/analyze/analyze_document`      | Dados de entrada inválidos          |
+| **500** | Todos                            | Erro interno do servidor            |
+| **503** | `/health/`                       | Dependências críticas indisponíveis |
 
 ## 4. Tratamento de Erros
 
@@ -396,17 +404,19 @@ A SmartQuest API é um microserviço especializado na análise e classificação
 ✅ **Dependency Injection**: Container IoC completo  
 ✅ **Persistência Obrigatória**: MongoDB para todos os documentos  
 ✅ **Cache Transparente**: Otimização automática  
-✅ **Health Check Robusto**: Verificação de todas as dependências  
+✅ **Health Check Robusto**: Verificação de todas as dependências
 
 ### Mudanças da v1.x para v2.0.0
 
 **ANTES (v1.x):**
+
 - Root endpoint redundante (`/`)
 - Health check básico
 - Múltiplos endpoints de análise (mock, with_figures)
 - Duplicação no router
 
 **DEPOIS (v2.0.0):**
+
 - Endpoints consolidados e focados
 - Health check completo com dependências
 - Análise unificada com cache e persistência
@@ -418,4 +428,4 @@ A SmartQuest API é um microserviço especializado na análise e classificação
 ✅ **Padronização REST**: Estrutura consistente  
 ✅ **Monitoramento Melhorado**: Health check abrangente  
 ✅ **Performance**: Cache transparente  
-✅ **Confiabilidade**: Persistência obrigatória  
+✅ **Confiabilidade**: Persistência obrigatória

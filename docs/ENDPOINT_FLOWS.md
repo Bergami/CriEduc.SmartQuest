@@ -5,6 +5,7 @@ Documentação detalhada dos fluxos de cada endpoint da SmartQuest API v2.0.0.
 ## 📋 Visão Geral
 
 Esta documentação detalha os fluxos internos de cada endpoint, incluindo:
+
 - Diagramas de sequência
 - Dependências críticas
 - Tratamento de erros
@@ -18,6 +19,7 @@ Esta documentação detalha os fluxos internos de cada endpoint, incluindo:
 ### GET /health/
 
 #### 🎯 Propósito
+
 Verificação completa da saúde do sistema, testando todas as dependências críticas e não-críticas.
 
 #### 🔄 Fluxo Detalhado
@@ -35,9 +37,9 @@ sequenceDiagram
     Client->>HealthController: GET /health/
     HealthController->>DIContainer: resolve(HealthChecker)
     DIContainer-->>HealthController: HealthChecker instance
-    
+
     Note over HealthChecker: Verificações Paralelas
-    
+
     par MongoDB Check (CRÍTICO)
         HealthChecker->>DIContainer: resolve(MongoDBConnectionService)
         DIContainer->>MongoDB: ping_database()
@@ -52,9 +54,9 @@ sequenceDiagram
         HealthChecker->>HealthChecker: check_azure_ai(settings)
         HealthChecker-->>HealthChecker: DependencyStatus
     end
-    
+
     HealthChecker->>HealthChecker: calculate_overall_status()
-    
+
     alt Sistema Saudável
         HealthChecker-->>HealthController: HealthResponse (healthy)
         HealthController-->>Client: 200 OK
@@ -69,11 +71,11 @@ sequenceDiagram
 
 #### 🏗️ Dependências e Criticidade
 
-| Dependência | Tipo | Falha → Status | Timeout | Retry |
-|-------------|------|----------------|---------|-------|
-| **MongoDB** | CRÍTICO | unhealthy (503) | 5s | 3x |
-| **Azure Blob Storage** | CRÍTICO | unhealthy (503) | 10s | 2x |
-| **Azure Document Intelligence** | NÃO CRÍTICO | degraded (200) | 15s | 1x |
+| Dependência                     | Tipo        | Falha → Status  | Timeout | Retry |
+| ------------------------------- | ----------- | --------------- | ------- | ----- |
+| **MongoDB**                     | CRÍTICO     | unhealthy (503) | 5s      | 3x    |
+| **Azure Blob Storage**          | CRÍTICO     | unhealthy (503) | 10s     | 2x    |
+| **Azure Document Intelligence** | NÃO CRÍTICO | degraded (200)  | 15s     | 1x    |
 
 #### 📊 Métricas Coletadas
 
@@ -91,6 +93,7 @@ sequenceDiagram
 #### 🚨 Cenários de Erro
 
 **Cenário 1: MongoDB Indisponível**
+
 ```json
 {
   "status": "unhealthy",
@@ -99,13 +102,14 @@ sequenceDiagram
     "mongodb": {
       "status": "unhealthy",
       "message": "MongoDB connection failed",
-      "details": {"error": "Connection timeout after 5000ms"}
+      "details": { "error": "Connection timeout after 5000ms" }
     }
   }
 }
 ```
 
 **Cenário 2: Azure AI Indisponível (Degradado)**
+
 ```json
 {
   "status": "degraded",
@@ -114,7 +118,7 @@ sequenceDiagram
     "azure_document_intelligence": {
       "status": "degraded",
       "message": "Azure Document Intelligence using mock mode",
-      "details": {"note": "Mock service active for development"}
+      "details": { "note": "Mock service active for development" }
     }
   }
 }
@@ -127,6 +131,7 @@ sequenceDiagram
 ### POST /analyze/analyze_document
 
 #### 🎯 Propósito
+
 Análise completa de documentos PDF educacionais com extração de questões, contextos e persistência obrigatória.
 
 #### 🔄 Fluxo Detalhado - Pipeline de 4 Etapas
@@ -156,7 +161,7 @@ sequenceDiagram
     Note over AnalyzeController: Etapa 2: Extração (com Cache)
     AnalyzeController->>ExtractionService: get_extraction_data(file, email)
     ExtractionService->>Cache: check_cache(cache_key)
-    
+
     alt Cache Hit
         Cache-->>ExtractionService: cached_extraction_data
     else Cache Miss
@@ -164,19 +169,19 @@ sequenceDiagram
         AzureAI-->>ExtractionService: extraction_result
         ExtractionService->>Cache: store_cache(cache_key, result)
     end
-    
+
     ExtractionService-->>AnalyzeController: extracted_data
 
     Note over AnalyzeController: Etapa 3: Orquestração da Análise
     AnalyzeController->>DIContainer: resolve(IAnalyzeService)
     DIContainer-->>AnalyzeController: AnalyzeService
-    
+
     AnalyzeController->>AnalyzeService: process_document_with_models()
     AnalyzeService->>DIContainer: resolve(IDocumentAnalysisOrchestrator)
     DIContainer-->>AnalyzeService: DocumentAnalysisOrchestrator
-    
+
     AnalyzeService->>Orchestrator: analyze_document()
-    
+
     par Context Processing
         Orchestrator->>DIContainer: resolve(IContextBuilder)
         DIContainer->>ContextBuilder: build_context_blocks()
@@ -188,14 +193,14 @@ sequenceDiagram
         AzureBlob-->>ImageProcessor: upload_results
         ImageProcessor-->>Orchestrator: processed_images
     end
-    
+
     Orchestrator-->>AnalyzeService: internal_response
     AnalyzeService-->>AnalyzeController: analysis_result
 
     Note over AnalyzeController: Etapa 4: Persistência Obrigatória
     AnalyzeController->>DIContainer: resolve(ISimplePersistenceService)
     DIContainer-->>AnalyzeController: PersistenceService
-    
+
     AnalyzeController->>PersistenceService: save_analysis_result(record)
     PersistenceService->>MongoDB: insert_document(record)
     MongoDB-->>PersistenceService: document_id
@@ -249,6 +254,7 @@ IAnalyzeService → AnalyzeService
 #### 🚨 Cenários de Erro
 
 **Cenário 1: Falha na Persistência (MongoDB)**
+
 ```json
 {
   "detail": "Failed to persist analysis result: MongoDB connection timeout"
@@ -256,6 +262,7 @@ IAnalyzeService → AnalyzeService
 ```
 
 **Cenário 2: Arquivo PDF Corrompido**
+
 ```json
 {
   "detail": "Failed to extract any data from the document. The file might be empty, corrupted, or in an unsupported format."
@@ -263,6 +270,7 @@ IAnalyzeService → AnalyzeService
 ```
 
 **Cenário 3: Validação de Entrada**
+
 ```json
 {
   "detail": [
@@ -282,6 +290,7 @@ IAnalyzeService → AnalyzeService
 ### GET /analyze/analyze_document/{id}
 
 #### 🎯 Propósito
+
 Recuperação de documentos previamente analisados e armazenados no MongoDB.
 
 #### 🔄 Fluxo Detalhado
@@ -295,29 +304,29 @@ sequenceDiagram
     participant MongoDB
 
     Client->>AnalyzeController: GET /analyze/analyze_document/{id}
-    
+
     Note over AnalyzeController: Validação do ID
     AnalyzeController->>AnalyzeController: validate_document_id(id)
-    
+
     alt ID Inválido
         AnalyzeController-->>Client: 400 Bad Request
     else ID Válido
         Note over AnalyzeController: Resolução do Serviço
         AnalyzeController->>DIContainer: resolve(ISimplePersistenceService)
         DIContainer-->>AnalyzeController: PersistenceService
-        
+
         Note over AnalyzeController: Busca no MongoDB
         AnalyzeController->>PersistenceService: get_by_document_id(id)
         PersistenceService->>MongoDB: find_one({"document_id": id})
-        
+
         alt Documento Encontrado
             MongoDB-->>PersistenceService: AnalyzeDocumentRecord
             PersistenceService-->>AnalyzeController: document_record
-            
+
             Note over AnalyzeController: Conversão para DTO
             AnalyzeController->>AnalyzeController: AnalyzeDocumentResponseDTO.from_record()
             AnalyzeController-->>Client: 200 OK + AnalyzeDocumentResponseDTO
-            
+
         else Documento Não Encontrado
             MongoDB-->>PersistenceService: null
             PersistenceService-->>AnalyzeController: null
@@ -337,7 +346,7 @@ def validate_document_id(id: str) -> bool:
     """
     if not id or not id.strip():
         return False
-    
+
     # Validação adicional de formato pode ser implementada
     return True
 ```
@@ -379,6 +388,7 @@ def validate_document_id(id: str) -> bool:
 #### 🚨 Cenários de Erro
 
 **Cenário 1: ID Inválido**
+
 ```json
 {
   "detail": "ID do documento é obrigatório e não pode estar vazio"
@@ -386,6 +396,7 @@ def validate_document_id(id: str) -> bool:
 ```
 
 **Cenário 2: Documento Não Encontrado**
+
 ```json
 {
   "detail": "Documento não encontrado"
@@ -393,6 +404,7 @@ def validate_document_id(id: str) -> bool:
 ```
 
 **Cenário 3: Erro de Conectividade**
+
 ```json
 {
   "detail": "Erro interno ao buscar documento: MongoDB connection failed"
@@ -405,12 +417,12 @@ def validate_document_id(id: str) -> bool:
 
 ### 📊 Benchmarks dos Endpoints
 
-| Endpoint | Operação | Tempo Médio | P95 | P99 | Dependências |
-|----------|----------|-------------|-----|-----|--------------|
-| `/health/` | Health Check | 250ms | 500ms | 1s | MongoDB, Azure |
-| `/analyze/analyze_document` | Análise Completa | 2.5s | 5s | 10s | Cache, Azure, MongoDB |
-| `/analyze/analyze_document` | Cache Hit | 800ms | 1.2s | 2s | MongoDB apenas |
-| `/analyze/analyze_document/{id}` | Recuperação | 45ms | 80ms | 150ms | MongoDB apenas |
+| Endpoint                         | Operação         | Tempo Médio | P95   | P99   | Dependências          |
+| -------------------------------- | ---------------- | ----------- | ----- | ----- | --------------------- |
+| `/health/`                       | Health Check     | 250ms       | 500ms | 1s    | MongoDB, Azure        |
+| `/analyze/analyze_document`      | Análise Completa | 2.5s        | 5s    | 10s   | Cache, Azure, MongoDB |
+| `/analyze/analyze_document`      | Cache Hit        | 800ms       | 1.2s  | 2s    | MongoDB apenas        |
+| `/analyze/analyze_document/{id}` | Recuperação      | 45ms        | 80ms  | 150ms | MongoDB apenas        |
 
 ### 🎯 Otimizações Implementadas
 
@@ -459,7 +471,7 @@ graph LR
     B -->|PersistenceError| E[500 Internal Server Error]
     B -->|AzureServiceError| F[502 Bad Gateway]
     B -->|Unknown Exception| G[500 Internal Server Error]
-    
+
     C --> H[Log Warning]
     D --> I[Log Error]
     E --> I

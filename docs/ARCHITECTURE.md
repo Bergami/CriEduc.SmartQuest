@@ -103,7 +103,7 @@ sequenceDiagram
     Client->>AnalyzeAPI: POST /analyze/analyze_document
     AnalyzeAPI->>DI: resolve(AnalyzeService)
     DI->>Cache: check_extraction_cache()
-    
+
     alt Cache Hit
         Cache-->>DI: cached_extraction_data
     else Cache Miss
@@ -142,6 +142,7 @@ app/api/
 ```
 
 **Responsabilidades:**
+
 - ✅ Validação de entrada via Pydantic
 - ✅ Serialização de resposta (DTOs)
 - ✅ Exception handling centralizado
@@ -149,6 +150,7 @@ app/api/
 - ✅ Request/Response logging estruturado
 
 **Endpoints Principais:**
+
 - `GET /health/` - Health check completo
 - `POST /analyze/analyze_document` - Análise de documentos
 - `GET /analyze/analyze_document/{id}` - Recuperação de documentos
@@ -173,6 +175,7 @@ app/services/
 ```
 
 **Responsabilidades:**
+
 - ✅ Lógica de negócio principal
 - ✅ Orquestração de serviços via DI Container
 - ✅ Processamento de documentos em pipeline
@@ -190,12 +193,14 @@ app/core/
 ```
 
 **Características:**
+
 - ✅ **Inversão de Controle**: Container resolve automaticamente dependências
 - ✅ **Interfaces Claras**: Contratos bem definidos (IAnalyzeService, etc.)
 - ✅ **Configuração Automática**: Auto-registro de serviços
 - ✅ **Testabilidade**: Fácil substituição por mocks
 
 **Exemplo de Resolução:**
+
 ```python
 # Container resolve toda a árvore automaticamente
 analyze_service = container.resolve(IAnalyzeService)
@@ -217,6 +222,7 @@ app/services/persistence/
 ```
 
 **Responsabilidades:**
+
 - ✅ Operações CRUD no MongoDB
 - ✅ Gerenciamento de conexões assíncronas
 - ✅ Models Pydantic para persistência
@@ -241,6 +247,7 @@ app/dtos/
 ```
 
 **Separation of Concerns:**
+
 - ✅ **Models**: Representação interna e persistência
 - ✅ **DTOs**: Contratos da API (entrada/saída)
 - ✅ **Conversão**: Métodos automáticos between models/DTOs
@@ -267,9 +274,9 @@ class AnalyzeDocumentRecord(BaseDocument):
     created_at: datetime               # Timestamp de criação
     updated_at: Optional[datetime]     # Timestamp de atualização
     document_id: str                   # ID único gerado para o documento
-    
+
     @classmethod
-    def create_from_request(cls, user_email: str, file_name: str, 
+    def create_from_request(cls, user_email: str, file_name: str,
                           response: Dict[str, Any], status: DocumentStatus):
         """Factory method para criar registro a partir de request"""
         return cls(
@@ -301,6 +308,7 @@ scripts/migrations/
 ```
 
 **Características:**
+
 - ✅ Scripts versionados cronologicamente
 - ✅ Verificação automática de aplicação
 - ✅ Rollback support
@@ -322,6 +330,7 @@ except Exception as e:
 ```
 
 **Benefícios:**
+
 - ✅ **Auditoria Completa**: Todos os documentos são rastreáveis
 - ✅ **Recuperação de Dados**: Endpoint GET para busca por ID
 - ✅ **Métricas**: Análise de uso e performance
@@ -331,10 +340,10 @@ except Exception as e:
 
 ### ☁️ **Serviços Azure Utilizados**
 
-| Serviço                        | Propósito              | Criticidade | Fallback |
-| ------------------------------ | ---------------------- | ----------- | -------- |
-| **Azure Document Intelligence** | Extração de texto/imagens | Médio       | Mock Service |
-| **Azure Blob Storage**         | Armazenamento de imagens | Alto        | Local Storage |
+| Serviço                         | Propósito                 | Criticidade | Fallback      |
+| ------------------------------- | ------------------------- | ----------- | ------------- |
+| **Azure Document Intelligence** | Extração de texto/imagens | Médio       | Mock Service  |
+| **Azure Blob Storage**          | Armazenamento de imagens  | Alto        | Local Storage |
 
 ### 📊 **Configuração Completa**
 
@@ -370,6 +379,7 @@ graph LR
 ```
 
 **Características:**
+
 - ✅ **Resiliente**: Funciona mesmo com serviços indisponíveis
 - ✅ **Health Check**: Monitora status de cada serviço
 - ✅ **Graceful Degradation**: Mock services quando necessário
@@ -403,6 +413,7 @@ CACHE_MAX_SIZE_GB = 10                     # Limite de tamanho
 ```
 
 **Features Avançadas:**
+
 - ✅ **Cache Automático**: Response completo do Azure Document Intelligence
 - ✅ **Duração Configurável**: 7 dias default, ajustável via env
 - ✅ **Isolamento por Usuário**: Cache separado por email
@@ -437,6 +448,7 @@ container.register(IFigureProcessor, AzureFigureProcessor, lifetime=Singleton)
 ```
 
 **Padrões de Lifetime:**
+
 - ✅ **Singleton**: Serviços de infraestrutura (DB, Azure)
 - ✅ **Transient**: Serviços de processamento (nova instância por request)
 - ✅ **Scoped**: Para futura implementação de escopo de request
@@ -463,6 +475,7 @@ analyze_service = container.resolve(IAnalyzeService)
 # 5. Resolve toda a árvore recursivamente
 # 6. Retorna instância completamente configurada
 ```
+
 2. **Extração** → Texto, layout, imagens
 3. **Parse** → Questões, metadados, context blocks
 4. **Cache** → Armazenamento local (7 dias)
