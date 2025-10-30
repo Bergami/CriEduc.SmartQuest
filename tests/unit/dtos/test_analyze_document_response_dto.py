@@ -2,7 +2,6 @@
 Testes unitários para AnalyzeDocumentResponseDTO
 """
 
-import pytest
 from datetime import datetime
 from app.dtos.responses.analyze_document_response_dto import AnalyzeDocumentResponseDTO
 from app.models.persistence.analyze_document_record import AnalyzeDocumentRecord
@@ -146,8 +145,8 @@ class TestAnalyzeDocumentResponseDTO:
         # Assert
         assert dto.status == "pending"
 
-    def test_dto_field_aliases(self):
-        """Teste dos aliases de campos"""
+    def test_dto_field_aliases_direct_instantiation(self):
+        """Teste dos aliases de campos com instanciação direta"""
         # Arrange
         data = {
             "_id": "507f1f77bcf86cd799439011",

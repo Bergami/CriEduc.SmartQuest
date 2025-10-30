@@ -85,7 +85,7 @@ async def analyze_document(
     # Converte a resposta interna (Pydantic) para o DTO da API (mantém compatibilidade)
     api_response = DocumentResponseDTO.from_internal_response(internal_response)
     
-    # 🔍 DEBUG: Verificar resposta final da API
+    # 🔍 DEBUG: Verify final API response
     structured_logger.debug(f"🔍 [API DEBUG] Final API response context blocks:")
     for i, cb in enumerate(api_response.context_blocks[:3]):  # Só os primeiros 3
         structured_logger.debug(f"🔍   DTO Block {i+1}: ID={cb.id}, Title='{cb.title}', Statement='{cb.statement}'")

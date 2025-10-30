@@ -475,7 +475,7 @@ class ContextBlockBuilder:
 
             except Exception as e:
                 logger.error(f"Failed to upload images to Azure: {str(e)}")
-                raise RuntimeError("Image upload to Azure Blob Storage failed")
+                raise RuntimeError(f"Image upload to Azure Blob Storage failed: {str(e)}") from e
 
         # Aplicar URLs do Azure às figuras
         images_added = 0
@@ -1148,7 +1148,7 @@ class ContextBlockBuilder:
     def _extract_complete_image_texts(self, figure: FigureInfo) -> List[str]:
         """Extrai todos os textos que estão dentro da área da imagem usando boundingRegions - Versão melhorada"""
         if not figure.azure_figure:
-            # Se não temos a referência da figura no Azure, não temos como extrair textos da imagem
+            # If we don't have azure_figure reference, we cannot extract texts from the image
             logger.debug(f"No azure_figure for {figure.id}, cannot extract texts")
             return []
         
@@ -1580,7 +1580,6 @@ class ContextBlockBuilder:
                 title = block_dict.get('title', '')
                 statement = block_dict.get('statement', '')
                 paragraphs = block_dict.get('paragraphs', [])
-                has_image = block_dict.get('hasImage', False)
                 
                 # Converter tipos para enums
                 content_types = []
@@ -1597,7 +1596,7 @@ class ContextBlockBuilder:
                     content_source="text_extraction"
                 )
                 
-                # 🔍 DEBUG: Log detalhado da criação do content
+                # 🔍 DEBUG: Log detailed creation of the content
                 logger.debug(f"🔍 [DEBUG] Creating InternalContextBlock:")
                 logger.debug(f"🔍   - ID: {block_id}")
                 logger.debug(f"🔍   - Title: '{title}'")

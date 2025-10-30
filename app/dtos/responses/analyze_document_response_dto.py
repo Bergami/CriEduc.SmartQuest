@@ -8,8 +8,6 @@ from typing import Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from app.models.persistence.enums import DocumentStatus
-
 
 class AnalyzeDocumentResponseDTO(BaseModel):
     """

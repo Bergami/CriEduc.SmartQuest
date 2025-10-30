@@ -128,13 +128,13 @@ class DocumentAnalysisOrchestrator:
 
             # 🔍 DEBUG: Verificar context blocks após phase 5
             if enhanced_context_blocks:
-                self._logger.error(f"🔍 [ORCHESTRATOR] After phase 5: {len(enhanced_context_blocks)} blocks")
+                self._logger.debug(f"🔍 [ORCHESTRATOR] After phase 5: {len(enhanced_context_blocks)} blocks")
                 for i, cb in enumerate(enhanced_context_blocks[:2]):  # First 2 only
-                    self._logger.error(f"🔍   Block {i+1}: '{cb.title}' - Content: {cb.content is not None}")
+                    self._logger.debug(f"🔍   Block {i+1}: '{cb.title}' - Content: {cb.content is not None}")
                     if cb.content:
-                        self._logger.error(f"🔍     Description: {len(cb.content.description) if cb.content.description else 0} items")
+                        self._logger.debug(f"🔍     Description: {len(cb.content.description) if cb.content.description else 0} items")
             else:
-                self._logger.error(f"🔍 [ORCHESTRATOR] Phase 5 returned None")
+                self._logger.debug(f"🔍 [ORCHESTRATOR] Phase 5 returned None")
 
             # Phase 6: Associação de figuras (se aplicável)
             enhanced_questions = await self._execute_figure_association_phase(

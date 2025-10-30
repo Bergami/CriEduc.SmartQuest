@@ -79,7 +79,7 @@ class MockDocumentService:
                 synthetic_paragraphs = [{"content": text_content}]
                 question_data = QuestionParser.extract_from_paragraphs(synthetic_paragraphs, content_images)
         
-        # 🚨 CORREÇÃO CRÍTICA: Usar ContextBlockBuilder para criar context_blocks no modo mock
+        # 🚨 CRITICAL CORRECTION: Use ContextBlockBuilder to create context_blocks in mock mode
         context_blocks = []
         try:
             from app.core.di_container import container

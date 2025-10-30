@@ -26,9 +26,7 @@ Commit de correção: [será preenchido no commit]
 """
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 from app.models.internal.context_models import InternalContextBlock, InternalContextContent
-from app.services.core.document_analysis_orchestrator import DocumentAnalysisOrchestrator
 from app.core.constants.content_types import ContentType
 
 
@@ -63,7 +61,7 @@ class TestCriticalHasImageAttribute:
             has_image=False
         )
         
-        # TESTE CRÍTICO: Verificar que atributo exists e é acessível
+        # CRITICAL TEST: Verify that attribute exists and is accessible
         assert hasattr(block, 'has_image'), "CRÍTICO: InternalContextBlock DEVE ter atributo has_image"
         
         # TESTE CRÍTICO: Verificar que retorna boolean
