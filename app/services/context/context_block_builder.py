@@ -454,32 +454,30 @@ class ContextBlockBuilder:
         if not images_base64:
             logger.warning("No images_base64 provided to _add_base64_images_to_figures")
             return {}
-            
+
         logger.info(f"Processing images: {len(images_base64)} images available for {len(figures)} figures")
-        
+
         # Se o serviço de upload está disponível, fazer upload para Azure
         azure_urls = {}
         if self._image_upload_service:
             try:
                 # Usar document_id como GUID se fornecido, caso contrário gerar novo
-                # O document_id pode ser usado tanto para identificação interna quanto para storage
                 effective_document_guid = document_id if document_id else str(uuid.uuid4())
-                
+
                 # Fazer upload das imagens para Azure Blob Storage
                 azure_urls = await self._image_upload_service.upload_images_and_get_urls(
                     images_base64=images_base64,
                     document_id=effective_document_guid,
                     document_guid=effective_document_guid
                 )
-                
+
                 logger.info(f"Azure upload completed: {len(azure_urls)}/{len(images_base64)} images uploaded")
-                
+
             except Exception as e:
                 logger.error(f"Failed to upload images to Azure: {str(e)}")
-                # Fallback para base64 se upload falhar
-                azure_urls = {}
-        
-        # Aplicar URLs do Azure ou base64 como fallback às figuras
+                raise RuntimeError(f"Image upload to Azure Blob Storage failed: {str(e)}") from e
+
+        # Aplicar URLs do Azure às figuras
         images_added = 0
         for figure in figures:
             if figure.id in azure_urls:
@@ -488,21 +486,8 @@ class ContextBlockBuilder:
                 figure.base64_image = None  # Limpar base64 para economizar memória
                 images_added += 1
                 logger.debug(f"   ✅ Added Azure URL to {figure.id}")
-            elif figure.id in images_base64:
-                # Fallback para base64 se Azure não disponível
-                figure.base64_image = images_base64[figure.id]
-                images_added += 1
-                logger.debug(f"   📦 Added base64 image to {figure.id} (fallback)")
-            else:
-                logger.debug(f"   ❌ No image found for {figure.id}")
-        
-        logger.info(f"Successfully processed images for {images_added}/{len(figures)} figures")
-        
-        # Log figuras sem imagens
-        figures_without_images = [f.id for f in figures if not (hasattr(f, 'azure_image_url') and f.azure_image_url) and not f.base64_image]
-        if figures_without_images:
-            logger.warning(f"Figures without images: {figures_without_images}")
-            
+
+        logger.info(f"Total images added to figures: {images_added}")
         return azure_urls
     
     def _create_dynamic_context_blocks(
@@ -1137,7 +1122,7 @@ class ContextBlockBuilder:
             'source': 'exam_document',
             'title': title,
             'statement': instruction,
-            'paragraphs': image_texts,  # Usar os textos extraídos como paragraphs
+            'paragraphs': image_texts, # Usar os textos extraídos como paragraphs
             'hasImage': True  # Sempre True para figuras individuais
         }
         
@@ -1163,10 +1148,9 @@ class ContextBlockBuilder:
     def _extract_complete_image_texts(self, figure: FigureInfo) -> List[str]:
         """Extrai todos os textos que estão dentro da área da imagem usando boundingRegions - Versão melhorada"""
         if not figure.azure_figure:
-            # Se não temos azure_figure, usar textos associados como fallback
-            logger.debug(f"No azure_figure for {figure.id}, using associated texts as fallback")
-            return [text.content.strip() for text in figure.associated_texts 
-                   if text.content.strip() and len(text.content.strip()) > 1]
+            # If we don't have azure_figure reference, we cannot extract texts from the image
+            logger.debug(f"No azure_figure for {figure.id}, cannot extract texts")
+            return []
         
         # Obter boundingRegions da figura
         figure_regions = figure.azure_figure.get('boundingRegions', [])
@@ -1395,23 +1379,48 @@ class ContextBlockBuilder:
             general_instructions = self._find_general_instructions(azure_response)
             logger.info(f"📋 [Pydantic] Found {len(general_instructions)} general instructions")
             
-            # 4. Associar textos às figuras baseado em proximidade espacial
+            # 4. Extrair context blocks de TEXTO do documento (CORREÇÃO DO BUG)
+            text_context_blocks = self._extract_text_context_blocks(azure_response)
+            logger.info(f"📄 [Pydantic] Extracted {len(text_context_blocks)} text context blocks")
+            
+            # 5. Converter context blocks de texto para formato Pydantic
+            pydantic_text_blocks = self._convert_text_context_blocks_to_pydantic(text_context_blocks)
+            logger.info(f"🔄 [Pydantic] Converted {len(pydantic_text_blocks)} text blocks to Pydantic")
+            
+            # 6. Associar textos às figuras baseado em proximidade espacial
             self._associate_texts_with_figures_enhanced(figures, text_spans)
             
-            # 5. Adicionar imagens base64 às figuras se disponíveis
+            # 7. Adicionar imagens base64 às figuras se disponíveis
             if images_base64:
                 # Usar document_id passado como parâmetro ou fallback
                 effective_document_id = document_id or azure_response.get('model_id', 'unknown_document')
                 azure_urls = await self._add_base64_images_to_figures(figures, images_base64, effective_document_id)
                 logger.info(f"📷 [Pydantic] Added images to {len([f for f in figures if f.base64_image or (hasattr(f, 'azure_image_url') and f.azure_image_url)])} figures")
             
-            # 6. Criar context blocks DIRETAMENTE como Pydantic objects
-            context_blocks = self._create_pydantic_context_blocks(
+            # 8. Criar context blocks de figuras como Pydantic objects
+            figure_context_blocks = self._create_pydantic_context_blocks(
                 figures, general_instructions, azure_response
             )
             
-            logger.info(f"✅ [Pydantic] Created {len(context_blocks)} InternalContextBlock objects")
-            return context_blocks
+            # 9. Combinar context blocks de texto e figuras
+            all_context_blocks = pydantic_text_blocks + figure_context_blocks
+            
+            # 10. Renumerar IDs para manter sequência correta
+            for i, block in enumerate(all_context_blocks, 1):
+                block.id = i
+            
+            # 🔍 DEBUG: Verificar blocks finais antes de retornar
+            logger.debug(f"🔍 [DEBUG] Final verification before returning:")
+            for i, block in enumerate(all_context_blocks[:3]):  # Só os primeiros 3
+                logger.debug(f"🔍   Block {i+1}: ID={block.id}, Title='{block.title}', Statement='{block.statement}'")
+                if block.content and block.content.description:
+                    logger.debug(f"🔍     - Has content.description: YES, length={len(block.content.description)}")
+                    logger.debug(f"🔍     - First paragraph: '{block.content.description[0][:100]}...' " if block.content.description[0] else "EMPTY")
+                else:
+                    logger.debug(f"🔍     - Has content.description: NO")
+            
+            logger.info(f"✅ [Pydantic] Created {len(all_context_blocks)} total InternalContextBlock objects ({len(pydantic_text_blocks)} text + {len(figure_context_blocks)} figures)")
+            return all_context_blocks
             
         except Exception as e:
             logger.error(f"❌ [Pydantic] Error in parse_to_pydantic: {str(e)}")
@@ -1550,3 +1559,74 @@ class ContextBlockBuilder:
             logger.error(f"❌ [Pydantic] Error creating Pydantic context blocks: {str(e)}")
             logger.error(f"❌ [Pydantic] Full traceback: {traceback.format_exc()}")
             return []
+
+    def _convert_text_context_blocks_to_pydantic(
+        self, 
+        text_context_blocks: List[Dict[str, Any]]
+    ) -> List['InternalContextBlock']:
+        """
+        Converte context blocks de texto (formato dict) para objetos Pydantic InternalContextBlock
+        """
+        from app.models.internal.context_models import InternalContextBlock, InternalContextContent
+        from app.enums.content_enums import ContentType
+        
+        pydantic_blocks = []
+        
+        for block_dict in text_context_blocks:
+            try:
+                # Extrair dados do dict
+                block_id = block_dict.get('id', 0)
+                block_types = block_dict.get('type', ['text'])
+                title = block_dict.get('title', '')
+                statement = block_dict.get('statement', '')
+                paragraphs = block_dict.get('paragraphs', [])
+                
+                # Converter tipos para enums
+                content_types = []
+                for type_str in block_types:
+                    if type_str == 'text':
+                        content_types.append(ContentType.TEXT)
+                    elif type_str == 'image':
+                        content_types.append(ContentType.IMAGE)
+                
+                # Criar content object
+                content_obj = InternalContextContent(
+                    description=paragraphs if paragraphs else [""],
+                    raw_content="\n".join(paragraphs) if paragraphs else "",
+                    content_source="text_extraction"
+                )
+                
+                # 🔍 DEBUG: Log detailed creation of the content
+                logger.debug(f"🔍 [DEBUG] Creating InternalContextBlock:")
+                logger.debug(f"🔍   - ID: {block_id}")
+                logger.debug(f"🔍   - Title: '{title}'")
+                logger.debug(f"🔍   - Statement: '{statement}'")
+                logger.debug(f"🔍   - Paragraphs count: {len(paragraphs)}")
+                logger.debug(f"🔍   - Content.description: {content_obj.description}")
+                
+                # Criar InternalContextBlock
+                context_block = InternalContextBlock(
+                    id=block_id,
+                    type=content_types if content_types else [ContentType.TEXT],
+                    content=content_obj,
+                    title=title,
+                    statement=statement,
+                    source="exam_document",
+                    images=[],
+                    azure_image_urls=[],
+                    sub_contexts=[]
+                )
+                
+                # 🔍 DEBUG: Verificar se o content foi preservado no object criado
+                logger.debug(f"🔍 [DEBUG] Created InternalContextBlock - content preserved: {context_block.content.description is not None}")
+                if context_block.content.description:
+                    logger.debug(f"🔍   - Final content.description length: {len(context_block.content.description)}")
+                
+                pydantic_blocks.append(context_block)
+                logger.info(f"✅ [Pydantic] Converted text context block '{title}' with {len(paragraphs)} paragraphs")
+                
+            except Exception as e:
+                logger.error(f"❌ [Pydantic] Error converting text context block: {str(e)}")
+                continue
+        
+        return pydantic_blocks

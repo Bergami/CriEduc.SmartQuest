@@ -79,9 +79,38 @@ class MockDocumentService:
                 synthetic_paragraphs = [{"content": text_content}]
                 question_data = QuestionParser.extract_from_paragraphs(synthetic_paragraphs, content_images)
         
+        # 🚨 CRITICAL CORRECTION: Use ContextBlockBuilder to create context_blocks in mock mode
+        context_blocks = []
+        try:
+            from app.core.di_container import container
+            from app.core.interfaces import IContextBuilder
+            
+            logger.info("🔧 MOCK: Creating context blocks using ContextBlockBuilder")
+            
+            # Resolver ContextBlockBuilder via DI
+            context_builder = container.resolve(IContextBuilder)
+            
+            # Usar parse_to_pydantic para gerar context blocks
+            azure_response = mock_data.get("analyzeResult", mock_data)
+            context_blocks_pydantic = await context_builder.parse_to_pydantic(azure_response, content_images)
+            
+            # Converter para formato DTO para compatibilidade
+            from app.dtos.responses.document_response_dto import ContextBlockDTO
+            context_blocks = [
+                ContextBlockDTO.from_internal_context_block(cb).dict()
+                for cb in context_blocks_pydantic
+            ]
+            
+            logger.info(f"✅ MOCK: Successfully created {len(context_blocks)} context blocks with ContextBlockBuilder")
+            
+        except Exception as e:
+            logger.error(f"❌ MOCK: Error creating context blocks with ContextBlockBuilder: {str(e)}")
+            logger.info("🔄 MOCK: Falling back to empty context blocks")
+            context_blocks = []
+        
         logger.info(f"Header extracted from mock with {len(header_images)} images")
         logger.info(f"Questions found in mock: {len(question_data['questions'])}")
-        logger.info(f"Context blocks in mock: {len(question_data['context_blocks'])}")
+        logger.info(f"Context blocks in mock: {len(context_blocks)}")
 
         result = {
             "email": email,
@@ -89,7 +118,7 @@ class MockDocumentService:
             "filename": filename,
             "header": header_data,
             "questions": question_data["questions"],
-            "context_blocks": question_data["context_blocks"]
+            "context_blocks": context_blocks  # 🚨 Usar context_blocks do ContextBlockBuilder
         }
         
         logger.info("Mock processing completed")

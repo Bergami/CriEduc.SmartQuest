@@ -83,7 +83,7 @@
 }
 ```
 
-## Document Analysis Endpoint
+## Document Analysis Endpoints
 
 ### POST /analyze/analyze_document
 
@@ -95,6 +95,83 @@
 - `file` (form-data): Arquivo PDF para análise
 
 **Resposta:** Objeto DocumentResponseDTO com questões extraídas e categorizadas.
+
+### GET /analyze/analyze_document/{id}
+
+**Descrição:** Recupera informações sobre um documento que já foi processado e armazenado.
+
+**Parâmetros:**
+
+- `id` (path): ID do documento no MongoDB (ObjectId ou UUID)
+
+**Respostas:**
+
+**Sucesso (200 OK):**
+```json
+{
+  "_id": "49ad106b-787b-4c9a-80ac-4c81388355ca",
+  "document_name": "example.pdf",
+  "status": "completed",
+  "analysis_results": {
+    "document_id": "doc_12345",
+    "email": "user@example.com",
+    "filename": "example.pdf",
+    "header": {
+      "school": "UMEF Escola Exemplo",
+      "teacher": "Professor Silva",
+      "subject": "Matemática",
+      "student": "João Santos",
+      "series": "9º Ano"
+    },
+    "questions": [
+      {
+        "number": 1,
+        "question": "Qual é o resultado de 2 + 2?",
+        "alternatives": [
+          {"letter": "A", "text": "3"},
+          {"letter": "B", "text": "4"},
+          {"letter": "C", "text": "5"}
+        ],
+        "hasImage": false,
+        "context_id": 1
+      }
+    ],
+    "context_blocks": [
+      {
+        "id": 1,
+        "type": ["text"],
+        "title": "Contexto Matemático",
+        "hasImage": false,
+        "images": [],
+        "paragraphs": ["Texto do contexto..."]
+      }
+    ]
+  },
+  "created_at": "2024-10-28T10:30:00Z",
+  "user_email": "user@example.com"
+}
+```
+
+**Não Encontrado (404):**
+```json
+{
+  "detail": "Documento não encontrado"
+}
+```
+
+**ID Inválido (400):**
+```json
+{
+  "detail": "ID do documento é obrigatório e não pode estar vazio"
+}
+```
+
+**Erro Interno (500):**
+```json
+{
+  "detail": "Erro interno ao buscar documento: [erro detalhado]"
+}
+```
 
 ---
 
