@@ -1083,18 +1083,48 @@ O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documento
 
 ```json
 {
-  "_id": "49ad106b-787b-4c9a-80ac-4c81388355ca",
-  "document_name": "prova_matematica.pdf",
-  "status": "completed",
-  "analysis_results": {
-    "document_id": "doc_20241029_abc123",
-    "email": "professor@escola.edu.br",
-    "questions": [...],
-    "context_blocks": [...],
-    "document_metadata": {...}
+  "email": "professor@escola.edu.br",
+  "document_id": "32674f3c-b5c8-4cc3-8c76-d8c716132a60",
+  "filename": "Recuperacao.pdf",
+  "header": {
+    "school": "UMEF Saturnino Rangel Mauro VILA VELHA - ES",
+    "teacher": "Danielle",
+    "subject": "Língua Portuguesa",
+    "student": null,
+    "series": null
   },
-  "created_at": "2024-10-29T10:30:00Z",
-  "user_email": "professor@escola.edu.br"
+  "questions": [
+    {
+      "number": 1,
+      "question": "O texto de Marina Colasanti descreve diversas situações...",
+      "alternatives": [
+        {
+          "letter": "a",
+          "text": "da velocidade com que a tecnologia influencia..."
+        },
+        {
+          "letter": "b",
+          "text": "do desrespeito do ser humano com a vida humilde..."
+        }
+      ],
+      "hasImage": false,
+      "context_id": null
+    }
+  ],
+  "context_blocks": [
+    {
+      "id": 1,
+      "type": ["text"],
+      "source": "exam_document",
+      "statement": "LEIA O TEXTO A SEGUIR",
+      "title": "Eu sei, mas não devia (Marina Colasanti)",
+      "hasImage": false,
+      "images": [],
+      "contentType": null,
+      "paragraphs": ["Eu sei que a gente se acostuma..."],
+      "sub_contexts": null
+    }
+  ]
 }
 ```
 
