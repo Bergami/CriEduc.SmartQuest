@@ -12,11 +12,11 @@ from fastapi import UploadFile
 from app.parsers.header_parser import HeaderParser
 from app.parsers.question_parser import QuestionParser
 from app.core.interfaces import (
-    IImageCategorizer,
     IImageExtractor,
     IContextBuilder,
     IFigureProcessor
 )
+from app.services.image.interfaces.image_categorization_interface import ImageCategorizationInterface
 from app.models.internal import (
     InternalDocumentResponse,
     InternalDocumentMetadata,
@@ -24,7 +24,14 @@ from app.models.internal import (
     InternalContextBlock,
     InternalImageData
 )
+from app.models.internal.processing_context import ProcessingContext, ProcessingContextBuilder
 from app.core.exceptions import DocumentProcessingError
+from app.utils.processing_constants import (
+    PROCESSING_CONSTANTS, 
+    get_max_debug_blocks, 
+    get_pipeline_phase_name,
+    ERROR_MESSAGES
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,10 +57,10 @@ class DocumentAnalysisOrchestrator:
     """
 
     def __init__(self,
-                 image_categorizer: IImageCategorizer,
+                 image_categorizer: ImageCategorizationInterface,
                  image_extractor: IImageExtractor,
                  context_builder: IContextBuilder,
-                 figure_processor: IFigureProcessor):
+                 figure_processor: IFigureProcessor) -> None:
         """
         Inicializa o orquestrador com dependências injetadas via DI Container.
 
@@ -129,7 +136,8 @@ class DocumentAnalysisOrchestrator:
             # 🔍 DEBUG: Verificar context blocks após phase 5
             if enhanced_context_blocks:
                 self._logger.debug(f"🔍 [ORCHESTRATOR] After phase 5: {len(enhanced_context_blocks)} blocks")
-                for i, cb in enumerate(enhanced_context_blocks[:2]):  # First 2 only
+                max_debug_blocks = get_max_debug_blocks()
+                for i, cb in enumerate(enhanced_context_blocks[:max_debug_blocks]):  # Use constant instead of magic number
                     self._logger.debug(f"🔍   Block {i+1}: '{cb.title}' - Content: {cb.content is not None}")
                     if cb.content:
                         self._logger.debug(f"🔍     Description: {len(cb.content.description) if cb.content.description else 0} items")
@@ -146,7 +154,8 @@ class DocumentAnalysisOrchestrator:
             
             # 🔍 DEBUG: Verificar context blocks antes da agregação final
             self._logger.error(f"🔍 [ORCHESTRATOR] Before aggregation: {len(final_context_blocks)} blocks")
-            for i, cb in enumerate(final_context_blocks[:2]):  # First 2 only
+            max_debug_blocks = get_max_debug_blocks()
+            for i, cb in enumerate(final_context_blocks[:max_debug_blocks]):  # Use constant instead of magic number
                 self._logger.error(f"🔍   Final Block {i+1}: '{cb.title}' - Content: {cb.content is not None}")
                 if cb.content:
                     self._logger.error(f"🔍     Description: {len(cb.content.description) if cb.content.description else 0} items")
@@ -170,37 +179,32 @@ class DocumentAnalysisOrchestrator:
                                         extracted_data: Dict[str, Any],
                                         email: str,
                                         filename: str,
-                                        document_id: str) -> Dict[str, Any]:
+                                        document_id: str) -> ProcessingContext:
         """Phase 1: Prepara o contexto básico para análise."""
-        self._logger.info("Phase 1: Preparing analysis context")
+        self._logger.info(get_pipeline_phase_name(1))
 
-        extracted_text = extracted_data.get("text", "")
-        azure_result = extracted_data.get("metadata", {}).get("raw_response", {})
+        context = ProcessingContextBuilder.from_extraction_data(
+            extracted_data=extracted_data,
+            email=email,
+            filename=filename,
+            document_id=document_id
+        ).build()
 
-        context = {
-            "extracted_text": extracted_text,
-            "azure_result": azure_result,
-            "email": email,
-            "filename": filename,
-            "document_id": document_id,
-            "provider_metadata": extracted_data.get("metadata", {})
-        }
-
-        self._logger.info(f"Phase 1 complete: Context prepared with Azure result: {bool(azure_result)}")
+        self._logger.info(f"{get_pipeline_phase_name(1)} complete: Context prepared with Azure result: {context.has_azure_result}")
         return context
 
     async def _execute_image_analysis_phase(self,
                                             file: UploadFile,
-                                            analysis_context: Dict[str, Any],
+                                            analysis_context: ProcessingContext,
                                             document_id: str) -> Dict[str, Any]:
         """Phase 2: Executa extração e categorização de imagens."""
-        self._logger.info("Phase 2: Executing image analysis (extraction + categorization)")
+        self._logger.info(get_pipeline_phase_name(2))
 
         # 2.1: Extração com fallback usando orquestrador especializado
         image_data = await self._image_extractor.extract_with_fallback(
             file=file,
-            document_analysis_result=analysis_context["azure_result"],
-            document_id=f"{analysis_context['email']}_{analysis_context['filename']}"
+            document_analysis_result=analysis_context.azure_result,
+            document_id=analysis_context.full_document_identifier
         )
 
         if image_data:
@@ -217,7 +221,7 @@ class DocumentAnalysisOrchestrator:
 
             header_images_pydantic, content_images_pydantic = self._image_categorizer.categorize_extracted_images(
                 image_data,
-                analysis_context["azure_result"],
+                analysis_context.azure_result,
                 document_id=f"analyze_{len(image_data)}_images"
             )
 
@@ -238,13 +242,13 @@ class DocumentAnalysisOrchestrator:
         return result
 
     async def _execute_header_parsing_phase(self,
-                                            analysis_context: Dict[str, Any],
+                                            analysis_context: ProcessingContext,
                                             image_analysis: Dict[str, Any]) -> InternalDocumentMetadata:
         """Phase 3: Executa parsing do header e metadados."""
         self._logger.info("Phase 3: Executing header parsing")
 
         header_metadata = HeaderParser.parse_to_pydantic(
-            header=analysis_context["extracted_text"],
+            header=analysis_context.extracted_text,
             header_images=image_analysis["header_images"],
             content_images=image_analysis["content_images"]
         )
@@ -253,12 +257,12 @@ class DocumentAnalysisOrchestrator:
         return header_metadata
 
     async def _execute_question_extraction_phase(self,
-                                                 analysis_context: Dict[str, Any],
+                                                 analysis_context: ProcessingContext,
                                                  image_analysis: Dict[str, Any]) -> Dict[str, List]:
         """Phase 4: Executa extração de questões dos parágrafos Azure."""
         self._logger.info("Phase 4: Executing question extraction")
 
-        azure_result = analysis_context["azure_result"]
+        azure_result = analysis_context.azure_result
         image_data = image_analysis["image_data"]
 
         # Extrair parágrafos Azure
@@ -309,7 +313,7 @@ class DocumentAnalysisOrchestrator:
         }
 
     async def _execute_context_building_phase(self,
-                                              analysis_context: Dict[str, Any],
+                                              analysis_context: ProcessingContext,
                                               image_analysis: Dict[str, Any],
                                               use_refactored: bool) -> List[InternalContextBlock]:
         """Phase 5: Executa construção de context blocks refatorados."""
@@ -319,7 +323,7 @@ class DocumentAnalysisOrchestrator:
 
         self._logger.info("Phase 5: Executing refactored context building")
 
-        azure_result = analysis_context["azure_result"]
+        azure_result = analysis_context.azure_result
         image_data = image_analysis["image_data"]
 
         if not azure_result:
@@ -329,7 +333,7 @@ class DocumentAnalysisOrchestrator:
         try:
             self._logger.info("Phase 5.1: Using parse_to_pydantic() - Native Pydantic Interface")
 
-            enhanced_context_blocks = await self._context_builder.parse_to_pydantic(azure_result, image_data, analysis_context["document_id"])
+            enhanced_context_blocks = await self._context_builder.parse_to_pydantic(azure_result, image_data, analysis_context.document_id)
 
             blocks_with_images = sum(1 for cb in enhanced_context_blocks if cb.has_image)
             
@@ -341,7 +345,7 @@ class DocumentAnalysisOrchestrator:
             self._logger.warning(f"Phase 5: parse_to_pydantic failed ({e}), using legacy method")
 
             enhanced_context_blocks_dict = await self._context_builder.build_context_blocks_from_azure_figures(
-                azure_result, image_data, analysis_context["document_id"]
+                azure_result, image_data, analysis_context.document_id
             )
 
             if enhanced_context_blocks_dict:
@@ -356,14 +360,17 @@ class DocumentAnalysisOrchestrator:
                 return None
 
     async def _execute_figure_association_phase(self,
-                                                analysis_context: Dict[str, Any],
+                                                analysis_context: ProcessingContext,
                                                 questions: List[InternalQuestion]) -> List[InternalQuestion]:
         """Phase 6: Executa associação de figuras às questões."""
         self._logger.info("Phase 6: Executing figure association")
 
         try:
-            images = analysis_context.get("categorized_images", [])
-            context_blocks = analysis_context.get("context_blocks", [])
+            # TODO: This method needs additional context data that's not in ProcessingContext yet
+            # For now, convert to legacy dict to maintain compatibility
+            legacy_context = analysis_context.to_legacy_dict()
+            images = legacy_context.get("categorized_images", [])
+            context_blocks = legacy_context.get("context_blocks", [])
 
             # Processar figuras através da interface
             figure_results = await self._figure_processor.process_figures(images, context_blocks)
@@ -379,7 +386,7 @@ class DocumentAnalysisOrchestrator:
             return questions
 
     async def _aggregate_final_response(self,
-                                        analysis_context: Dict[str, Any],
+                                        analysis_context: ProcessingContext,
                                         image_analysis: Dict[str, Any],
                                         header_metadata: InternalDocumentMetadata,
                                         questions: List[InternalQuestion],
@@ -388,14 +395,14 @@ class DocumentAnalysisOrchestrator:
         self._logger.info("Phase 7: Aggregating final response")
 
         response = InternalDocumentResponse(
-            email=analysis_context["email"],
-            document_id=analysis_context["document_id"],
-            filename=analysis_context["filename"],
+            email=analysis_context.email,
+            document_id=analysis_context.document_id,
+            filename=analysis_context.filename,
             document_metadata=header_metadata,
             questions=questions,
             context_blocks=context_blocks,
-            extracted_text=analysis_context["extracted_text"],
-            provider_metadata=analysis_context["provider_metadata"],
+            extracted_text=analysis_context.extracted_text,
+            provider_metadata=analysis_context.provider_metadata,
             all_images=image_analysis["all_images"]
         )
 

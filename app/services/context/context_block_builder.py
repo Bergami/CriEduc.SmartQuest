@@ -15,6 +15,7 @@ from app.core.constants.content_types import (
     ContentType, FigureType, TextRole, ContextBlockType,
     get_content_type_from_string, get_figure_type_from_content
 )
+from app.utils.content_type_converter import ContentTypeConverter
 
 if TYPE_CHECKING:
     from app.models.internal.context_models import InternalContextBlock, InternalSubContext
@@ -140,7 +141,7 @@ class ContextBlockBuilder:
             figure_infos.append(figure_info)
         return figure_infos
     
-    def _extract_figures_with_enhanced_info(self, azure_response: Dict) -> List[FigureInfo]:
+    def _extract_figures_with_enhanced_info(self, azure_response: Dict[str, Any]) -> List[FigureInfo]:
         """Extrai figuras com informações aprimoradas usando enums"""
         figures = []
         
@@ -173,7 +174,7 @@ class ContextBlockBuilder:
     def _classify_figure_with_enums(
         self, 
         figure: Dict[str, Any], 
-        azure_response: Dict
+        azure_response: Dict[str, Any]
     ) -> Tuple[FigureType, ContentType]:
         """
         Classifica figura usando enums baseado em posição e conteúdo
@@ -220,7 +221,7 @@ class ContextBlockBuilder:
         # Default classification
         return FigureType.CONTENT, ContentType.FIGURE
     
-    def _extract_relevant_text_spans(self, azure_response: Dict) -> List[TextSpan]:
+    def _extract_relevant_text_spans(self, azure_response: Dict[str, Any]) -> List[TextSpan]:
         """Extrai spans de texto relevantes para associação com figuras"""
         text_spans = []
         paragraphs = azure_response.get('paragraphs', [])
@@ -325,7 +326,7 @@ class ContextBlockBuilder:
         
         return instructions
     
-    def _extract_figure_content_texts(self, figure: Dict, azure_response: Dict) -> List[str]:
+    def _extract_figure_content_texts(self, figure: Dict[str, Any], azure_response: Dict[str, Any]) -> List[str]:
         """Extrai textos de conteúdo da figura baseado nos elements"""
         content_texts = []
         elements = figure.get('elements', [])

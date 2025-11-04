@@ -6,7 +6,6 @@ Define mapeamentos entre interfaces e implementações com ciclo de vida singlet
 import logging
 from app.core.di_container import container, ServiceLifetime
 from app.core.interfaces import (
-    IImageCategorizer,
     IImageExtractor, 
     IContextBuilder,
     IFigureProcessor,
@@ -14,6 +13,7 @@ from app.core.interfaces import (
     IAnalyzeService,
     IImageUploadService
 )
+from app.services.image.interfaces.image_categorization_interface import ImageCategorizationInterface
 from app.services.image.image_categorization_service import ImageCategorizationService
 from app.services.image.extraction.image_extraction_orchestrator import ImageExtractionOrchestrator
 from app.services.context.context_block_builder import ContextBlockBuilder
@@ -35,11 +35,11 @@ def configure_dependencies() -> None:
     logger.info("Starting dependency configuration...")
     
     container.register(
-        interface_type=IImageCategorizer,
+        interface_type=ImageCategorizationInterface,
         implementation_type=ImageCategorizationService,
         lifetime=ServiceLifetime.SINGLETON
     )
-    logger.debug("IImageCategorizer -> ImageCategorizationService (Singleton)")
+    logger.debug("ImageCategorizationInterface -> ImageCategorizationService (Singleton)")
     
     container.register(
         interface_type=IImageExtractor,
@@ -130,7 +130,7 @@ def validate_configuration() -> bool:
     logger.info("Validating dependency configuration...")
     
     essential_interfaces = [
-        IImageCategorizer,
+        ImageCategorizationInterface,
         IImageExtractor,
         IContextBuilder,
         IFigureProcessor,
