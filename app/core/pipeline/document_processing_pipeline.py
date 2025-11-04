@@ -75,21 +75,21 @@ class DocumentProcessingPipeline(IPipeline):
         self._logger = logging.getLogger(__name__)
         
         # Initialize stages
-        self._stage_1 = ContextPreparationStage()
-        self._stage_2 = ImageAnalysisStage(image_extractor, image_categorizer)
-        self._stage_3 = HeaderParsingStage()
-        self._stage_4 = QuestionExtractionStage()
-        self._stage_5 = ContextBuildingStage(context_builder)
-        self._stage_6 = FigureAssociationStage(figure_processor)
-        self._stage_7 = ResponseAggregationStage()
+        self._context_preparation_stage = ContextPreparationStage()
+        self._image_analysis_stage = ImageAnalysisStage(image_extractor, image_categorizer)
+        self._header_parsing_stage = HeaderParsingStage()
+        self._question_extraction_stage = QuestionExtractionStage()
+        self._context_building_stage = ContextBuildingStage(context_builder)
+        self._figure_association_stage = FigureAssociationStage(figure_processor)
+        self._response_aggregation_stage = ResponseAggregationStage()
         
         # Wrap stages with error boundaries if enabled
         if self._config.enable_circuit_breaker:
             self._wrapped_stages = [
                 PipelineStageWrapper(stage, self._config.max_stage_failures)
                 for stage in [
-                    self._stage_1, self._stage_2, self._stage_3,
-                    self._stage_4, self._stage_5, self._stage_6, self._stage_7
+                    self._context_preparation_stage, self._image_analysis_stage, self._header_parsing_stage,
+                    self._question_extraction_stage, self._context_building_stage, self._figure_association_stage, self._response_aggregation_stage
                 ]
             ]
         else:
@@ -226,8 +226,8 @@ class DocumentProcessingPipeline(IPipeline):
             PipelineResult from stage execution
         """
         stages = [
-            self._stage_1, self._stage_2, self._stage_3,
-            self._stage_4, self._stage_5, self._stage_6, self._stage_7
+            self._context_preparation_stage, self._image_analysis_stage, self._header_parsing_stage,
+            self._question_extraction_stage, self._context_building_stage, self._figure_association_stage, self._response_aggregation_stage
         ]
         
         stage = stages[stage_index]
