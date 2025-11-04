@@ -4,7 +4,7 @@ This module defines the core interfaces for implementing a stage-based
 document processing pipeline, replacing the monolithic orchestrator approach.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod  # ABC = Abstract Base Class - Python mechanism for defining interfaces
 from typing import Any, Dict, Generic, TypeVar, Optional
 from dataclasses import dataclass
 from app.models.internal.processing_context import ProcessingContext
@@ -60,6 +60,10 @@ class IPipelineStage(ABC, Generic[TInput, TOutput]):
     
     Each stage represents a single, focused responsibility in the document
     analysis pipeline. Stages are composable and can be tested in isolation.
+    
+    Note: ABC (Abstract Base Class) is Python's mechanism for defining interfaces.
+    It ensures that any class inheriting from this interface must implement
+    all abstract methods, providing compile-time validation of the interface contract.
     """
     
     @property
@@ -107,6 +111,9 @@ class IPipeline(ABC):
     
     A pipeline is a composition of stages that processes documents
     through a series of transformations.
+    
+    Note: ABC (Abstract Base Class) enforces implementation of all abstract methods
+    in derived classes, ensuring consistent pipeline behavior across implementations.
     """
     
     @property
