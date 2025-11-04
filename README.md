@@ -64,11 +64,8 @@ graph TB
     style K fill:#0078D4
     style L fill:#0078D4
     style F fill:#FF9800
-```
-
     style E fill:#FF9800
-
-````
+```
 
 ### **🔄 Fluxo de Persistência**
 
@@ -91,7 +88,7 @@ sequenceDiagram
     PersistenceService-->>AnalyzeService: saved_id
     AnalyzeService-->>API: complete_response
     API-->>Client: JSON Response + Auto-saved to DB
-````
+```
 
 ### **Tecnologias Utilizadas**
 
