@@ -15,7 +15,6 @@ from app.core.constants.content_types import (
     ContentType, FigureType, TextRole, ContextBlockType,
     get_content_type_from_string, get_figure_type_from_content
 )
-from app.utils.content_type_converter import ContentTypeConverter
 
 if TYPE_CHECKING:
     from app.models.internal.context_models import InternalContextBlock, InternalSubContext
