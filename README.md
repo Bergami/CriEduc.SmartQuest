@@ -64,9 +64,8 @@ graph TB
     style K fill:#0078D4
     style L fill:#0078D4
     style F fill:#FF9800
-    style E fill:#FF9800
+  style E fill:#FF9800
 ```
-
 ````
 
 ### **🔄 Fluxo de Persistência**
@@ -1082,6 +1081,7 @@ O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documento
 
 ```json
 {
+<<<<<<< HEAD
   "email": "wander.bergami@gmail.com",
   "document_id": "32674f3c-b5c8-4cc3-8c76-d8c716132a60",
   "filename": "Recuperacao.pdf",
@@ -1140,6 +1140,20 @@ O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documento
       "sub_contexts": null
     }
   ]
+=======
+  "_id": "49ad106b-787b-4c9a-80ac-4c81388355ca",
+  "document_name": "prova_matematica.pdf",
+  "status": "completed",
+  "analysis_results": {
+    "document_id": "doc_20241029_abc123",
+    "email": "professor@escola.edu.br",
+    "questions": [...],
+    "context_blocks": [...],
+    "document_metadata": {...}
+  },
+  "created_at": "2024-10-29T10:30:00Z",
+  "user_email": "professor@escola.edu.br"
+>>>>>>> origin/main
 }
 ```
 
