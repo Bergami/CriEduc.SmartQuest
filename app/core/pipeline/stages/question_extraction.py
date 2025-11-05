@@ -5,7 +5,7 @@ from Azure Document Intelligence paragraphs.
 """
 
 import logging
-from typing import List, Dict
+from typing import List
 from app.core.pipeline.interfaces import IPipelineStage, PipelineResult
 from app.models.internal.processing_context import ProcessingContext
 from app.models.internal import InternalQuestion, InternalContextBlock
