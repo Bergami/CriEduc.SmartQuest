@@ -1083,48 +1083,55 @@ O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documento
 
 ```json
 {
-  "email": "professor@escola.edu.br",
-  "document_id": "32674f3c-b5c8-4cc3-8c76-d8c716132a60",
-  "filename": "Recuperacao.pdf",
-  "header": {
-    "school": "UMEF Saturnino Rangel Mauro VILA VELHA - ES",
-    "teacher": "Danielle",
-    "subject": "Língua Portuguesa",
-    "student": null,
-    "series": null
+  "_id": "1a027c81-6b52-43ab-8786-1fc9b44eb460",
+  "file_name": "Recuperacao.pdf",
+  "status": "completed",
+  "response": {
+    "email": "wander.bergami@gmail.com",
+    "document_id": "9a667906-0901-438b-a0d4-1157ba4e8966",
+    "filename": "Recuperacao.pdf",
+    "header": {
+      "school": "UMEF Saturnino Rangel Mauro VILA VELHA - ES",
+      "teacher": "Danielle",
+      "subject": "Língua Portuguesa",
+      "student": null,
+      "series": null
+    },
+    "questions": [
+      {
+        "number": 1,
+        "question": "O texto de Marina Colasanti descreve diversas situações...",
+        "alternatives": [
+          {
+            "letter": "a",
+            "text": "da velocidade com que a tecnologia influencia..."
+          },
+          {
+            "letter": "b",
+            "text": "do desrespeito do ser humano com a vida humilde..."
+          }
+        ],
+        "hasImage": false,
+        "context_id": null
+      }
+    ],
+    "context_blocks": [
+      {
+        "id": 1,
+        "type": ["text"],
+        "source": "exam_document",
+        "statement": "LEIA O TEXTO A SEGUIR",
+        "title": "Eu sei, mas não devia (Marina Colasanti)",
+        "hasImage": false,
+        "images": [],
+        "contentType": null,
+        "paragraphs": ["Eu sei que a gente se acostuma..."],
+        "sub_contexts": null
+      }
+    ]
   },
-  "questions": [
-    {
-      "number": 1,
-      "question": "O texto de Marina Colasanti descreve diversas situações...",
-      "alternatives": [
-        {
-          "letter": "a",
-          "text": "da velocidade com que a tecnologia influencia..."
-        },
-        {
-          "letter": "b",
-          "text": "do desrespeito do ser humano com a vida humilde..."
-        }
-      ],
-      "hasImage": false,
-      "context_id": null
-    }
-  ],
-  "context_blocks": [
-    {
-      "id": 1,
-      "type": ["text"],
-      "source": "exam_document",
-      "statement": "LEIA O TEXTO A SEGUIR",
-      "title": "Eu sei, mas não devia (Marina Colasanti)",
-      "hasImage": false,
-      "images": [],
-      "contentType": null,
-      "paragraphs": ["Eu sei que a gente se acostuma..."],
-      "sub_contexts": null
-    }
-  ]
+  "created_at": "2025-11-04T20:14:04.675000",
+  "user_email": "wander.bergami@gmail.com"
 }
 ```
 
