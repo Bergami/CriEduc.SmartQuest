@@ -8,7 +8,7 @@ Created as part of architectural refactoring (Issue #10) to improve code
 maintainability and reduce duplication.
 """
 
-from typing import List, Dict, Any, Optional
+from typing import List, Any
 from enum import Enum
 
 from app.enums.content_enums import ContentType
