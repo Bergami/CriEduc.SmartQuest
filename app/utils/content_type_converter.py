@@ -9,7 +9,6 @@ maintainability and reduce duplication.
 """
 
 from typing import List, Any
-from enum import Enum
 
 from app.enums.content_enums import ContentType
 
