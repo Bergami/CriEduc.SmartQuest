@@ -5,7 +5,6 @@ categorizing images from the document.
 """
 
 import logging
-from typing import Dict, Any
 from fastapi import UploadFile
 from app.core.pipeline.interfaces import IPipelineStage, PipelineResult
 from app.models.internal.processing_context import ProcessingContext
