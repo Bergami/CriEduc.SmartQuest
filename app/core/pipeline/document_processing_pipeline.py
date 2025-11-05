@@ -5,7 +5,7 @@ to process documents using the new stage-based architecture.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 from fastapi import UploadFile
 
 from app.core.pipeline.interfaces import IPipeline, PipelineResult, PipelineStageWrapper, PipelineConfiguration
