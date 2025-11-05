@@ -108,5 +108,7 @@ RELATORIO_LIMPEZA_*.md
 .DS_Store
 tests/documents/7c36b9bd-1d8d-464e-a681-7f3e21a28fd2_Recuperacao
 
-# ignore cache files
-cache/documents/*.json
+# ignore cache all files in cache/documents
+cache/documents/*
+
+
