@@ -107,21 +107,22 @@ class ImageAnalysisStage(IPipelineStage[ImageAnalysisInput, ImageAnalysisOutput]
             # 2.2: Image categorization
             header_images = []
             content_images = []
-            categorized_images = []
             
             if image_data:
-                categorization_result = await self._image_categorizer.categorize_images(
-                    image_data, context.azure_result
+                # Correct method: categorize_extracted_images returns (header_images, content_images)
+                header_images, content_images = self._image_categorizer.categorize_extracted_images(
+                    image_data=image_data,
+                    azure_result=context.azure_result,
+                    document_id=context.full_document_identifier
                 )
-                
-                header_images = categorization_result.get("header_images", [])
-                content_images = categorization_result.get("content_images", [])
-                categorized_images = categorization_result.get("categorized_images", [])
                 
                 self._logger.info(
                     f"Phase 2.2: Images categorized - Header: {len(header_images)}, "
                     f"Content: {len(content_images)}"
                 )
+            
+            # Combine header and content images for categorized_images
+            categorized_images = header_images + content_images
             
             output = ImageAnalysisOutput(
                 image_data=image_data,
