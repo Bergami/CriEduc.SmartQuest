@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from ...models.internal.document_models import InternalDocumentResponse
 from ...models.internal.context_models import InternalContextBlock
 from ...models.internal.question_models import InternalQuestion
+from ...utils.content_type_converter import ContentTypeConverter
 
 
 class AlternativeDTO(BaseModel):
@@ -94,7 +95,7 @@ class ContextBlockDTO(BaseModel):
 
         return cls(
             id=internal_cb.id,
-            type=[t.value for t in internal_cb.type],
+            type=ContentTypeConverter.enums_to_strings(internal_cb.type),
             source=internal_cb.source or "exam_document",
             statement=internal_cb.statement,
             title=internal_cb.title,

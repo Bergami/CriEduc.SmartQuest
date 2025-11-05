@@ -64,10 +64,8 @@ graph TB
     style K fill:#0078D4
     style L fill:#0078D4
     style F fill:#FF9800
+  style E fill:#FF9800
 ```
-
-    style E fill:#FF9800
-
 ````
 
 ### **🔄 Fluxo de Persistência**
@@ -1083,6 +1081,66 @@ O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documento
 
 ```json
 {
+<<<<<<< HEAD
+  "email": "wander.bergami@gmail.com",
+  "document_id": "32674f3c-b5c8-4cc3-8c76-d8c716132a60",
+  "filename": "Recuperacao.pdf",
+  "header": {
+    "school": "UMEF Saturnino Rangel Mauro VILA VELHA - ES",
+    "teacher": "Danielle",
+    "subject": "Língua Portuguesa",
+    "student": null,
+    "series": null
+  },
+  "questions": [
+    {
+      "number": 1,
+      "question": "O texto de Marina Colasanti descreve diversas situações do cotidiano da sociedade contemporânea com o objetivo central de fomentar nos(as) leitores(as) uma reflexão a respeito: (2,0 pontos)",
+      "alternatives": [
+        {
+          "letter": "a",
+          "text": "da velocidade com que a tecnologia influencia na nossa comunicação diária e na vida dos jovens e adultos"
+        },
+        {
+          "letter": "b", 
+          "text": "do desrespeito do ser humano com a vida humilde de pessoas pertencentes a grupos sociais mais pobres na sociedade"
+        }
+      ],
+      "hasImage": false,
+      "context_id": null
+    }
+  ],
+  "context_blocks": [
+    {
+      "id": 1,
+      "type": ["text"],
+      "source": "exam_document",
+      "statement": "LEIA O TEXTO A SEGUIR",
+      "title": "Eu sei, mas não devia (Marina Colasanti)",
+      "hasImage": false,
+      "images": [],
+      "contentType": null,
+      "paragraphs": [
+        "Eu sei que a gente se acostuma. Mas não devia..."
+      ],
+      "sub_contexts": null
+    },
+    {
+      "id": 2,
+      "type": ["image"],
+      "source": "exam_document", 
+      "statement": null,
+      "title": "Context 1",
+      "hasImage": false,
+      "images": [
+        "https://crieducstorage.blob.core.windows.net/crieduc-documents/documents/tests/images/32674f3c-b5c8-4cc3-8c76-d8c716132a60/1.jpg?sp=racwdl&st=2025-10-20T16:23:40Z&se=2026-10-21T00:38:40Z&spr=https&sv=2024-11-04&sr=c&sig=0ybRfUveCI7GnHm9DxgR%2Fd82oKDGnXba8QgqaqFkC2M%3D"
+      ],
+      "contentType": "image/url",
+      "paragraphs": ["LEIA O TEXTO A SEGUIR"],
+      "sub_contexts": null
+    }
+  ]
+=======
   "_id": "49ad106b-787b-4c9a-80ac-4c81388355ca",
   "document_name": "prova_matematica.pdf",
   "status": "completed",
@@ -1095,6 +1153,7 @@ O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documento
   },
   "created_at": "2024-10-29T10:30:00Z",
   "user_email": "professor@escola.edu.br"
+>>>>>>> origin/main
 }
 ```
 
