@@ -321,8 +321,10 @@ class HealthChecker:
         """
         Check Azure Document Intelligence configuration.
         
-        Note: This is a configuration check, not a connectivity test.
-        The service can fallback to mock mode if not configured.
+        ⚠️ IMPORTANT: Azure Document Intelligence is REQUIRED for production.
+        Mock mode (USE_AZURE_AI=false) should ONLY be used for local development/testing.
+        
+        This is a configuration check, not a connectivity test.
         
         Verifies:
             - Service is enabled in settings
@@ -336,7 +338,7 @@ class HealthChecker:
             DependencyStatus with Azure AI configuration status including:
                 - Enabled status
                 - Configuration completeness
-                - Fallback mode information
+                - Development mode warning if mock is active
         """
         try:
             has_endpoint = bool(settings.azure_document_intelligence_endpoint)
@@ -346,10 +348,11 @@ class HealthChecker:
             if not is_enabled:
                 return DependencyStatus(
                     status="degraded",
-                    message="Azure Document Intelligence disabled (using mock)",
+                    message="Azure Document Intelligence disabled - DEVELOPMENT MODE ONLY",
                     details={
                         "enabled": False,
-                        "mode": "mock"
+                        "mode": "development",
+                        "warning": "⚠️ Mock mode active. NOT suitable for production use."
                     }
                 )
             
@@ -365,20 +368,20 @@ class HealthChecker:
                 )
             else:
                 return DependencyStatus(
-                    status="degraded",
-                    message="Azure Document Intelligence not fully configured",
+                    status="unhealthy",
+                    message="Azure Document Intelligence not fully configured - PRODUCTION BLOCKER",
                     details={
                         "enabled": is_enabled,
                         "endpoint_configured": has_endpoint,
                         "key_configured": has_key,
-                        "note": "Missing configuration - will fallback to mock"
+                        "error": "⚠️ Missing Azure credentials. Document processing will FAIL."
                     }
                 )
             
         except Exception as e:
             self.logger.error(f"Azure AI health check error: {e}")
             return DependencyStatus(
-                status="degraded",
+                status="unhealthy",
                 message="Azure Document Intelligence check failed",
                 details=self._sanitize_error(e)
             )

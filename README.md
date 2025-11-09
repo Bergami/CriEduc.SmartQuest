@@ -110,7 +110,21 @@ sequenceDiagram
 - ✅ **Sistema de migrações versionadas** - Evolução controlada do banco
 - ✅ **Health monitoring** - Monitoramento de saúde do banco de dados
 - ✅ API REST completa com documentação automática
-- ✅ Sistema de mock para desenvolvimento
+- ✅ Sistema de mock para desenvolvimento local (⚠️ **APENAS para testes - NUNCA em produção**)
+
+## ⚠️ **IMPORTANTE: Modo Mock**
+
+O sistema possui um modo mock (`--use-mock` ou `USE_AZURE_AI=false`) para facilitar o desenvolvimento local **SEM credenciais Azure**:
+
+- ✅ **USO CORRETO**: Desenvolvimento local, testes unitários, CI/CD sem credenciais
+- ❌ **USO INCORRETO**: Ambientes de produção, staging, ou qualquer ambiente com usuários reais
+
+**Por quê?** Mock retorna dados simulados, não processa documentos reais. Usar em produção resultaria em:
+- Dados falsos salvos no MongoDB
+- Respostas incorretas para usuários
+- Comprometimento total da integridade do sistema
+
+**Arquitetura de Segurança**: O código de produção **NÃO possui fallback para mock**. Se Azure não estiver configurado, a aplicação **lança exceção** e **não inicia**.
 
 ## 🚀 Quick Start
 
@@ -1026,7 +1040,9 @@ O endpoint `/health/` agora realiza verificação abrangente de todas as depend�
 
 - ✅ **MongoDB** (CRÍTICO) - Persistência obrigatória
 - ✅ **Azure Blob Storage** (CRÍTICO) - Armazenamento de imagens
-- ⚠️ **Azure Document Intelligence** (NÃO CRÍTICO) - Pode usar mock
+- ✅ **Azure Document Intelligence** (CRÍTICO) - Processamento de documentos
+  - ⚠️ **ATENÇÃO**: Mock mode (`USE_AZURE_AI=false`) é **APENAS para desenvolvimento/testes locais**
+  - ❌ **NUNCA usar mock em produção** - resultaria em dados falsos e comprometimento do sistema
 
 #### **📊 Status Possíveis:**
 

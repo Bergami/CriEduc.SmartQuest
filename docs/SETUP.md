@@ -6,7 +6,8 @@
 
 - Python 3.9 ou superior
 - Git
-- Azure Document Intelligence (opcional - tem modo mock)
+- **Azure Document Intelligence** (OBRIGATÓRIO para produção)
+  - ⚠️ Modo mock disponível APENAS para desenvolvimento local/testes
 
 ### **1. Clonar Repositório**
 
@@ -46,12 +47,22 @@ cp .env-local.example .env-local
 ### **5. Executar Aplicação**
 
 ```bash
-# Modo normal (requer Azure configurado)
+# Modo PRODUÇÃO (requer Azure configurado)
 python start_simple.py
 
-# Modo mock (sem Azure)
+# Modo DESENVOLVIMENTO/TESTES (sem Azure - usa mock)
+# ⚠️ ATENÇÃO: --use-mock é APENAS para desenvolvimento local
+# ❌ NUNCA usar em produção, staging ou ambientes com usuários reais
 python start_simple.py --use-mock
 ```
+
+**🔒 Modo Mock - Quando Usar:**
+- ✅ Desenvolvimento local sem credenciais Azure
+- ✅ Testes unitários automatizados
+- ✅ CI/CD pipelines sem acesso ao Azure
+- ❌ **NUNCA** em produção
+- ❌ **NUNCA** em staging
+- ❌ **NUNCA** com dados/usuários reais
 
 ### **6. Verificar Funcionamento**
 
@@ -201,10 +212,13 @@ rm -rf cache/documents/*
 
 ```bash
 # Verificar configuração
-python -c "from app.config.settings import settings; print(settings.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT)"
+python -c "from app.config.settings import settings; print(settings.azure_document_intelligence_endpoint)"
 
-# Solução: Configurar .env-local ou usar modo mock
+# Para DESENVOLVIMENTO LOCAL: usar modo mock
+# ⚠️ APENAS para desenvolvimento - NUNCA em produção
 python start_simple.py --use-mock
+
+# Para PRODUÇÃO: configurar credenciais Azure no .env-local
 ```
 
 #### **Erro: Dependências**
@@ -260,12 +274,15 @@ python -m compileall app/
 
 ### **Checklist de Deploy**
 
-- [ ] Variáveis de ambiente configuradas
-- [ ] Azure Document Intelligence funcionando
+- [ ] Variáveis de ambiente de PRODUÇÃO configuradas
+- [ ] Azure Document Intelligence configurado e testado (⚠️ **OBRIGATÓRIO**)
+- [ ] `USE_AZURE_AI=true` confirmado (⚠️ **NUNCA false em produção**)
+- [ ] MongoDB configurado e acessível
+- [ ] Azure Blob Storage configurado
 - [ ] Testes passando
-- [ ] Logs configurados
-- [ ] Health check respondendo
-- [ ] Performance testada
+- [ ] Logs configurados para produção
+- [ ] Health check respondendo com todas dependências "healthy"
+- [ ] Performance testada com carga real
 
 ## 🔐 Segurança
 
