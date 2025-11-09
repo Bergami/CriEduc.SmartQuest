@@ -59,13 +59,10 @@ class ContextBlockDTO(BaseModel):
         if internal_cb.sub_contexts:
             sub_contexts_dto = []
             for sub in internal_cb.sub_contexts:
-                # Converter content para lista se for string, ou None se não existir
+                # Converter content (str) para lista, ou None se vazio
                 content_value = None
-                if hasattr(sub, 'content') and sub.content:
-                    if isinstance(sub.content, list):
-                        content_value = sub.content
-                    elif isinstance(sub.content, str):
-                        content_value = [sub.content] if sub.content.strip() else None
+                if sub.content:
+                    content_value = [sub.content] if sub.content.strip() else None
                 
                 sub_contexts_dto.append(
                     SubContextDTO(

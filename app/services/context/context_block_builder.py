@@ -433,11 +433,14 @@ class ContextBlockBuilder:
         region = regions[0]
         polygon = region.get('polygon', [])
         
-        if len(polygon) < 8:
+        # Validar que polygon tem exatamente 4 vértices (8 coordenadas: x1,y1,x2,y2,x3,y3,x4,y4)
+        if len(polygon) != 8:
             return 0.0
         
         # Calculate center Y (average of Y coordinates)
-        center_y = sum(polygon[i] for i in range(1, len(polygon), 2)) / 4
+        # Y coordinates are at odd indices: 1, 3, 5, 7
+        num_vertices = len(polygon) // 2
+        center_y = sum(polygon[i] for i in range(1, len(polygon), 2)) / num_vertices
         return center_y
     
     def _calculate_spatial_distance(
@@ -1047,7 +1050,7 @@ class ContextBlockBuilder:
         
         for figure in figures:
             # Coletar imagens
-            if hasattr(figure, 'azure_image_url') and figure.azure_image_url:
+            if figure.azure_image_url:
                 all_azure_urls.append(figure.azure_image_url)
             elif figure.base64_image:
                 all_images.append(figure.base64_image)
@@ -1063,7 +1066,7 @@ class ContextBlockBuilder:
         # Se não encontrou título específico, tentar usar caption do Azure
         if not sequence_title:
             for figure in figures:
-                if hasattr(figure, 'azure_figure') and figure.azure_figure:
+                if figure.azure_figure:
                     caption = figure.azure_figure.get('caption', {}).get('content', '')
                     if caption and f'TEXTO {sequence.upper()}' in caption.upper():
                         sequence_title = caption.strip()
