@@ -16,18 +16,23 @@ class InternalSubContext(BaseModel):
     sequence: str = Field(..., description="Sequence identifier (I, II, III, IV)")
     type: str = Field(..., description="Type of sub-context (charge, propaganda, photo, etc.)")
     title: str = Field(..., description="Title of the sub-context")
-    content: str = Field(..., description="Text content of the sub-context")
+    content: Optional[str] = Field(default=None, description="Text content of the sub-context (optional)")
     images: List[str] = Field(default_factory=list, description="Base64 images for this sub-context")
     azure_image_urls: List[str] = Field(default_factory=list, description="Azure Blob Storage URLs for this sub-context")
     
     @classmethod
     def from_legacy_sub_context(cls, legacy_sub: Dict[str, Any]) -> "InternalSubContext":
         """Create InternalSubContext from legacy format."""
+        # 🔧 CORREÇÃO: content é opcional, retornar None se não existir ou se for string vazia
+        content_value = legacy_sub.get("content")
+        if content_value == "":
+            content_value = None
+        
         return cls(
             sequence=legacy_sub.get("sequence", ""),
             type=legacy_sub.get("type", "image"),
             title=legacy_sub.get("title", ""),
-            content=legacy_sub.get("content", ""),
+            content=content_value,
             images=legacy_sub.get("images", []),
             azure_image_urls=legacy_sub.get("azure_image_urls", [])
         )
