@@ -540,6 +540,19 @@ class ContextBlockBuilder:
         text_context_blocks = self._extract_text_context_blocks(azure_response)
         context_blocks.extend(text_context_blocks)
         
+        # 🔧 CORREÇÃO: Coletar identificadores únicos (statement+title) dos textos já processados
+        processed_text_identifiers = set()
+        for block in text_context_blocks:
+            statement = block.get('statement', '').strip().lower()
+            title = block.get('title', '').strip().lower()
+            
+            # Criar identificador único combinando statement e title
+            if statement and title:
+                identifier = f"{statement}|{title}"
+                processed_text_identifiers.add(identifier)
+        
+        logger.info(f"📋 Processed {len(text_context_blocks)} text blocks, {len(processed_text_identifiers)} identifiers to filter duplicates")
+        
         # 2. Depois, agrupar figuras por contexto baseado em instruções e proximidade
         grouped_figures = self._group_figures_dynamically(figures, general_instructions)
         
@@ -551,6 +564,42 @@ class ContextBlockBuilder:
             if group_name == 'individual_figures':
                 # Criar um context_block separado para cada figura individual
                 for figure in group_figures:
+                    # 🔧 CORREÇÃO: Verificar se a figura não corresponde a um texto já processado
+                    # Extrair statement e title que seriam criados pela figura
+                    fig_statement = None
+                    fig_title_parts = []
+                    
+                    for text_span in figure.associated_texts:
+                        content = text_span.content.strip()
+                        content_upper = content.upper()
+                        
+                        # Detectar statement (instrução)
+                        if any(instr in content_upper for instr in [
+                            'ANALISE A TIRINHA', 'LEIA O TEXTO A SEGUIR', 
+                            'OBSERVE A FIGURA', 'CONSIDERE A IMAGEM'
+                        ]):
+                            fig_statement = content
+                        elif not content_upper.startswith('QUESTÃO') and len(content) > 3 and not content.isdigit():
+                            fig_title_parts.append(content)
+                    
+                    # Se tiver statement, verificar se já foi processado como texto
+                    if fig_statement:
+                        # Tentar diferentes combinações de título
+                        should_skip = False
+                        statement_lower = fig_statement.strip().lower()
+                        
+                        for title_part in fig_title_parts[:3]:  # Verificar primeiros 3 possíveis títulos
+                            title_lower = title_part.strip().lower()
+                            identifier = f"{statement_lower}|{title_lower}"
+                            
+                            if identifier in processed_text_identifiers:
+                                logger.info(f"⏭️  Skipping duplicate figure - already processed as text: '{fig_statement}' + '{title_part}'")
+                                should_skip = True
+                                break
+                        
+                        if should_skip:
+                            continue
+                    
                     context_block = self._create_individual_context_block(figure)
                     if context_block:
                         context_blocks.append(context_block)
@@ -631,7 +680,7 @@ class ContextBlockBuilder:
                         'source': 'exam_document',
                         'statement': statement,
                         'title': title if title else "Texto para análise",
-                        'paragraphs': text_paragraphs,
+                        'content': {'description': text_paragraphs},  # ✅ Formato correto para conversão Pydantic
                         'hasImage': False
                     }
                     context_blocks.append(context_block)
@@ -1494,38 +1543,27 @@ class ContextBlockBuilder:
             general_instructions = self._find_general_instructions(azure_response)
             logger.info(f"📋 [Pydantic] Found {len(general_instructions)} general instructions")
             
-            # 4. Extrair context blocks de TEXTO do documento (CORREÇÃO DO BUG)
-            text_context_blocks = self._extract_text_context_blocks(azure_response)
-            logger.info(f"📄 [Pydantic] Extracted {len(text_context_blocks)} text context blocks")
-            
-            # 5. Converter context blocks de texto para formato Pydantic
-            pydantic_text_blocks = self._convert_text_context_blocks_to_pydantic(text_context_blocks)
-            logger.info(f"🔄 [Pydantic] Converted {len(pydantic_text_blocks)} text blocks to Pydantic")
-            
-            # 6. Associar textos às figuras baseado em proximidade espacial
+            # 4. Associar textos às figuras baseado em proximidade espacial
             self._associate_texts_with_figures_enhanced(figures, text_spans)
             
-            # 7. Adicionar imagens base64 às figuras se disponíveis
+            # 5. Adicionar imagens base64 às figuras se disponíveis
             if images_base64:
                 # Usar document_id passado como parâmetro ou fallback
                 effective_document_id = document_id or azure_response.get('model_id', 'unknown_document')
                 azure_urls = await self._add_base64_images_to_figures(figures, images_base64, effective_document_id)
                 logger.info(f"📷 [Pydantic] Added images to {len([f for f in figures if f.base64_image or (hasattr(f, 'azure_image_url') and f.azure_image_url)])} figures")
             
-            # 8. Criar context blocks de figuras usando o método dinâmico correto
-            # 🔧 CORREÇÃO: Usar _create_dynamic_context_blocks em vez de _create_pydantic_context_blocks
-            # para garantir que sub_contexts sejam criados corretamente (sem campo content)
+            # 6. Criar TODOS os context blocks (texto + figuras) usando o método dinâmico
+            # 🔧 CORREÇÃO: _create_dynamic_context_blocks já extrai text context blocks internamente
+            # e depois cria context blocks de figuras, evitando duplicação
             dict_context_blocks = self._create_dynamic_context_blocks(
                 figures, general_instructions, azure_response
             )
             
-            # Converter dict context blocks para Pydantic objects
-            figure_context_blocks = self._convert_dict_blocks_to_pydantic(dict_context_blocks)
+            # 7. Converter dict context blocks para Pydantic objects
+            all_context_blocks = self._convert_dict_blocks_to_pydantic(dict_context_blocks)
             
-            # 9. Combinar context blocks de texto e figuras
-            all_context_blocks = pydantic_text_blocks + figure_context_blocks
-            
-            # 10. Renumerar IDs para manter sequência correta
+            # 8. IDs já foram renumerados em _create_dynamic_context_blocks, mas garantir sequência
             for i, block in enumerate(all_context_blocks, 1):
                 block.id = i
             
@@ -1539,7 +1577,7 @@ class ContextBlockBuilder:
                 else:
                     logger.debug(f"🔍     - Has content.description: NO")
             
-            logger.info(f"✅ [Pydantic] Created {len(all_context_blocks)} total InternalContextBlock objects ({len(pydantic_text_blocks)} text + {len(figure_context_blocks)} figures)")
+            logger.info(f"✅ [Pydantic] Created {len(all_context_blocks)} total InternalContextBlock objects")
             return all_context_blocks
             
         except Exception as e:
