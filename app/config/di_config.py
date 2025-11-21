@@ -17,8 +17,6 @@ from app.services.image.interfaces.image_categorization_interface import ImageCa
 from app.services.image.image_categorization_service import ImageCategorizationService
 from app.services.image.extraction.image_extraction_orchestrator import ImageExtractionOrchestrator
 from app.services.context.context_block_builder import ContextBlockBuilder
-# Note: Using the original (corrected) context_block_builder instead of refactored_context_builder
-# because it has the proper text context block extraction in parse_to_pydantic
 from app.services.azure.azure_figure_processor import AzureFigureProcessor
 from app.services.core.document_analysis_orchestrator import DocumentAnalysisOrchestrator
 from app.services.core.analyze_service import AnalyzeService

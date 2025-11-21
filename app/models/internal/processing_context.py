@@ -36,39 +36,38 @@ class ProcessingContext:
     provider_metadata: Dict[str, Any] = field(default_factory=dict)
     
     @classmethod
-    def from_legacy_dict(cls, legacy_context: Dict[str, Any]) -> 'ProcessingContext':
-        """Create ProcessingContext from legacy analysis_context dict.
+    def from_dict(cls, context_dict: Dict[str, Any]) -> 'ProcessingContext':
+        """Create ProcessingContext from analysis_context dict.
         
         Args:
-            legacy_context: The mutable dict used in the original implementation
+            context_dict: The dict representation of the context
             
         Returns:
             Immutable ProcessingContext with same data
             
         Raises:
-            KeyError: If required keys are missing from legacy_context
+            KeyError: If required keys are missing from context_dict
             TypeError: If field types don't match expectations
         """
         try:
             return cls(
-                extracted_text=legacy_context["extracted_text"],
-                azure_result=legacy_context["azure_result"],
-                email=legacy_context["email"],
-                filename=legacy_context["filename"],
-                document_id=legacy_context["document_id"],
-                provider_metadata=legacy_context.get("provider_metadata", {})
+                extracted_text=context_dict["extracted_text"],
+                azure_result=context_dict["azure_result"],
+                email=context_dict["email"],
+                filename=context_dict["filename"],
+                document_id=context_dict["document_id"],
+                provider_metadata=context_dict.get("provider_metadata", {})
             )
         except KeyError as e:
-            raise ValueError(f"Required field missing from legacy context: {e}") from e
+            raise ValueError(f"Required field missing from context: {e}") from e
     
-    def to_legacy_dict(self) -> Dict[str, Any]:
-        """Convert ProcessingContext back to legacy analysis_context dict.
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert ProcessingContext to analysis_context dict.
         
-        This method supports gradual migration - services that haven't been
-        updated to use ProcessingContext can still receive the familiar dict.
+        This method supports interoperability with services that expect dict format.
         
         Returns:
-            Dict with same structure as original analysis_context
+            Dict representation of the context
         """
         return {
             "extracted_text": self.extracted_text,

@@ -21,20 +21,20 @@ class InternalSubContext(BaseModel):
     azure_image_urls: List[str] = Field(default_factory=list, description="Azure Blob Storage URLs for this sub-context")
     
     @classmethod
-    def from_legacy_sub_context(cls, legacy_sub: Dict[str, Any]) -> "InternalSubContext":
-        """Create InternalSubContext from legacy format."""
+    def from_dict(cls, data: Dict[str, Any]) -> "InternalSubContext":
+        """Create InternalSubContext from dictionary format."""
         # 🔧 CORREÇÃO: content é opcional, retornar None se não existir ou se for string vazia
-        content_value = legacy_sub.get("content")
+        content_value = data.get("content")
         if content_value == "":
             content_value = None
         
         return cls(
-            sequence=legacy_sub.get("sequence", ""),
-            type=legacy_sub.get("type", "image"),
-            title=legacy_sub.get("title", ""),
+            sequence=data.get("sequence", ""),
+            type=data.get("type", "image"),
+            title=data.get("title", ""),
             content=content_value,
-            images=legacy_sub.get("images", []),
-            azure_image_urls=legacy_sub.get("azure_image_urls", [])
+            images=data.get("images", []),
+            azure_image_urls=data.get("azure_image_urls", [])
         )
 class InternalContextContent(BaseModel):
     """
@@ -74,53 +74,27 @@ class InternalContextContent(BaseModel):
     )
     
     @classmethod
-    def from_legacy_content(cls, legacy_content: Dict[str, Any]) -> "InternalContextContent":
+    def from_dict(cls, content_data: Dict[str, Any]) -> "InternalContextContent":
         """
-        Create InternalContextContent from legacy format.
+        Create InternalContextContent from dictionary format.
+        
+        Uses ContentConverter service to handle complex parsing logic.
         
         Args:
-            legacy_content: Legacy content dictionary
+            content_data: Content data in dictionary format
             
         Returns:
             InternalContextContent instance
         """
-        # Log the input for debugging
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.debug("[from_legacy_content] Received legacy_content:")
-        logger.debug(legacy_content)
-
-        # Handle different legacy formats
-        if isinstance(legacy_content, dict):
-            if "description" in legacy_content:
-                if isinstance(legacy_content["description"], list):
-                    description = legacy_content["description"]
-                else:
-                    description = [legacy_content["description"]]
-            else:
-                # Fallback: try to extract from other fields
-                description = []
-                for key in ["texts", "content", "paragraphs"]:
-                    if key in legacy_content:
-                        if isinstance(legacy_content[key], list):
-                            description.extend(legacy_content[key])
-                        else:
-                            description.append(str(legacy_content[key]))
-        else:
-            # Legacy content is just a string or list
-            if isinstance(legacy_content, list):
-                description = legacy_content
-            else:
-                description = [str(legacy_content)]
-
-        # Log the output for debugging
-        logger.debug("[from_legacy_content] Generated description:")
-        logger.debug(description)
-
+        from app.services.converters import ContentConverter
+        
+        # Delegate parsing to dedicated service
+        description, raw_content, content_source = ContentConverter.parse_content(content_data)
+        
         return cls(
             description=description,
-            raw_content=str(legacy_content),
-            content_source="legacy_conversion"
+            raw_content=raw_content,
+            content_source=content_source
         )
 class InternalContextBlock(BaseModel):
     """
@@ -181,12 +155,12 @@ class InternalContextBlock(BaseModel):
     )
     
     @classmethod
-    def from_legacy_context_block(cls, legacy_block: Dict[str, Any]) -> "InternalContextBlock":
+    def from_dict(cls, block_data: Dict[str, Any]) -> "InternalContextBlock":
         """
-        Create InternalContextBlock from legacy format.
+        Create InternalContextBlock from dictionary format.
         
         Args:
-            legacy_block: Legacy context block dictionary
+            block_data: Context block data in dictionary format
             
         Returns:
             InternalContextBlock instance
@@ -194,11 +168,11 @@ class InternalContextBlock(BaseModel):
         from ...core.constants.content_types import ContentType
         
         # Extract content
-        content_data = legacy_block.get("content", {})
-        content = InternalContextContent.from_legacy_content(content_data)
+        content_data = block_data.get("content", {})
+        content = InternalContextContent.from_dict(content_data)
         
         # Handle type field
-        block_type = legacy_block.get("type", ["text"])
+        block_type = block_data.get("type", ["text"])
         if isinstance(block_type, str):
             block_type = [block_type]
         
@@ -211,25 +185,25 @@ class InternalContextBlock(BaseModel):
         
         # ✅ Preserve sub_contexts if they exist
         sub_contexts = None
-        if "sub_contexts" in legacy_block and legacy_block["sub_contexts"]:
+        if "sub_contexts" in block_data and block_data["sub_contexts"]:
             sub_contexts = [
-                InternalSubContext.from_legacy_sub_context(sub_ctx)
-                for sub_ctx in legacy_block["sub_contexts"]
+                InternalSubContext.from_dict(sub_ctx)
+                for sub_ctx in block_data["sub_contexts"]
             ]
         
         return cls(
-            id=legacy_block.get("id", 0),
+            id=block_data.get("id", 0),
             type=type_enums,
             content=content,
-            title=legacy_block.get("title"),
-            statement=legacy_block.get("statement"),
-            source=legacy_block.get("source", "exam_document"),
-            images=legacy_block.get("images", []),  # ✅ Preserve images from legacy format
-            azure_image_urls=legacy_block.get("azure_image_urls", []),  # ✅ Support Azure URLs
-            associated_images=legacy_block.get("associated_images", []),
-            has_image=legacy_block.get("hasImage", False),
-            extraction_method="legacy_conversion",
-            sub_contexts=sub_contexts  # ✅ Include sub_contexts
+            title=block_data.get("title"),
+            statement=block_data.get("statement"),
+            source=block_data.get("source", "exam_document"),
+            images=block_data.get("images", []),
+            azure_image_urls=block_data.get("azure_image_urls", []),
+            associated_images=block_data.get("associated_images", []),
+            has_image=block_data.get("hasImage", False),
+            extraction_method="dict_conversion",
+            sub_contexts=sub_contexts
         )
     def add_image_association(self, image_id: str) -> None:
         """Add an image association to this context block."""

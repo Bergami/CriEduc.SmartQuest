@@ -345,11 +345,13 @@ class HealthChecker:
             
             if not is_enabled:
                 return DependencyStatus(
-                    status="degraded",
-                    message="Azure Document Intelligence disabled (using mock)",
+                    status="unhealthy",
+                    message="Azure Document Intelligence disabled - DEVELOPMENT MODE ONLY",
                     details={
                         "enabled": False,
-                        "mode": "mock"
+                        "mode": "development",
+                        "warning": "⚠️ Mock mode active. NOT suitable for production use.",
+                        "production_blocker": True
                     }
                 )
             

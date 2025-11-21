@@ -1490,14 +1490,14 @@ class ContextBlockBuilder:
         """
         Converte context blocks em formato dict para objetos Pydantic InternalContextBlock.
         
-        🔧 IMPORTANTE: Usa InternalContextBlock.from_legacy_context_block() para conversão consistente.
+        🔧 IMPORTANTE: Usa InternalContextBlock.from_dict() para conversão consistente.
         """
         from app.models.internal.context_models import InternalContextBlock
         
         pydantic_blocks = []
         for block_dict in dict_blocks:
             try:
-                pydantic_block = InternalContextBlock.from_legacy_context_block(block_dict)
+                pydantic_block = InternalContextBlock.from_dict(block_dict)
                 pydantic_blocks.append(pydantic_block)
             except Exception as e:
                 logger.error(f"Error converting dict block to Pydantic: {e}")
