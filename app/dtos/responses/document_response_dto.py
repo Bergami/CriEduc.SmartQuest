@@ -33,7 +33,7 @@ class SubContextDTO(BaseModel):
     sequence: str = Field(..., description="Sequência (I, II, III, IV)")
     type: str = Field(..., description="Tipo do sub-contexto")
     title: str = Field(..., description="Título do sub-contexto")
-    content: str = Field(..., description="Conteúdo do sub-contexto")
+    content: Optional[List[str]] = Field(default=None, description="Conteúdo do sub-contexto (opcional)")
     images: List[str] = Field(default_factory=list, description="URLs públicas de imagens ou base64 (fallback)")
 
 
@@ -57,16 +57,22 @@ class ContextBlockDTO(BaseModel):
         # Converter sub_contexts se existirem
         sub_contexts_dto = None
         if internal_cb.sub_contexts:
-            sub_contexts_dto = [
-                SubContextDTO(
-                    sequence=sub.sequence,
-                    type=sub.type,
-                    title=sub.title,
-                    content=sub.content,
-                    images=sub.azure_image_urls if sub.azure_image_urls else sub.images,  # Priorizar Azure URLs
+            sub_contexts_dto = []
+            for sub in internal_cb.sub_contexts:
+                # Converter content (str) para lista, ou None se vazio
+                content_value = None
+                if sub.content:
+                    content_value = [sub.content] if sub.content.strip() else None
+                
+                sub_contexts_dto.append(
+                    SubContextDTO(
+                        sequence=sub.sequence,
+                        type=sub.type,
+                        title=sub.title,
+                        content=content_value,
+                        images=sub.azure_image_urls if sub.azure_image_urls else sub.images,  # Priorizar Azure URLs
+                    )
                 )
-                for sub in internal_cb.sub_contexts
-            ]
         
         # Determinar images e contentType
         images = []

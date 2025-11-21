@@ -86,8 +86,7 @@ class DocumentAnalysisOrchestrator:
                                    extracted_data: Dict[str, Any],
                                    email: str,
                                    filename: str,
-                                   file: UploadFile,
-                                   use_refactored: bool = True) -> InternalDocumentResponse:
+                                   file: UploadFile) -> InternalDocumentResponse:
         """
         Orquestra todo o pipeline de análise de documento.
 
@@ -96,7 +95,6 @@ class DocumentAnalysisOrchestrator:
             email: Email do usuário
             filename: Nome do arquivo original
             file: Objeto UploadFile para fallback de extração
-            use_refactored: Flag para usar lógica de processamento avançada
 
         Returns:
             InternalDocumentResponse: Resposta completa estruturada
@@ -130,7 +128,7 @@ class DocumentAnalysisOrchestrator:
 
             # Phase 5: Construção de context blocks refatorados
             enhanced_context_blocks = await self._execute_context_building_phase(
-                analysis_context, image_analysis, use_refactored
+                analysis_context, image_analysis
             )
 
             # 🔍 DEBUG: Verificar context blocks após phase 5
@@ -287,7 +285,7 @@ class DocumentAnalysisOrchestrator:
                         self._logger.warning(f"Question {i+1} has empty content, skipping")
                         continue
 
-                    pydantic_q = InternalQuestion.from_legacy_question(q)
+                    pydantic_q = InternalQuestion.from_dict(q)
                     questions.append(pydantic_q)
                     self._logger.debug(f"Question {i+1} converted: {len(pydantic_q.content.statement)} chars")
                 except Exception as e:
@@ -296,7 +294,7 @@ class DocumentAnalysisOrchestrator:
 
             for i, cb in enumerate(raw_data.get("context_blocks", [])):
                 try:
-                    pydantic_cb = InternalContextBlock.from_legacy_context_block(cb)
+                    pydantic_cb = InternalContextBlock.from_dict(cb)
                     context_blocks.append(pydantic_cb)
                 except Exception as e:
                     self._logger.warning(f"Error converting context block {i+1}: {e}")
@@ -314,14 +312,9 @@ class DocumentAnalysisOrchestrator:
 
     async def _execute_context_building_phase(self,
                                               analysis_context: ProcessingContext,
-                                              image_analysis: Dict[str, Any],
-                                              use_refactored: bool) -> List[InternalContextBlock]:
-        """Phase 5: Executa construção de context blocks refatorados."""
-        if not use_refactored:
-            self._logger.info("Phase 5: Skipped - refactored context building disabled")
-            return None
-
-        self._logger.info("Phase 5: Executing refactored context building")
+                                              image_analysis: Dict[str, Any]) -> List[InternalContextBlock]:
+        """Phase 5: Executa construção de context blocks."""
+        self._logger.info("Phase 5: Executing context building")
 
         azure_result = analysis_context.azure_result
         image_data = image_analysis["image_data"]
@@ -350,7 +343,7 @@ class DocumentAnalysisOrchestrator:
 
             if enhanced_context_blocks_dict:
                 context_blocks = [
-                    InternalContextBlock.from_legacy_context_block(cb)
+                    InternalContextBlock.from_dict(cb)
                     for cb in enhanced_context_blocks_dict
                 ]
                 self._logger.info(f"Phase 5: Created {len(context_blocks)} context blocks (legacy method)")
@@ -368,7 +361,7 @@ class DocumentAnalysisOrchestrator:
         try:
             # TODO: This method needs additional context data that's not in ProcessingContext yet
             # For now, convert to legacy dict to maintain compatibility
-            legacy_context = analysis_context.to_legacy_dict()
+            context_dict = analysis_context.to_dict()
             images = legacy_context.get("categorized_images", [])
             context_blocks = legacy_context.get("context_blocks", [])
 

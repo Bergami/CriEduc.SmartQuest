@@ -67,7 +67,7 @@ async def analyze_document(
     # └── IDocumentAnalysisOrchestrator → DocumentAnalysisOrchestrator
     #     ├── IImageCategorizer → ImageCategorizationService
     #     ├── IImageExtractor → ImageExtractionOrchestrator
-    #     ├── IContextBuilder → RefactoredContextBlockBuilder
+    #     ├── IContextBuilder → ContextBlockBuilder
     #     └── IFigureProcessor → AzureFigureProcessor
     analyze_service = container.resolve(IAnalyzeService)
     
@@ -77,8 +77,7 @@ async def analyze_document(
         extracted_data=extracted_data,
         email=email,
         filename=file.filename,
-        file=file,  # O arquivo ainda é necessário para o fallback de extração de imagens
-        use_refactored=True
+        file=file  # O arquivo ainda é necessário para o fallback de extração de imagens
     )
     
     # --- ETAPA 3: Conversão para DTO da API ---

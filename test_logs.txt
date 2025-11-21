@@ -1,0 +1,71 @@
+﻿python : No image available for figure 2.5 in context block: Análise de Imagem
+No linha:1 caractere:59
++ ... ystem.Text.Encoding]::UTF8; python test_deduplication.py 2>&1 | Out-F ...
++                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (No image availa...álise de Imagem:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+No image available for figure 2.6 in context block: Análise de Imagem
+📂 Carregando arquivo: tests\responses\azure\azure_10d4e23f-3f08-41f4-8f6c-a0e8de725530_Recuperacao_20251029_204120.json
+✅ Arquivo carregado: 79 parágrafos
+
+🔨 Processando documento...
+
+📊 Resultado: 5 context blocks criados
+
+--- Context Block #1 ---
+  ID: 1
+  Type: [<ContentType.TEXT: 'text'>]
+  Statement: LEIA O TEXTO A SEGUIR
+  Title: Eu sei, mas não devia (Marina Colasanti)
+  HasImage: False
+  Images: 0
+  Azure URLs: 0
+
+--- Context Block #2 ---
+  ID: 2
+  Type: [<ContentType.TEXT: 'text'>]
+  Statement: LEIA O TEXTO A SEGUIR
+  Title: Eu sei, mas não devia (Marina Colasanti)
+  HasImage: False
+  Images: 0
+  Azure URLs: 0
+
+--- Context Block #3 ---
+  ID: 3
+  Type: [<ContentType.TEXT: 'text'>, <ContentType.IMAGE: 'image'>]
+  Statement: 
+  Title: Análise de Textos
+  HasImage: False
+  Images: 0
+  Azure URLs: 0
+
+--- Context Block #4 ---
+  ID: 4
+  Type: [<ContentType.IMAGE: 'image'>]
+  Statement: Analise a tirinha a seguir para responder à próxima questão:
+  Title: Análise de Imagem
+  HasImage: True
+  Images: 0
+  Azure URLs: 0
+
+--- Context Block #5 ---
+  ID: 5
+  Type: [<ContentType.IMAGE: 'image'>]
+  Statement: Leia o texto a seguir para responder à próxima questão:
+  Title: Análise de Imagem
+  HasImage: True
+  Images: 0
+  Azure URLs: 0
+
+🔍 Verificando duplicação...
+❌ DUPLICAÇÃO ENCONTRADA! 1 duplicatas:
+   - LEIA O TEXTO A SEGUIR|Eu sei, mas não devia (Marina Colasanti)
+
+📋 Blocks com 'LEIA O TEXTO A SEGUIR': 3
+❌ ERRO: Múltiplos blocks com a mesma instrução!
+   ID 1: LEIA O TEXTO A SEGUIR -> Eu sei, mas não devia (Marina Colasanti) (0 parágrafos)
+   ID 2: LEIA O TEXTO A SEGUIR -> Eu sei, mas não devia (Marina Colasanti) (0 parágrafos)
+   ID 5: Leia o texto a seguir para responder à próxima questão: -> Análise de Imagem (0 parágrafos)
+
+✅ Teste concluído com sucesso!

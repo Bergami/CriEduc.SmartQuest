@@ -33,8 +33,7 @@ class AnalyzeService:
         extracted_data: Dict[str, Any],
         email: str,
         filename: str,
-        file: UploadFile,
-        use_refactored: bool = True
+        file: UploadFile
     ) -> InternalDocumentResponse:
         """
         Processa documento completo usando DI Container.
@@ -44,7 +43,6 @@ class AnalyzeService:
             email: Email do usuário
             filename: Nome do arquivo
             file: UploadFile para fallback
-            use_refactored: Flag para usar lógica avançada
             
         Returns:
             InternalDocumentResponse: Resposta estruturada completa
@@ -70,8 +68,7 @@ class AnalyzeService:
                 extracted_data=extracted_data,
                 email=email,
                 filename=filename,
-                file=file,
-                use_refactored=use_refactored
+                file=file
             )
             
             # Log de sucesso

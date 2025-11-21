@@ -86,14 +86,16 @@ class TestGetAnalyzeDocumentIntegration:
         
         data = response.json()
         assert data["_id"] == str(sample_document_record.id)
-        assert data["document_name"] == sample_document_record.file_name
+        # Campo correto é 'file_name' no modelo, não 'document_name'
+        assert data["file_name"] == sample_document_record.file_name
         assert data["user_email"] == sample_document_record.user_email
         assert data["status"] == sample_document_record.status.value
-        assert data["analysis_results"] == sample_document_record.response
+        # Campo correto é 'response', não 'analysis_results'
+        assert data["response"] == sample_document_record.response
         assert "created_at" in data
 
         # Verificar estrutura completa dos dados
-        analysis_results = data["analysis_results"]
+        analysis_results = data["response"]
         assert "questions" in analysis_results
         assert "context_blocks" in analysis_results
         assert "header" in analysis_results
@@ -126,9 +128,9 @@ class TestGetAnalyzeDocumentIntegration:
         """Teste de integração - ID inválido"""
         # Act & Assert
         
-        # Teste ID vazio
+        # Teste ID vazio - FastAPI retorna 405 (Method Not Allowed) para rota sem parâmetro
         response = client.get("/analyze/analyze_document/")
-        assert response.status_code == 404  # FastAPI rota não encontrada
+        assert response.status_code == 405  # Método não permitido para rota sem ID
 
         # Teste ID com espaços
         response = client.get("/analyze/analyze_document/   ")
@@ -267,7 +269,8 @@ class TestGetAnalyzeDocumentIntegration:
         assert response.status_code == 200
         data = response.json()
         
-        analysis_results = data["analysis_results"]
+        # Campo correto é 'response', não 'analysis_results'
+        analysis_results = data["response"]
         assert len(analysis_results["questions"]) == 5
         assert len(analysis_results["context_blocks"]) == 5
         

@@ -280,10 +280,10 @@ class DocumentResponseDTO(BaseModel):
             "questions": [
                 {
                     "number": q.number,
-                    "content": q.content.statement,
-                    "options": [
+                    "question": q.content.statement,
+                    "alternatives": [
                         {
-                            "label": opt.label,
+                            "letter": opt.label,
                             "text": opt.text,
                             "isCorrect": opt.is_correct
                         }

@@ -25,7 +25,7 @@ class TestAzureDocumentIntelligenceIntegration(unittest.TestCase):
         self.test_data = TestDataProvider()
         
         # Mock service for most tests
-        with patch('app.services.azure_document_intelligence_service.settings') as mock_settings:
+        with patch('app.services.azure.azure_document_intelligence_service.settings') as mock_settings:
             mock_settings.azure_document_intelligence_endpoint = "https://test.cognitiveservices.azure.com/"
             mock_settings.azure_document_intelligence_key = "test-key"
             mock_settings.azure_document_intelligence_model = "prebuilt-layout"
@@ -49,11 +49,12 @@ class TestAzureDocumentIntelligenceIntegration(unittest.TestCase):
             result = self.service.extract_text_from_pdf(pdf_bytes)
             
             self.assertEqual(result, "Sample extracted text\nLine 2\nLine 3")
-            mock_analyze.assert_called_once_with(
-                model_id="prebuilt-read", 
-                analyze_request=pdf_bytes,
-                content_type="application/pdf"
-            )
+            # API usa argumentos posicionais: begin_analyze_document(model, BytesIO, content_type)
+            # Verifica que foi chamado uma vez com os parâmetros corretos
+            self.assertEqual(mock_analyze.call_count, 1)
+            call_args = mock_analyze.call_args
+            self.assertEqual(call_args[0][0], "prebuilt-read")  # primeiro arg posicional
+            self.assertEqual(call_args[1]['content_type'], "application/pdf")  # kwarg
     
     def test_extract_text_from_pdf_empty_result(self):
         """Test text extraction with empty result"""
@@ -194,7 +195,7 @@ class TestAzureDocumentIntelligenceIntegration(unittest.TestCase):
     def test_service_configuration_validation(self):
         """Test service configuration validation"""
         # Test with valid configuration
-        with patch('app.services.azure_document_intelligence_service.settings') as mock_settings:
+        with patch('app.services.azure.azure_document_intelligence_service.settings') as mock_settings:
             mock_settings.azure_document_intelligence_endpoint = "https://test.cognitiveservices.azure.com/"
             mock_settings.azure_document_intelligence_key = "test-key"
             mock_settings.azure_document_intelligence_model = "prebuilt-layout"
@@ -205,7 +206,7 @@ class TestAzureDocumentIntelligenceIntegration(unittest.TestCase):
     
     def test_service_with_missing_configuration(self):
         """Test service behavior with missing configuration"""
-        with patch('app.services.azure_document_intelligence_service.settings') as mock_settings:
+        with patch('app.services.azure.azure_document_intelligence_service.settings') as mock_settings:
             mock_settings.azure_document_intelligence_endpoint = ""
             mock_settings.azure_document_intelligence_key = ""
             

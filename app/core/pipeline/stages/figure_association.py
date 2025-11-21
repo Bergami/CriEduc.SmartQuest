@@ -79,7 +79,7 @@ class FigureAssociationStage(IPipelineStage[FigureAssociationInput, List[Interna
             
             # TODO: This stage needs to be refactored to use the new pipeline data flow
             # For now, we'll use legacy compatibility mode
-            legacy_context = context.to_legacy_dict()
+            context_dict = context.to_dict()
             
             # Add image analysis data to legacy context for compatibility
             legacy_context["categorized_images"] = input_data.image_analysis_result.categorized_images

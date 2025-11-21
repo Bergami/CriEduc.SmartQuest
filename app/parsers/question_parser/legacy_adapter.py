@@ -14,7 +14,7 @@ import logging
 from .azure_paragraph_question_extractor import (
     extract_questions_from_azure_paragraphs,
     QuestionExtractionFactory,
-    convert_to_legacy_format
+    convert_to_dict_format
 )
 
 logger = logging.getLogger(__name__)
@@ -67,30 +67,30 @@ def extract_alternatives_from_text(text: str) -> Tuple[str, List[str]]:
     """
     return extract_alternatives_from_question_text(text)
 
-def extract_questions_from_paragraphs_legacy_compatible(
+def extract_questions_from_paragraphs(
     paragraphs: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
     """
-    Extrai questões dos parágrafos no formato legacy esperado pelo sistema antigo.
+    Extrai questões dos parágrafos retornando dicionário com estrutura padrão.
     
     Args:
         paragraphs: Lista de parágrafos do Azure Document Intelligence
         
     Returns:
-        Dicionário com questões e context_blocks no formato legacy para compatibilidade
+        Dicionário com questões e context_blocks no formato padrão do sistema
     """
     try:
         # Usa nova implementação
         result = extract_questions_from_azure_paragraphs(paragraphs)
         
-        # Converte para formato legacy
-        legacy_questions = convert_to_legacy_format(result)
+        # Converte para formato dict
+        questions_dict = convert_to_dict_format(result)
         
-        logger.info(f"Migração SOLID: {result.total_questions} questões extraídas com sucesso")
+        logger.info(f"Extração SOLID: {result.total_questions} questões extraídas com sucesso")
         
-        # Retorna no formato esperado pelo sistema antigo
+        # Retorna no formato esperado pelo sistema
         return {
-            "questions": legacy_questions,
+            "questions": questions_dict,
             "context_blocks": []  # Context blocks serão processados separadamente
         }
         

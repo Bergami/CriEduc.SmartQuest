@@ -3,7 +3,7 @@ from .detect_context_blocks import detect_context_blocks
 from .detect_questions import detect_questions
 from .match_context_to_questions import match_context_to_questions
 from .context_question_mapper import ContextQuestionMapper
-from .legacy_adapter import extract_questions_from_paragraphs_legacy_compatible
+from .legacy_adapter import extract_questions_from_paragraphs
 
 class QuestionParser:
     @staticmethod
@@ -89,7 +89,7 @@ class QuestionParser:
                 # Debug da questão antes da conversão
                 logger.debug(f"🔍 Converting question {i+1}: number={q.get('number')}, question_length={len(q.get('question', ''))}, alternatives={len(q.get('alternatives', []))}")
                 
-                pydantic_q = InternalQuestion.from_legacy_question(q)
+                pydantic_q = InternalQuestion.from_dict(q)
                 pydantic_questions.append(pydantic_q)
                 logger.info(f"✅ Question {i+1} converted successfully - content: {len(pydantic_q.content.statement)} chars, options: {len(pydantic_q.options)}")
                 
@@ -108,7 +108,7 @@ class QuestionParser:
                     logger.warning(f"⚠️ Context block {i} is not a dict: {type(cb)}")
                     continue
                     
-                pydantic_cb = InternalContextBlock.from_legacy_context_block(cb)
+                pydantic_cb = InternalContextBlock.from_dict(cb)
                 pydantic_context_blocks.append(pydantic_cb)
                 logger.debug(f"✅ Context block {i+1} converted successfully")
                 
@@ -146,7 +146,7 @@ class QuestionParser:
             Dicionário com questões no formato legacy para compatibilidade
         """
         # Usar nova implementação SOLID via adaptador de compatibilidade
-        result = extract_questions_from_paragraphs_legacy_compatible(paragraphs)
+        result = extract_questions_from_paragraphs(paragraphs)
         
         # O adaptador já retorna no formato correto
         questions = result.get("questions", [])

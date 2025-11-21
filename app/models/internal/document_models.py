@@ -150,12 +150,12 @@ class InternalDocumentResponse(BaseModel):
         # Convert questions to Pydantic
         questions = []
         for q_dict in legacy_response.get("questions", []):
-            questions.append(InternalQuestion.from_legacy_question(q_dict))
+            questions.append(InternalQuestion.from_dict(q_dict))
         
         # Convert context blocks to Pydantic
         context_blocks = []
         for cb_dict in legacy_response.get("context_blocks", []):
-            context_blocks.append(InternalContextBlock.from_legacy_context_block(cb_dict))
+            context_blocks.append(InternalContextBlock.from_dict(cb_dict))
         
         return cls(
             email=legacy_response.get("email", ""),

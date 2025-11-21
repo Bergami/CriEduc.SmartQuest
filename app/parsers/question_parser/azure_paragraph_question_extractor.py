@@ -479,28 +479,28 @@ def extract_questions_from_azure_paragraphs(paragraphs: List[Dict[str, Any]]) ->
 # UTILIDADES DE CONVERSÃO (Para integração com sistema existente)
 # ==============================================================================
 
-def convert_to_legacy_format(extraction_result: ExtractionResult) -> List[Dict[str, Any]]:
+def convert_to_dict_format(extraction_result: ExtractionResult) -> List[Dict[str, Any]]:
     """
-    Converte o resultado da nova extração para o formato legacy do sistema
+    Converte o resultado da extração para o formato dict esperado pelo sistema
     
     Facilita a migração gradual sem quebrar o código existente.
     """
-    legacy_questions = []
+    questions_dict = []
     
     for question in extraction_result.questions:
-        legacy_question = {
+        question_dict = {
             "number": question.number,
-            "question": question.statement,  # ✅ Mudando de "statement" para "question"
+            "question": question.statement,
             "type": question.question_type,
             "alternatives": [
                 {
-                    "letter": alt.id,  # ✅ Mudando de "id" para "letter" (usado pelo from_legacy_option)
+                    "letter": alt.id,
                     "text": alt.text
                 }
                 for alt in question.alternatives
             ],
             "is_multiple_choice": question.is_multiple_choice
         }
-        legacy_questions.append(legacy_question)
+        questions_dict.append(question_dict)
     
-    return legacy_questions
+    return questions_dict

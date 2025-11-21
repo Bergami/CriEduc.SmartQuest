@@ -39,14 +39,12 @@ class DocumentProcessingPipelineInput:
                  extracted_data: Dict[str, Any],
                  email: str,
                  filename: str,
-                 document_id: str,
-                 use_refactored_context_building: bool = True):
+                 document_id: str):
         self.file = file
         self.extracted_data = extracted_data
         self.email = email
         self.filename = filename
         self.document_id = document_id
-        self.use_refactored_context_building = use_refactored_context_building
 
 
 class DocumentProcessingPipeline(IPipeline):
@@ -168,8 +166,7 @@ class DocumentProcessingPipeline(IPipeline):
             
             # Stage 5: Context Building (optional)
             stage_5_input = ContextBuildingInput(
-                image_analysis_result,
-                initial_input.use_refactored_context_building
+                image_analysis_result
             )
             
             stage_5_result = await self._execute_stage(4, stage_5_input, processing_context)

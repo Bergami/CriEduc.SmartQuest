@@ -37,23 +37,23 @@ class InternalAnswerOption(BaseModel):
     )
     
     @classmethod
-    def from_legacy_option(cls, legacy_option: Dict[str, Any]) -> "InternalAnswerOption":
+    def from_dict(cls, option_dict: Dict[str, Any]) -> "InternalAnswerOption":
         """
-        Create InternalAnswerOption from legacy format.
+        Create InternalAnswerOption from dictionary.
         
         Args:
-            legacy_option: Legacy option dictionary
+            option_dict: Option dictionary with 'letter' and 'text' keys
             
         Returns:
             InternalAnswerOption instance
         """
         return cls(
-            label=legacy_option.get("letter", legacy_option.get("label", "")),  # ✅ Legacy usa "letter"
-            text=legacy_option.get("text", ""),
-            is_correct=legacy_option.get("isCorrect", False),
-            raw_text=str(legacy_option),
-            extraction_confidence=legacy_option.get("confidence"),
-            processing_notes="legacy_conversion"
+            label=option_dict.get("letter", option_dict.get("label", "")),  # ✅ Format usa "letter"
+            text=option_dict.get("text", ""),
+            is_correct=option_dict.get("isCorrect", False),
+            raw_text=str(option_dict),
+            extraction_confidence=option_dict.get("confidence"),
+            processing_notes="dict_conversion"
         )
 class InternalQuestionContent(BaseModel):
     """
@@ -83,28 +83,28 @@ class InternalQuestionContent(BaseModel):
     )
     
     @classmethod
-    def from_legacy_content(cls, legacy_content: Any) -> "InternalQuestionContent":
+    def from_dict(cls, content_data: Any) -> "InternalQuestionContent":
         """
-        Create InternalQuestionContent from legacy format.
+        Create InternalQuestionContent from content data.
         
         Args:
-            legacy_content: Legacy content (string or dict)
+            content_data: Content data (string or dict)
             
         Returns:
             InternalQuestionContent instance
         """
-        if isinstance(legacy_content, dict):
-            statement = legacy_content.get("statement", "")
-            instruction = legacy_content.get("instruction")
+        if isinstance(content_data, dict):
+            statement = content_data.get("statement", "")
+            instruction = content_data.get("instruction")
         else:
-            statement = str(legacy_content)
+            statement = str(content_data)
             instruction = None
         
         return cls(
             statement=statement,
             instruction=instruction,
-            raw_statement=str(legacy_content),
-            processing_notes="legacy_conversion"
+            raw_statement=str(content_data),
+            processing_notes="dict_conversion"
         )
 class InternalQuestion(BaseModel):
     """
@@ -164,26 +164,26 @@ class InternalQuestion(BaseModel):
     )
     
     @classmethod
-    def from_legacy_question(cls, legacy_question: Dict[str, Any]) -> "InternalQuestion":
+    def from_dict(cls, question_dict: Dict[str, Any]) -> "InternalQuestion":
         """
-        Create InternalQuestion from legacy format.
+        Create InternalQuestion from dictionary.
         
         Args:
-            legacy_question: Legacy question dictionary
+            question_dict: Question dictionary with 'question' and 'alternatives' keys
             
         Returns:
             InternalQuestion instance
         """
         # Extract content from "question" field (not "content")
-        content = InternalQuestionContent.from_legacy_content(
-            legacy_question.get("question", "")  # ✅ Legacy usa "question"
+        content = InternalQuestionContent.from_dict(
+            question_dict.get("question", "")  # ✅ Format usa "question"
         )
         
         # Extract options from "alternatives" field (not "options")
         options = []
-        legacy_options = legacy_question.get("alternatives", [])  # ✅ Legacy usa "alternatives"
-        for opt in legacy_options:
-            options.append(InternalAnswerOption.from_legacy_option(opt))
+        alternatives = question_dict.get("alternatives", [])  # ✅ Format usa "alternatives"
+        for opt in alternatives:
+            options.append(InternalAnswerOption.from_dict(opt))
         
         # Determine answer type based on options
         answer_type = AnswerType.UNKNOWN
@@ -194,14 +194,14 @@ class InternalQuestion(BaseModel):
                 answer_type = AnswerType.MULTIPLE_CHOICE
         
         return cls(
-            number=legacy_question.get("number", 0),
+            number=question_dict.get("number", 0),
             content=content,
             options=options,
-            context_id=legacy_question.get("contextId"),
+            context_id=question_dict.get("contextId"),
             answer_type=answer_type,
-            has_image=legacy_question.get("hasImage", False),
-            subject=legacy_question.get("subject"),
-            extraction_method="legacy_conversion"
+            has_image=question_dict.get("hasImage", False),
+            subject=question_dict.get("subject"),
+            extraction_method="dict_conversion"
         )
     def get_correct_answer(self) -> Optional[InternalAnswerOption]:
         """Get the correct answer option."""

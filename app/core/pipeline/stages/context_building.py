@@ -17,10 +17,8 @@ class ContextBuildingInput:
     """Input data for context building stage."""
     
     def __init__(self, 
-                 image_analysis_result: ImageAnalysisOutput,
-                 use_refactored: bool = True):
+                 image_analysis_result: ImageAnalysisOutput):
         self.image_analysis_result = image_analysis_result
-        self.use_refactored = use_refactored
 
 
 class ContextBuildingStage(IPipelineStage[ContextBuildingInput, Optional[List[InternalContextBlock]]]):
@@ -40,7 +38,7 @@ class ContextBuildingStage(IPipelineStage[ContextBuildingInput, Optional[List[In
     
     @property
     def stage_description(self) -> str:
-        return "Builds enhanced context blocks using refactored Pydantic approach with legacy fallback"
+        return "Builds enhanced context blocks using Pydantic approach with legacy fallback"
     
     async def validate_input(self, input_data: ContextBuildingInput) -> bool:
         """Validate input for context building.
@@ -72,14 +70,7 @@ class ContextBuildingStage(IPipelineStage[ContextBuildingInput, Optional[List[In
             PipelineResult containing enhanced context blocks or None if skipped
         """
         try:
-            if not input_data.use_refactored:
-                self._logger.info("Phase 5: Skipped - refactored context building disabled")
-                return PipelineResult.success_result(
-                    data=None,
-                    stage_name=self.stage_name
-                )
-            
-            self._logger.info("Phase 5: Executing refactored context building")
+            self._logger.info("Phase 5: Executing context building")
             
             azure_result = context.azure_result
             image_data = input_data.image_analysis_result.image_data
@@ -120,7 +111,7 @@ class ContextBuildingStage(IPipelineStage[ContextBuildingInput, Optional[List[In
                 
                 if enhanced_context_blocks_dict:
                     context_blocks = [
-                        InternalContextBlock.from_legacy_context_block(cb)
+                        InternalContextBlock.from_dict(cb)
                         for cb in enhanced_context_blocks_dict
                     ]
                     self._logger.info(f"Phase 5: Created {len(context_blocks)} context blocks (legacy method)")

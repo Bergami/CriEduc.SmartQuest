@@ -101,7 +101,7 @@ class IContextBuilder(Protocol):
     - Estruturar informações para processamento
     
     IMPLEMENTAÇÕES POSSÍVEIS:
-    - RefactoredContextBlockBuilder (atual)
+    - ContextBlockBuilder (atual)
     - AIContextBuilder (futuro - com NLP)
     - MockContextBuilder (testes)
     """
@@ -185,11 +185,10 @@ class IDocumentAnalysisOrchestrator(Protocol):
     """
     
     async def orchestrate_analysis(self,
-                                 extracted_data: Dict[str, Any],
-                                 email: str,
-                                 filename: str,
-                                 file: UploadFile,
-                                 use_refactored: bool = True) -> InternalDocumentResponse:
+                                    extracted_data: Dict[str, Any],
+                                    email: str,
+                                    filename: str,
+                                    file: UploadFile) -> InternalDocumentResponse:
         """
         Orquestra a análise completa do documento.
         
@@ -198,7 +197,6 @@ class IDocumentAnalysisOrchestrator(Protocol):
             email: Email do usuário
             filename: Nome do arquivo
             file: UploadFile para fallback
-            use_refactored: Flag para usar lógica avançada
             
         Returns:
             Resposta estruturada completa
@@ -225,8 +223,7 @@ class IAnalyzeService(Protocol):
                                          extracted_data: Dict[str, Any],
                                          email: str,
                                          filename: str,
-                                         file: UploadFile,
-                                         use_refactored: bool = True) -> InternalDocumentResponse:
+                                         file: UploadFile) -> InternalDocumentResponse:
         """
         Processa documento com modelos internos.
         
@@ -235,7 +232,6 @@ class IAnalyzeService(Protocol):
             email: Email do usuário
             filename: Nome do arquivo
             file: UploadFile para fallback
-            use_refactored: Flag para usar lógica avançada
             
         Returns:
             Resposta estruturada completa
@@ -294,7 +290,7 @@ from app.core.di_container import container
 # Mapear interfaces para implementações concretas
 container.register(IImageCategorizer, ImageCategorizationService)
 container.register(IImageExtractor, ImageExtractionOrchestrator)
-container.register(IContextBuilder, RefactoredContextBlockBuilder)
+container.register(IContextBuilder, ContextBlockBuilder)
 container.register(IFigureProcessor, AzureFigureProcessor)
 container.register(IDocumentAnalysisOrchestrator, DocumentAnalysisOrchestrator)
 ```
