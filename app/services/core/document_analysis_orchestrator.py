@@ -362,8 +362,8 @@ class DocumentAnalysisOrchestrator:
             # TODO: This method needs additional context data that's not in ProcessingContext yet
             # For now, convert to legacy dict to maintain compatibility
             context_dict = analysis_context.to_dict()
-            images = legacy_context.get("categorized_images", [])
-            context_blocks = legacy_context.get("context_blocks", [])
+            images = context_dict.get("categorized_images", [])
+            context_blocks = context_dict.get("context_blocks", [])
 
             # Processar figuras através da interface
             figure_results = await self._figure_processor.process_figures(images, context_blocks)
