@@ -260,6 +260,76 @@ class MongoDBPersistenceService(ISimplePersistenceService):
             self._logger.error(f"Error getting documents by date range: {e}")
             raise PersistenceError(f"Failed to get documents by date range: {str(e)}")
 
+    async def get_by_user_email_with_filters(
+        self,
+        email: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        page: int = 1,
+        page_size: int = 10
+    ) -> tuple[list[AnalyzeDocumentRecord], int]:
+        """
+        Recupera registros por email com filtros opcionais e paginação.
+        
+        Args:
+            email: Email do usuário (obrigatório)
+            start_date: Data início do intervalo (opcional)
+            end_date: Data fim do intervalo (opcional)
+            page: Número da página (1-indexed, mínimo 1)
+            page_size: Itens por página (máximo 50)
+            
+        Returns:
+            Tupla contendo:
+            - Lista de registros encontrados na página
+            - Total de registros que correspondem aos filtros
+            
+        Raises:
+            PersistenceError: Erro durante busca
+        """
+        try:
+            database = await self._connection_service.get_database()
+            collection = database["analyze_documents"]
+            
+            # Construir query base (email obrigatório)
+            query = {"user_email": email}
+            
+            # Adicionar filtro de data se fornecido
+            if start_date is not None and end_date is not None:
+                query["created_at"] = {
+                    "$gte": start_date,
+                    "$lte": end_date
+                }
+            
+            # Contar total de documentos que correspondem aos filtros
+            total_count = await collection.count_documents(query)
+            
+            # Calcular skip para paginação (page 1 = skip 0, page 2 = skip page_size, etc)
+            skip = (page - 1) * page_size
+            
+            # Buscar documentos com paginação
+            cursor = collection.find(query).sort("created_at", -1).skip(skip).limit(page_size)
+            
+            documents = []
+            async for doc_data in cursor:
+                try:
+                    document = AnalyzeDocumentRecord.from_mongo(doc_data)
+                    documents.append(document)
+                except Exception as e:
+                    self._logger.warning(f"Error deserializing document: {e}")
+                    continue
+            
+            self._logger.info(
+                f"Found {len(documents)} documents for email {email} "
+                f"(page {page}/{(total_count + page_size - 1) // page_size if total_count > 0 else 0}, "
+                f"total: {total_count})"
+            )
+            
+            return documents, total_count
+            
+        except Exception as e:
+            self._logger.error(f"Error getting documents with filters for email {email}: {e}")
+            raise PersistenceError(f"Failed to get documents with filters: {str(e)}")
+
     async def close(self):
         """
         Fecha recursos se necessário.
