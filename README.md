@@ -66,6 +66,7 @@ graph TB
     style F fill:#FF9800
   style E fill:#FF9800
 ```
+
 ````
 
 ### **🔄 Fluxo de Persistência**
@@ -160,12 +161,35 @@ python start_simple.py
 ```
 app/
 ├── api/                 # Endpoints e controllers
+│   ├── controllers/     # Request handlers
+│   │   └── analyze.py   # Document analysis & listing endpoints
+│   └── routers.py       # API routes configuration
 ├── core/               # DI Container, interfaces, exceções
-├── models/             # Modelos Pydantic (internal/api/persistence)
+│   ├── di_container.py  # Dependency injection container
+│   ├── interfaces.py    # Service interfaces
+│   └── exceptions.py    # Custom exceptions
+├── dtos/               # Data Transfer Objects
+│   ├── api/            # API request DTOs
+│   └── responses/      # API response DTOs
+│       ├── analyze_document_response_dto.py
+│       ├── document_response_dto.py
+│       ├── document_list_response_dto.py  # 🆕 Paginated list DTO
+│       ├── context_dtos.py
+│       ├── question_dtos.py
+│       └── image_dtos.py
+├── models/             # Modelos Pydantic (internal/persistence)
+│   ├── internal/       # Internal processing models
+│   └── persistence/    # MongoDB document models
 ├── services/           # Serviços de negócio
 │   ├── infrastructure/ # MongoDB connection service
-│   └── persistence/    # Camada de persistência MongoDB
+│   ├── persistence/    # Camada de persistência MongoDB
+│   │   ├── i_simple_persistence_service.py  # Interface
+│   │   └── mongodb_persistence_service.py   # MongoDB implementation
+│   ├── core/           # Core business services
+│   └── extraction/     # Document extraction services
 ├── parsers/            # Parsers de texto
+│   ├── header_parser/  # Header extraction
+│   └── question_parser/ # Question extraction
 ├── utils/              # Utilitários
 └── main.py            # Aplicação principal
 
@@ -175,7 +199,17 @@ scripts/                # Scripts de infraestrutura
 └── mongo-init.js      # Script inicial Docker
 
 tests/                  # Testes automatizados
+├── unit/              # Testes unitários
+│   └── controllers/
+│       └── test_list_documents.py  # 🆕 List endpoint tests
+├── integration/       # Testes de integração
+└── fixtures/          # Test fixtures
+
 docs/                   # Documentação técnica
+├── API.md             # Documentação completa da API
+├── ARCHITECTURE.md    # Arquitetura do sistema
+└── SETUP.md           # Guia de configuração
+
 docker-compose.yml      # Infraestrutura Docker
 ```
 
@@ -1016,6 +1050,7 @@ The project includes debug configurations in `.vscode/launch.json`:
 | **GET**  | `/health/`                       | Sistema de health check completo       | ✅     |
 | **POST** | `/analyze/analyze_document`      | Análise de documentos com persistência | ✅     |
 | **GET**  | `/analyze/analyze_document/{id}` | Recuperação de documentos por ID       | ✅     |
+| **GET**  | `/analyze/documents`             | Listagem paginada com filtros          | ✅     |
 | **GET**  | `/docs`                          | Documentação Swagger UI interativa     | ✅     |
 
 ### **🆕 Endpoint Consolidado: Health Check Completo**
@@ -1066,6 +1101,83 @@ Content-Type: multipart/form-data
 4. Persistência → SimplePersistenceService (obrigatória)
 ```
 
+### **🆕 Document Listing Endpoint (NEW)**
+
+O novo endpoint `GET /analyze/documents` permite listar documentos processados com filtros e paginação:
+
+#### **📋 Características:**
+
+- ✅ **Filtro por email**: Obrigatório para buscar documentos de um usuário
+- ✅ **Filtro por data**: Período opcional usando formato simples `YYYY-MM-DD`
+- ✅ **Paginação robusta**: Controle completo de página e tamanho
+- ✅ **Metadados completos**: Informações de navegação (has_next, has_previous, total_pages)
+- ✅ **Performance otimizada**: Usa índices MongoDB para queries eficientes
+
+#### **🔍 Parâmetros de Query:**
+
+```bash
+GET /analyze/documents?email={email}&start_date={date}&end_date={date}&page={num}&page_size={size}
+
+# Parâmetros:
+# - email (obrigatório): Email do usuário
+# - start_date (opcional): Data início no formato YYYY-MM-DD
+# - end_date (opcional): Data fim no formato YYYY-MM-DD
+# - page (opcional, padrão=1): Número da página
+# - page_size (opcional, padrão=10, máx=50): Itens por página
+```
+
+#### **📊 Exemplo de Uso:**
+
+```bash
+# Listar todos os documentos de um usuário
+GET /analyze/documents?email=professor@escola.edu.br
+
+# Filtrar por período (novembro de 2025)
+GET /analyze/documents?email=professor@escola.edu.br&start_date=2025-11-01&end_date=2025-11-30
+
+# Segunda página com 20 itens
+GET /analyze/documents?email=professor@escola.edu.br&page=2&page_size=20
+```
+
+#### **✨ Response Format:**
+
+```json
+{
+  "items": [
+    {
+      "_id": "423a02fd-a0e0-4392-b66a-a43250e51ac3",
+      "document_name": "Recuperacao.pdf",
+      "status": "completed",
+      "analysis_results": {
+        "document_id": "de8648f0-b36e-4513-9ca4-b11ad6cc2f25",
+        "email": "professor@escola.edu.br",
+        "filename": "Recuperacao.pdf",
+        "questions": [...],
+        "context_blocks": [...]
+      },
+      "created_at": "2025-11-21T21:38:26.319Z",
+      "user_email": "professor@escola.edu.br"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "page_size": 10,
+    "total_items": 15,
+    "total_pages": 2,
+    "has_next": true,
+    "has_previous": false
+  }
+}
+```
+
+#### **⚡ Validações Automáticas:**
+
+- Email obrigatório e não vazio
+- Par de datas (ambas ou nenhuma)
+- Intervalo de datas válido (start <= end)
+- Formato de data YYYY-MM-DD
+- Paginação entre 1 e 50 itens por página
+
 ### **🆕 Document Retrieval Endpoint**
 
 O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documentos processados:
@@ -1102,7 +1214,7 @@ O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documento
           "text": "da velocidade com que a tecnologia influencia na nossa comunicação diária e na vida dos jovens e adultos"
         },
         {
-          "letter": "b", 
+          "letter": "b",
           "text": "do desrespeito do ser humano com a vida humilde de pessoas pertencentes a grupos sociais mais pobres na sociedade"
         }
       ],
@@ -1128,7 +1240,7 @@ O novo endpoint `GET /analyze/analyze_document/{id}` permite recuperar documento
     {
       "id": 2,
       "type": ["image"],
-      "source": "exam_document", 
+      "source": "exam_document",
       "statement": null,
       "title": "Context 1",
       "hasImage": false,

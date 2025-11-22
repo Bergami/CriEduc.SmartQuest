@@ -4,7 +4,7 @@ Interface simplificada para serviços de persistência
 Define contrato conforme escopo original do prompt MongoDB.
 """
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from datetime import datetime
 
 from app.models.persistence import AnalyzeDocumentRecord, AzureProcessingDataRecord
@@ -82,5 +82,34 @@ class ISimplePersistenceService(ABC):
             
         Returns:
             Lista de registros encontrados
+        """
+        pass
+
+    @abstractmethod
+    async def get_by_user_email_with_filters(
+        self,
+        email: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        page: int = 1,
+        page_size: int = 10
+    ) -> Tuple[List[AnalyzeDocumentRecord], int]:
+        """
+        Recupera registros por email com filtros opcionais e paginação.
+        
+        Combina filtro obrigatório por email com filtros opcionais de data
+        e suporte a paginação.
+        
+        Args:
+            email: Email do usuário (obrigatório)
+            start_date: Data início do intervalo (opcional)
+            end_date: Data fim do intervalo (opcional)
+            page: Número da página (1-indexed, mínimo 1)
+            page_size: Itens por página (máximo 50)
+            
+        Returns:
+            Tupla contendo:
+            - Lista de registros encontrados na página
+            - Total de registros que correspondem aos filtros
         """
         pass

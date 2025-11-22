@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Query, Request
-from typing import Dict, Any
+from typing import Optional
+from datetime import datetime, date, time
 
 # IMPORTANTE: Importar di_config PRIMEIRO para configurar dependências
 from app.config import di_config  # Configura automaticamente todas as dependências
@@ -10,6 +11,7 @@ from app.services.core.analyze_service import AnalyzeService
 from app.validators.analyze_validator import AnalyzeValidator
 from app.dtos.responses.document_response_dto import DocumentResponseDTO
 from app.dtos.responses.analyze_document_response_dto import AnalyzeDocumentResponseDTO
+from app.dtos.responses.document_list_response_dto import DocumentListResponseDTO, PaginationMetadata
 from app.core.exceptions import (
     DocumentProcessingError,
     ValidationException
@@ -237,6 +239,168 @@ async def get_analyze_document(
             status_code=500,
             detail=f"Erro interno ao buscar documento: {str(e)}"
         )
+
+
+@router.get("/documents", response_model=DocumentListResponseDTO)
+@handle_exceptions("documents_list")
+async def list_documents(
+    request: Request,
+    email: str = Query(..., description="Email do usuário (obrigatório)"),
+    start_date: Optional[date] = Query(None, description="Data início para filtro (formato YYYY-MM-DD, opcional)"),
+    end_date: Optional[date] = Query(None, description="Data fim para filtro (formato YYYY-MM-DD, opcional)"),
+    page: int = Query(1, ge=1, description="Número da página (mínimo 1)"),
+    page_size: int = Query(10, ge=1, le=50, description="Itens por página (máximo 50)")
+) -> DocumentListResponseDTO:
+    """
+    Lista documentos analisados com filtros e paginação.
+    
+    Retorna uma lista paginada de documentos previamente analisados e armazenados,
+    permitindo filtros por email (obrigatório) e intervalo de datas (opcional).
+    
+    Args:
+        request: Request context para logging
+        email: Email do usuário (obrigatório)
+        start_date: Data início do intervalo (opcional, requer end_date)
+        end_date: Data fim do intervalo (opcional, requer start_date)
+        page: Número da página (1-indexed, padrão 1)
+        page_size: Quantidade de itens por página (padrão 10, máximo 50)
+        
+    Returns:
+        Lista paginada de documentos com metadados de paginação
+        
+    Raises:
+        HTTPException: 400 se validações falharem
+        HTTPException: 422 se parâmetros inválidos
+        HTTPException: 500 para erros internos
+    """
+    structured_logger.info(
+        "Starting documents list",
+        context={
+            "email": email,
+            "start_date": start_date,
+            "end_date": end_date,
+            "page": page,
+            "page_size": page_size
+        }
+    )
+    
+    # Validação: email obrigatório e não vazio
+    if not email or not email.strip():
+        structured_logger.warning(
+            "Invalid email provided",
+            context={"email": email}
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Email é obrigatório e não pode estar vazio"
+        )
+    
+    # Validação: se uma data for fornecida, ambas devem ser
+    if (start_date is not None and end_date is None) or (start_date is None and end_date is not None):
+        structured_logger.warning(
+            "Incomplete date range",
+            context={"start_date": start_date, "end_date": end_date}
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Se informar data de início, deve informar data de fim (e vice-versa)"
+        )
+    
+    # Validação: start_date deve ser <= end_date
+    if start_date is not None and end_date is not None and start_date > end_date:
+        structured_logger.warning(
+            "Invalid date range",
+            context={"start_date": start_date, "end_date": end_date}
+        )
+        raise HTTPException(
+            status_code=400,
+            detail="Data de início deve ser anterior ou igual à data de fim"
+        )
+    
+    # Resolver serviço de persistência via DI Container
+    from app.core.di_container import container
+    from app.services.persistence import ISimplePersistenceService
+    
+    try:
+        structured_logger.debug("Resolving persistence service via DI Container")
+        persistence_service = container.resolve(ISimplePersistenceService)
+        
+        # Converter date para datetime (início às 00:00:00 e fim às 23:59:59)
+        start_datetime = datetime.combine(start_date, time.min) if start_date else None
+        end_datetime = datetime.combine(end_date, time.max) if end_date else None
+        
+        # Buscar documentos com filtros
+        structured_logger.debug(
+            "Searching for documents in MongoDB",
+            context={
+                "email": email,
+                "has_date_filter": start_date is not None,
+                "start_datetime": start_datetime,
+                "end_datetime": end_datetime,
+                "page": page,
+                "page_size": page_size
+            }
+        )
+        
+        documents, total_count = await persistence_service.get_by_user_email_with_filters(
+            email=email,
+            start_date=start_datetime,
+            end_date=end_datetime,
+            page=page,
+            page_size=page_size
+        )
+        
+        # Converter documentos para DTOs
+        items = [
+            AnalyzeDocumentResponseDTO.from_analyze_document_record(doc)
+            for doc in documents
+        ]
+        
+        # Criar metadados de paginação
+        pagination = PaginationMetadata.create(
+            current_page=page,
+            page_size=page_size,
+            total_items=total_count
+        )
+        
+        # Montar resposta
+        response = DocumentListResponseDTO(
+            items=items,
+            pagination=pagination
+        )
+        
+        structured_logger.info(
+            "Documents list retrieved successfully",
+            context={
+                "email": email,
+                "documents_returned": len(items),
+                "total_documents": total_count,
+                "page": page,
+                "total_pages": pagination.total_pages
+            }
+        )
+        
+        return response
+        
+    except HTTPException:
+        # Re-propagar HTTPExceptions (400, 422, etc.)
+        raise
+        
+    except Exception as e:
+        structured_logger.error(
+            "Error listing documents",
+            context={
+                "email": email,
+                "page": page,
+                "page_size": page_size,
+                "error": str(e)
+            }
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro interno ao listar documentos: {str(e)}"
+        )
+
 
 # ==================================================================================
 # 🧹 ENDPOINTS REMOVIDOS: analyze_document_mock e analyze_document_with_figures
