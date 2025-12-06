@@ -45,8 +45,63 @@ async def analyze_document(
     AnalyzeValidator.validate_all(file, email)
     structured_logger.debug("Input validation completed successfully")
 
-    # --- ETAPA 1: Extração de Dados (com cache transparente) ---
-    structured_logger.debug("Step 1: Extracting data using DocumentExtractionService")
+    # --- ETAPA 1: Verificação de Duplicatas no MongoDB ---
+    from app.core.di_container import container
+    from app.services.persistence import ISimplePersistenceService
+    from app.models.persistence import DocumentStatus
+    
+    structured_logger.debug("Step 1: Checking for duplicate document in MongoDB")
+    persistence_service = container.resolve(ISimplePersistenceService)
+    
+    # Obter tamanho do arquivo
+    await file.seek(0, 2)  # Ir para o final
+    file_size = file.file.tell()  # Obter posição (tamanho)
+    await file.seek(0)  # Voltar ao início
+    
+    existing_doc = await persistence_service.check_duplicate_document(
+        email=email,
+        filename=file.filename,
+        file_size=file_size
+    )
+    
+    # Se documento já existe e foi processado com sucesso
+    if existing_doc and existing_doc.status == DocumentStatus.COMPLETED:
+        structured_logger.info(
+            "Duplicate document found - returning existing data",
+            context={
+                "email": email,
+                "filename": file.filename,
+                "file_size": file_size,
+                "document_id": str(existing_doc.id),
+                "processed_at": existing_doc.created_at
+            }
+        )
+        
+        # Preparar response combinando metadata com dados do response
+        response_data = existing_doc.response.copy()
+        response_data.update({
+            "status": "already_processed",
+            "message": f"Documento já foi processado anteriormente em {existing_doc.created_at.isoformat()}",
+            "from_cache": False,
+            "from_database": True
+        })
+        
+        return DocumentResponseDTO(**response_data)
+    
+    # Log se for reprocessamento de documento falhado
+    if existing_doc and existing_doc.status == DocumentStatus.FAILED:
+        structured_logger.info(
+            "Reprocessing previously failed document",
+            context={
+                "email": email,
+                "filename": file.filename,
+                "previous_document_id": str(existing_doc.id),
+                "previous_failure": existing_doc.created_at
+            }
+        )
+    
+    # --- ETAPA 2: Extração de Dados (documento novo ou retry) ---
+    structured_logger.debug("Step 2: Extracting data using DocumentExtractionService")
     extracted_data = await DocumentExtractionService.get_extraction_data(file, email)
 
     if not extracted_data:
@@ -57,11 +112,10 @@ async def analyze_document(
         context={"email": email, "filename": file.filename}
     )
 
-    # --- ETAPA 2: Orquestração da Análise ---
-    structured_logger.debug("Step 2: Orchestrating analysis using AnalyzeService")
+    # --- ETAPA 3: Orquestração da Análise ---
+    structured_logger.debug("Step 3: Orchestrating analysis using AnalyzeService")
     
     # Resolver AnalyzeService via DI Container (não instanciar manualmente)
-    from app.core.di_container import container
     from app.core.interfaces import IAnalyzeService
     
     # Container resolve automaticamente TODA a árvore de dependências:
@@ -82,7 +136,7 @@ async def analyze_document(
         file=file  # O arquivo ainda é necessário para o fallback de extração de imagens
     )
     
-    # --- ETAPA 3: Conversão para DTO da API ---
+    # --- ETAPA 4: Conversão para DTO da API ---
     # Converte a resposta interna (Pydantic) para o DTO da API (mantém compatibilidade)
     api_response = DocumentResponseDTO.from_internal_response(internal_response)
     
@@ -92,20 +146,13 @@ async def analyze_document(
         structured_logger.debug(f"🔍   DTO Block {i+1}: ID={cb.id}, Title='{cb.title}', Statement='{cb.statement}'")
         structured_logger.debug(f"🔍     - Paragraphs: {cb.paragraphs is not None} (length: {len(cb.paragraphs) if cb.paragraphs else 0})")
     
-    # --- ETAPA 4: PERSISTÊNCIA OBRIGATÓRIA NO MONGODB ---
-    from app.services.persistence import ISimplePersistenceService
-    from app.models.persistence import AnalyzeDocumentRecord, DocumentStatus
+    # --- ETAPA 5: PERSISTÊNCIA OBRIGATÓRIA NO MONGODB ---
+    from app.models.persistence import AnalyzeDocumentRecord
     
     try:
-        structured_logger.debug("Step 4: Persisting analysis result to MongoDB")
+        structured_logger.debug("Step 5: Persisting analysis result to MongoDB")
         
-        # Resolver serviço de persistência via DI Container
-        persistence_service = container.resolve(ISimplePersistenceService)
-        
-        # Obter tamanho do arquivo
-        await file.seek(0, 2)  # Ir para o final do arquivo
-        file_size = file.file.tell()  # Obter posição (tamanho)
-        await file.seek(0)  # Voltar ao início
+        # Nota: persistence_service e file_size já foram obtidos na Etapa 1
         
         # Criar registro conforme prompt original
         analysis_record = AnalyzeDocumentRecord.create_from_request(
