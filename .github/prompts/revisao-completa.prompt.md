@@ -1,12 +1,17 @@
 ---
 description: "Revisão técnica e arquitetural de código com foco em boas práticas, legibilidade e manutenibilidade"
-mode: "agent"
+agent: "code-review-bot, agent especializado em revisão de código"
 model: "GPT-4"
 tools:
   - workspace-code-search
   - workspace-symbols
   - workspace-context
   - workspace-edit
+
+cross-validation:
+  - Run same prompt with Sonnet 4.5 agent
+  - Compare outputs (Code Review Bot vs Sonnet)
+  - Document divergences and consensus in REVIEW_REPORT.md
 ---
 
 ## Objetivo
@@ -42,6 +47,10 @@ Analise o código a seguir com base nos seguintes critérios:
 
 - Avalie se o código é facilmente testável.
 - Sugira refatorações que facilitem a criação de testes unitários ou de integração.
+- Verifique a cobertura de testes existente (se aplicável).
+- Sugira melhorias para aumentar a cobertura de testes.
+- Indique áreas críticas que necessitam de testes adicionais.
+- Não gere apenas testes que cubra o caminho feliz, mas também casos de borda e falhas esperadas.
 
 ### 🧠 6. Clareza e Legibilidade
 
@@ -62,11 +71,13 @@ Analise o código a seguir com base nos seguintes critérios:
 
 - Identifique funções ou métodos com lógica excessivamente complexa.
 - Sugira simplificações ou divisões em unidades menores.
+- Analise a complexidade, a refatoração deve ser realizada com muita cautela para não introduzir bugs.
 
 ---
 
 ## Saída esperada
 
+- Crie um arquivo _REVIEW_REPORT.md_ na raiz do projeto com um resumo detalhado da revisão.
 - Liste os problemas encontrados por categoria.
 - Para cada problema, forneça uma explicação clara e, se possível, um exemplo de código refatorado.
 - Use linguagem objetiva e profissional.
@@ -76,7 +87,6 @@ Analise o código a seguir com base nos seguintes critérios:
 
 ## Caminho de arquivos
 
-- Deve informar o caminhho dos arquivos a serem revisados usando o seguinte formato:
-  ${input:filePath:default=\*_/_.py}
+- Deve Perguntar se deve fazer a revisão em todos os arquivos modificados da branch atual ou em arquivos específicos.
 
 Pode ser chamado no chat por meio do comando: Chat: Run Prompt e selecionando o prompt de revisão completa.

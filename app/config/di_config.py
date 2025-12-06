@@ -23,6 +23,7 @@ from app.services.core.analyze_service import AnalyzeService
 from app.services.storage.azure_image_upload_service import AzureImageUploadService
 from app.services.persistence import ISimplePersistenceService, MongoDBPersistenceService
 from app.services.infrastructure import MongoDBConnectionService
+from app.services.core.duplicate_check_service import DuplicateCheckService
 from app.config.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -94,6 +95,13 @@ def configure_dependencies() -> None:
         lifetime=ServiceLifetime.SINGLETON
     )
     logger.debug("ISimplePersistenceService -> MongoDBPersistenceService (Singleton)")
+    
+    container.register(
+        interface_type=DuplicateCheckService,
+        implementation_type=DuplicateCheckService,
+        lifetime=ServiceLifetime.SINGLETON
+    )
+    logger.debug("DuplicateCheckService -> DuplicateCheckService (Singleton)")
     
     settings = get_settings()
     logger.info(f"MongoDB configured: {settings.mongodb_database} @ {settings.mongodb_url}")

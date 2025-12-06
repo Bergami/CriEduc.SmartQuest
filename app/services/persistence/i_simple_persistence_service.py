@@ -113,3 +113,61 @@ class ISimplePersistenceService(ABC):
             - Total de registros que correspondem aos filtros
         """
         pass
+
+    @abstractmethod
+    async def check_duplicate_document(
+        self,
+        email: str,
+        filename: str,
+        file_size: int
+    ) -> Optional[AnalyzeDocumentRecord]:
+        """
+        Verifica se documento já foi processado.
+        
+        Busca documento com:
+        - Mesmo email
+        - Mesmo filename
+        - Mesmo file_size
+        - Status COMPLETED (docs FAILED são ignorados para permitir retry)
+        
+        Performance: O(1) devido ao índice composto idx_duplicate_check
+        
+        Args:
+            email: Email do usuário
+            filename: Nome do arquivo
+            file_size: Tamanho do arquivo em bytes
+            
+        Returns:
+            AnalyzeDocumentRecord se encontrado, None caso contrário
+        """
+        pass
+
+    @abstractmethod
+    async def save_completed_analysis(
+        self,
+        email: str,
+        filename: str,
+        file_size: int,
+        response_dict: dict
+    ) -> str:
+        """
+        Método high-level para persistir resultado de análise completa.
+        
+        Encapsula a lógica de:
+        1. Criar AnalyzeDocumentRecord com status COMPLETED
+        2. Salvar no MongoDB
+        3. Tratar erros de persistência
+        
+        Args:
+            email: Email do usuário
+            filename: Nome do arquivo
+            file_size: Tamanho do arquivo em bytes
+            response_dict: Dicionário com response completo (DocumentResponseDTO.dict())
+            
+        Returns:
+            ID do documento salvo
+            
+        Raises:
+            DocumentProcessingError: Se persistência falhar (MongoDB obrigatório)
+        """
+        pass

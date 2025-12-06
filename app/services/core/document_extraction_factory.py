@@ -3,7 +3,6 @@ import logging
 from typing import Dict, Any, Optional
 from app.services.base.document_extraction_interface import DocumentExtractionInterface
 from app.services.adapters.azure_extraction_adapter import AzureExtractionAdapter
-from app.services.storage.document_storage_service import DocumentStorageService
 from app.core.exceptions import DocumentProcessingError
 
 logger = logging.getLogger(__name__)
@@ -16,17 +15,11 @@ class DocumentExtractionFactory:
     
     _providers = {}
     _default_provider = None
-    _storage_service = None
     
     @classmethod
-    def initialize(cls, storage_service: DocumentStorageService = None):
+    def initialize(cls):
         """Initialize available providers based on configuration"""
         cls._providers = {}
-        
-        # Inicializar storage service
-        if storage_service is None:
-            storage_service = DocumentStorageService()
-        cls._storage_service = storage_service
         
         # Register Azure provider
         try:

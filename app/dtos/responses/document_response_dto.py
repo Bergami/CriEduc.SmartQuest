@@ -135,6 +135,11 @@ class DocumentResponseDTO(BaseModel):
     header: HeaderDTO = Field(..., description="Dados do cabeçalho")
     questions: List[QuestionDTO] = Field(default_factory=list, description="Questões extraídas")
     context_blocks: List[ContextBlockDTO] = Field(default_factory=list, description="Blocos de contexto")
+    
+    # Campos opcionais para detecção de duplicatas
+    status: Optional[str] = Field(default=None, description="Status do processamento (ex: already_processed)")
+    message: Optional[str] = Field(default=None, description="Mensagem informativa sobre o processamento")
+    from_database: Optional[bool] = Field(default=False, description="Indica se o resultado veio do banco de dados")
 
     @classmethod
     def from_internal_response(cls, internal_response: InternalDocumentResponse) -> "DocumentResponseDTO":

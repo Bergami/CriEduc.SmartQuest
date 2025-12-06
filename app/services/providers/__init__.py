@@ -1,4 +1,3 @@
-# Document providers for different extraction services
-from .base_document_provider import BaseDocumentProvider
+# NOTA: BaseDocumentProvider removido - sistema agora usa serviços especializados diretamente
 
-__all__ = ["BaseDocumentProvider"]
+__all__ = []

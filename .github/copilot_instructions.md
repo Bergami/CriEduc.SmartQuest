@@ -11,6 +11,9 @@
 - Todo código escrito deve seeguir as boas práticas de programação
 - Quando for identificado um error, faça uma análise completa da situação, faça uma análise do último response do azure e avalie as imagens salvas.
 - Sempre faça uma análise do que foi pedido, apresente a solução e pergunte se pode ou não aplicar a solução identificada.
+- O commit deve ser escritp em inglês.
+- O código deve ser escrito em inglês.
+- todos testes devem ser executados no ambiente virtual (env)
 
 ## Estrutura de Resposta
 
