@@ -113,3 +113,31 @@ class ISimplePersistenceService(ABC):
             - Total de registros que correspondem aos filtros
         """
         pass
+
+    @abstractmethod
+    async def check_duplicate_document(
+        self,
+        email: str,
+        filename: str,
+        file_size: int
+    ) -> Optional[AnalyzeDocumentRecord]:
+        """
+        Verifica se documento já foi processado.
+        
+        Busca documento com:
+        - Mesmo email
+        - Mesmo filename
+        - Mesmo file_size
+        - Status COMPLETED (docs FAILED são ignorados para permitir retry)
+        
+        Performance: O(1) devido ao índice composto idx_duplicate_check
+        
+        Args:
+            email: Email do usuário
+            filename: Nome do arquivo
+            file_size: Tamanho do arquivo em bytes
+            
+        Returns:
+            AnalyzeDocumentRecord se encontrado, None caso contrário
+        """
+        pass

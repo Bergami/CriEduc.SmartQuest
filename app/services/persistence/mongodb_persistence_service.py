@@ -330,6 +330,72 @@ class MongoDBPersistenceService(ISimplePersistenceService):
             self._logger.error(f"Error getting documents with filters for email {email}: {e}")
             raise PersistenceError(f"Failed to get documents with filters: {str(e)}")
 
+    async def check_duplicate_document(
+        self,
+        email: str,
+        filename: str,
+        file_size: int
+    ) -> Optional[AnalyzeDocumentRecord]:
+        """
+        Verifica duplicata usando índice otimizado.
+        
+        Busca documento com:
+        - Mesmo email
+        - Mesmo filename
+        - Mesmo file_size
+        - Status COMPLETED (docs FAILED são ignorados para permitir retry)
+        
+        Performance: O(1) devido ao índice composto idx_duplicate_check
+        
+        Args:
+            email: Email do usuário
+            filename: Nome do arquivo
+            file_size: Tamanho do arquivo em bytes
+            
+        Returns:
+            AnalyzeDocumentRecord se encontrado, None caso contrário
+        """
+        try:
+            from app.models.persistence.enums import DocumentStatus
+            
+            database = await self._connection_service.get_database()
+            collection = database["analyze_documents"]
+            
+            # Query otimizada com índice idx_duplicate_check
+            query = {
+                "user_email": email,
+                "file_name": filename,
+                "file_size": file_size,
+                "status": DocumentStatus.COMPLETED.value  # Apenas docs bem-sucedidos
+            }
+            
+            # Buscar documento (usa índice)
+            doc = await collection.find_one(query)
+            
+            if doc:
+                self._logger.info({
+                    "event": "duplicate_document_found",
+                    "email": email,
+                    "filename": filename,
+                    "file_size": file_size,
+                    "document_id": str(doc["_id"]),
+                    "processed_at": doc.get("created_at")
+                })
+                
+                # Converter para model Pydantic
+                return AnalyzeDocumentRecord.from_mongo(doc)
+            
+            return None
+            
+        except Exception as e:
+            self._logger.error({
+                "event": "duplicate_check_error",
+                "error": str(e)
+            })
+            # Em caso de erro, retornar None para permitir processamento
+            # (fail-safe: melhor reprocessar que bloquear)
+            return None
+
     async def close(self):
         """
         Fecha recursos se necessário.
