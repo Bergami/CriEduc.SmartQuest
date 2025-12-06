@@ -31,81 +31,44 @@ async def analyze_document(
     file: UploadFile = File(..., description="PDF file for analysis")
 ) -> DocumentResponseDTO:
     """
-    ✅ REFATORADO: Analisa um documento PDF com um fluxo de responsabilidades claras.
-    1. Extrai os dados brutos (usando cache).
-    2. Orquestra a análise desses dados.
+    Analisa um documento PDF com arquitetura SOLID.
+    
+    Fluxo:
+    1. Valida entrada
+    2. Verifica duplicatas (retorna se já processado)
+    3. Extrai dados do documento
+    4. Orquestra análise com modelos
+    5. Converte para DTO da API
+    6. Persiste resultado no MongoDB
     """
     structured_logger.info(
         "Starting document analysis with SOLID architecture",
         context={"email": email, "filename": file.filename}
     )
     
-    # Validação de entrada
-    structured_logger.debug("Executing input validation")
+    # --- VALIDAÇÃO ---
     AnalyzeValidator.validate_all(file, email)
-    structured_logger.debug("Input validation completed successfully")
 
-    # --- ETAPA 1: Verificação de Duplicatas no MongoDB ---
+    # --- ETAPA 1: Verificação de Duplicatas ---
     from app.core.di_container import container
+    from app.services.core.duplicate_check_service import DuplicateCheckService
     from app.services.persistence import ISimplePersistenceService
-    from app.models.persistence import DocumentStatus
+    from app.core.interfaces import IAnalyzeService
     
-    structured_logger.debug("Step 1: Checking for duplicate document in MongoDB")
-    persistence_service = container.resolve(ISimplePersistenceService)
+    duplicate_service = container.resolve(DuplicateCheckService)
+    duplicate_result = await duplicate_service.check_and_handle_duplicate(email, file)
     
-    # Obter tamanho do arquivo
-    await file.seek(0, 2)  # Ir para o final
-    file_size = file.file.tell()  # Obter posição (tamanho)
-    await file.seek(0)  # Voltar ao início
+    # Se é duplicata processada, retornar dados existentes
+    if not duplicate_result.should_process:
+        return duplicate_result.existing_response
     
-    existing_doc = await persistence_service.check_duplicate_document(
-        email=email,
-        filename=file.filename,
-        file_size=file_size
-    )
-    
-    # Se documento já existe e foi processado com sucesso
-    if existing_doc and existing_doc.status == DocumentStatus.COMPLETED:
-        structured_logger.info(
-            "Duplicate document found - returning existing data",
-            context={
-                "email": email,
-                "filename": file.filename,
-                "file_size": file_size,
-                "document_id": str(existing_doc.id),
-                "processed_at": existing_doc.created_at
-            }
-        )
-        
-        # Preparar response combinando metadata com dados do response
-        response_data = existing_doc.response.copy()
-        response_data.update({
-            "status": "already_processed",
-            "message": f"Documento já foi processado anteriormente em {existing_doc.created_at.isoformat()}",
-            "from_cache": False,
-            "from_database": True
-        })
-        
-        return DocumentResponseDTO(**response_data)
-    
-    # Log se for reprocessamento de documento falhado
-    if existing_doc and existing_doc.status == DocumentStatus.FAILED:
-        structured_logger.info(
-            "Reprocessing previously failed document",
-            context={
-                "email": email,
-                "filename": file.filename,
-                "previous_document_id": str(existing_doc.id),
-                "previous_failure": existing_doc.created_at
-            }
-        )
-    
-    # --- ETAPA 2: Extração de Dados (documento novo ou retry) ---
-    structured_logger.debug("Step 2: Extracting data using DocumentExtractionService")
+    # --- ETAPA 2: Extração de Dados ---
     extracted_data = await DocumentExtractionService.get_extraction_data(file, email)
-
     if not extracted_data:
-        raise DocumentProcessingError("Failed to extract any data from the document. The file might be empty, corrupted, or in an unsupported format.")
+        raise DocumentProcessingError(
+            "Failed to extract any data from the document. "
+            "The file might be empty, corrupted, or in an unsupported format."
+        )
     
     structured_logger.info(
         "Data extraction completed",
@@ -113,75 +76,25 @@ async def analyze_document(
     )
 
     # --- ETAPA 3: Orquestração da Análise ---
-    structured_logger.debug("Step 3: Orchestrating analysis using AnalyzeService")
-    
-    # Resolver AnalyzeService via DI Container (não instanciar manualmente)
-    from app.core.interfaces import IAnalyzeService
-    
-    # Container resolve automaticamente TODA a árvore de dependências:
-    # IAnalyzeService → AnalyzeService
-    # └── IDocumentAnalysisOrchestrator → DocumentAnalysisOrchestrator
-    #     ├── IImageCategorizer → ImageCategorizationService
-    #     ├── IImageExtractor → ImageExtractionOrchestrator
-    #     ├── IContextBuilder → ContextBlockBuilder
-    #     └── IFigureProcessor → AzureFigureProcessor
     analyze_service = container.resolve(IAnalyzeService)
-    
-    structured_logger.debug(f"AnalyzeService resolved via DI Container: {type(analyze_service).__name__}")
-    
     internal_response = await analyze_service.process_document_with_models(
         extracted_data=extracted_data,
         email=email,
         filename=file.filename,
-        file=file  # O arquivo ainda é necessário para o fallback de extração de imagens
+        file=file
     )
     
     # --- ETAPA 4: Conversão para DTO da API ---
-    # Converte a resposta interna (Pydantic) para o DTO da API (mantém compatibilidade)
     api_response = DocumentResponseDTO.from_internal_response(internal_response)
     
-    # 🔍 DEBUG: Verify final API response
-    structured_logger.debug(f"🔍 [API DEBUG] Final API response context blocks:")
-    for i, cb in enumerate(api_response.context_blocks[:3]):  # Só os primeiros 3
-        structured_logger.debug(f"🔍   DTO Block {i+1}: ID={cb.id}, Title='{cb.title}', Statement='{cb.statement}'")
-        structured_logger.debug(f"🔍     - Paragraphs: {cb.paragraphs is not None} (length: {len(cb.paragraphs) if cb.paragraphs else 0})")
-    
-    # --- ETAPA 5: PERSISTÊNCIA OBRIGATÓRIA NO MONGODB ---
-    from app.models.persistence import AnalyzeDocumentRecord
-    
-    try:
-        structured_logger.debug("Step 5: Persisting analysis result to MongoDB")
-        
-        # Nota: persistence_service e file_size já foram obtidos na Etapa 1
-        
-        # Criar registro conforme prompt original
-        analysis_record = AnalyzeDocumentRecord.create_from_request(
-            user_email=email,
-            file_name=file.filename,
-            file_size=file_size,
-            response=api_response.dict(),  # Response JSON completo
-            status=DocumentStatus.COMPLETED
-        )
-        
-        # Salvar no MongoDB (lança erro se MongoDB estiver indisponível)
-        document_id = await persistence_service.save_analysis_result(analysis_record)
-        
-        structured_logger.info(
-            "Analysis result persisted successfully",
-            context={
-                "document_id": document_id,
-                "user_email": email,
-                "file_name": file.filename
-            }
-        )
-        
-    except Exception as e:
-        # Log do erro e propaga a exceção (persistência é obrigatória)
-        structured_logger.error(
-            "Failed to persist analysis result - MongoDB required",
-            context={"error": str(e), "email": email, "filename": file.filename}
-        )
-        raise DocumentProcessingError(f"Failed to persist analysis result: {str(e)}")
+    # --- ETAPA 5: Persistência no MongoDB ---
+    persistence_service = container.resolve(ISimplePersistenceService)
+    document_id = await persistence_service.save_completed_analysis(
+        email=email,
+        filename=file.filename,
+        file_size=duplicate_result.file_size,
+        response_dict=api_response.dict()
+    )
     
     structured_logger.info(
         "Document analysis completed successfully",
@@ -190,7 +103,6 @@ async def analyze_document(
             "document_id": internal_response.document_id,
             "questions_count": len(internal_response.questions),
             "context_blocks_count": len(internal_response.context_blocks),
-            "header_images_count": len(internal_response.document_metadata.header_images),
             "migration_status": "100_percent_pydantic_flow"
         }
     )

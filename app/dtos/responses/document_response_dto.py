@@ -139,7 +139,6 @@ class DocumentResponseDTO(BaseModel):
     # Campos opcionais para detecção de duplicatas
     status: Optional[str] = Field(default=None, description="Status do processamento (ex: already_processed)")
     message: Optional[str] = Field(default=None, description="Mensagem informativa sobre o processamento")
-    from_cache: Optional[bool] = Field(default=False, description="Indica se o resultado veio do cache (deprecated)")
     from_database: Optional[bool] = Field(default=False, description="Indica se o resultado veio do banco de dados")
 
     @classmethod

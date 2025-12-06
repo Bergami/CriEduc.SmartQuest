@@ -396,6 +396,73 @@ class MongoDBPersistenceService(ISimplePersistenceService):
             # (fail-safe: melhor reprocessar que bloquear)
             return None
 
+    async def save_completed_analysis(
+        self,
+        email: str,
+        filename: str,
+        file_size: int,
+        response_dict: dict
+    ) -> str:
+        """
+        Método high-level para persistir resultado de análise completa.
+        
+        Encapsula toda a lógica de:
+        1. Criar AnalyzeDocumentRecord com status COMPLETED
+        2. Salvar no MongoDB via save_analysis_result
+        3. Tratar erros de persistência
+        
+        Args:
+            email: Email do usuário
+            filename: Nome do arquivo
+            file_size: Tamanho do arquivo em bytes
+            response_dict: Dicionário com response completo (DocumentResponseDTO.dict())
+            
+        Returns:
+            ID do documento salvo
+            
+        Raises:
+            PersistenceError: Se MongoDB falhar (persistência obrigatória)
+        """
+        try:
+            from app.models.persistence.enums import DocumentStatus
+            
+            self._logger.debug({
+                "event": "saving_completed_analysis",
+                "email": email,
+                "filename": filename,
+                "file_size": file_size
+            })
+            
+            # Criar registro com status COMPLETED
+            analysis_record = AnalyzeDocumentRecord.create_from_request(
+                user_email=email,
+                file_name=filename,
+                file_size=file_size,
+                response=response_dict,
+                status=DocumentStatus.COMPLETED
+            )
+            
+            # Salvar no MongoDB
+            document_id = await self.save_analysis_result(analysis_record)
+            
+            self._logger.info({
+                "event": "analysis_persisted_successfully",
+                "document_id": document_id,
+                "user_email": email,
+                "file_name": filename
+            })
+            
+            return document_id
+            
+        except Exception as e:
+            self._logger.error({
+                "event": "failed_to_persist_analysis",
+                "error": str(e),
+                "email": email,
+                "filename": filename
+            })
+            raise PersistenceError(f"Failed to persist analysis result: {str(e)}")
+
     async def close(self):
         """
         Fecha recursos se necessário.

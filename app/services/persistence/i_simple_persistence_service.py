@@ -141,3 +141,33 @@ class ISimplePersistenceService(ABC):
             AnalyzeDocumentRecord se encontrado, None caso contrário
         """
         pass
+
+    @abstractmethod
+    async def save_completed_analysis(
+        self,
+        email: str,
+        filename: str,
+        file_size: int,
+        response_dict: dict
+    ) -> str:
+        """
+        Método high-level para persistir resultado de análise completa.
+        
+        Encapsula a lógica de:
+        1. Criar AnalyzeDocumentRecord com status COMPLETED
+        2. Salvar no MongoDB
+        3. Tratar erros de persistência
+        
+        Args:
+            email: Email do usuário
+            filename: Nome do arquivo
+            file_size: Tamanho do arquivo em bytes
+            response_dict: Dicionário com response completo (DocumentResponseDTO.dict())
+            
+        Returns:
+            ID do documento salvo
+            
+        Raises:
+            DocumentProcessingError: Se persistência falhar (MongoDB obrigatório)
+        """
+        pass
