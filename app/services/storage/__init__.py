@@ -1,4 +1,4 @@
 # Document storage services for artifact management
-from .document_storage_service import DocumentStorageService
+# NOTA: DocumentStorageService foi removido - sistema agora usa MongoDB + Azure Blob Storage
 
-__all__ = ["DocumentStorageService"]
+__all__ = []

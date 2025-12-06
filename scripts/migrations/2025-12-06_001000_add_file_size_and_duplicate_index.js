@@ -26,19 +26,28 @@ if (existingMigration) {
 }
 
 // =============================================================================
-// 🗑️ BACKUP E LIMPEZA DE DOCUMENTOS ANTIGOS
+// 🔄 ATUALIZAÇÃO DE DOCUMENTOS EXISTENTES
 // =============================================================================
 
 print("📦 [BACKUP] Criando backup de documentos existentes...");
 const backupCollection = "analyze_documents_backup_" + new Date().getTime();
 db.analyze_documents.aggregate([{ $match: {} }, { $out: backupCollection }]);
 const backupCount = db[backupCollection].countDocuments();
-print(`✅ [BACKUP] ${backupCount} documentos copiados para '${backupCollection}'`);
+print(
+  `✅ [BACKUP] ${backupCount} documentos copiados para '${backupCollection}'`
+);
 
-print("🗑️ [CLEANUP] Removendo documentos antigos da coleção principal...");
-const deleteResult = db.analyze_documents.deleteMany({});
-print(`✅ [CLEANUP] ${deleteResult.deletedCount} documentos removidos`);
-print("ℹ️ [INFO] Base limpa para novos documentos com file_size");
+print("🔄 [UPDATE] Adicionando file_size aos documentos existentes...");
+const updateResult = db.analyze_documents.updateMany(
+  { file_size: { $exists: false } },
+  { $set: { file_size: 0 } }
+);
+print(
+  `✅ [UPDATE] ${updateResult.modifiedCount} documentos atualizados com file_size=0`
+);
+print(
+  "ℹ️ [INFO] Documentos antigos preservados. file_size=0 indica documento anterior à migration."
+);
 
 // =============================================================================
 // 🎯 CRIAÇÃO DE ÍNDICES
@@ -80,9 +89,11 @@ db.migrations.insertOne({
   description: "Adicionar campo file_size e índice de duplicatas",
   applied_at: new Date(),
   backup_collection: backupCollection,
-  documents_deleted: deleteResult.deletedCount,
+  documents_updated: updateResult.modifiedCount,
   notes:
-    "Documentos antigos foram removidos e salvos em backup. Novos documentos incluirão file_size obrigatoriamente.",
+    "Documentos antigos foram preservados com file_size=0. Backup criado em " +
+    backupCollection +
+    ". Novos documentos incluirão file_size calculado.",
 });
 
 // =============================================================================

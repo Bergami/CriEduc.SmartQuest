@@ -7,6 +7,11 @@ tools:
   - workspace-symbols
   - workspace-context
   - workspace-edit
+
+cross-validation:
+  - Run same prompt with Sonnet 4.5 agent
+  - Compare outputs (Code Review Bot vs Sonnet)
+  - Document divergences and consensus in REVIEW_REPORT.md
 ---
 
 ## Objetivo
@@ -72,6 +77,7 @@ Analise o código a seguir com base nos seguintes critérios:
 
 ## Saída esperada
 
+- Crie um arquivo _REVIEW_REPORT.md_ na raiz do projeto com um resumo detalhado da revisão.
 - Liste os problemas encontrados por categoria.
 - Para cada problema, forneça uma explicação clara e, se possível, um exemplo de código refatorado.
 - Use linguagem objetiva e profissional.

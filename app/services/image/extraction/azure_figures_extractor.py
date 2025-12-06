@@ -13,7 +13,6 @@ from azure.ai.documentintelligence.models import AnalyzeOutputOption
 from azure.core.credentials import AzureKeyCredential
 
 from app.services.image.extraction.base_image_extractor import BaseImageExtractor
-from app.services.utils.image_saving_service import ImageSavingService
 from app.config import settings
 from app.core.exceptions import DocumentProcessingError
 

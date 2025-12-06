@@ -6,6 +6,7 @@ e retornar os dados existentes quando aplicável.
 """
 
 from typing import Optional
+from dataclasses import dataclass
 from fastapi import UploadFile
 from datetime import datetime
 
@@ -15,24 +16,15 @@ from app.dtos.responses.document_response_dto import DocumentResponseDTO
 from app.core.logging import structured_logger
 
 
+@dataclass
 class DuplicateCheckResult:
     """Resultado da verificação de duplicatas."""
-    
-    def __init__(
-        self,
-        is_duplicate: bool,
-        should_process: bool,
-        existing_response: Optional[DocumentResponseDTO] = None,
-        file_size: int = 0,
-        existing_document_id: Optional[str] = None,
-        processed_at: Optional[datetime] = None
-    ):
-        self.is_duplicate = is_duplicate
-        self.should_process = should_process
-        self.existing_response = existing_response
-        self.file_size = file_size
-        self.existing_document_id = existing_document_id
-        self.processed_at = processed_at
+    is_duplicate: bool
+    should_process: bool
+    file_size: int = 0
+    existing_response: Optional[DocumentResponseDTO] = None
+    existing_document_id: Optional[str] = None
+    processed_at: Optional[datetime] = None
 
 
 class DuplicateCheckService:
@@ -45,6 +37,25 @@ class DuplicateCheckService:
     
     def __init__(self, persistence_service: ISimplePersistenceService):
         self.persistence_service = persistence_service
+    
+    def _get_file_size(self, file: UploadFile) -> int:
+        """
+        Extrai o tamanho do arquivo em bytes.
+        
+        Nota: FastAPI's UploadFile.seek() é async e aceita apenas position.
+        Usamos o SpooledTemporaryFile subjacente (file.file) que possui
+        o método síncrono seek(offset, whence).
+        
+        Args:
+            file: Arquivo FastAPI UploadFile
+            
+        Returns:
+            Tamanho do arquivo em bytes
+        """
+        file.file.seek(0, 2)  # Seek to end
+        size = file.file.tell()
+        file.file.seek(0)  # Reset to start
+        return size
     
     async def check_and_handle_duplicate(
         self,
@@ -66,10 +77,7 @@ class DuplicateCheckService:
         Returns:
             DuplicateCheckResult com informações sobre duplicata
         """
-        # Obter tamanho do arquivo
-        await file.seek(0, 2)  # Ir para o final
-        file_size = file.file.tell()  # Obter posição (tamanho)
-        await file.seek(0)  # Voltar ao início
+        file_size = self._get_file_size(file)
         
         structured_logger.debug(
             "Checking for duplicate document",

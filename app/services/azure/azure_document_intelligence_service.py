@@ -11,19 +11,16 @@ from app.core.exceptions import DocumentProcessingError
 from app.config import settings
 from app.services.utils.azure_response_serializer import AzureResponseSerializer
 from app.services.utils.pdf_image_extractor import PDFImageExtractor
-from app.services.providers.base_document_provider import BaseDocumentProvider
-from app.services.storage.document_storage_service import DocumentStorageService
 
 logger = logging.getLogger(__name__)
 
-class AzureDocumentIntelligenceService(BaseDocumentProvider):
-    def __init__(self, storage_service: DocumentStorageService = None):
-        # Inicializar storage service
-        if storage_service is None:
-            storage_service = DocumentStorageService()
-        
-        super().__init__(storage_service)
-        
+class AzureDocumentIntelligenceService:
+    """
+    Serviço para análise de documentos usando Azure Document Intelligence.
+    Responsável por extrair texto, estruturas e imagens de PDFs.
+    """
+    
+    def __init__(self):
         self.endpoint = settings.azure_document_intelligence_endpoint
         self.key = settings.azure_document_intelligence_key
         self.model_id = settings.azure_document_intelligence_model
@@ -38,6 +35,11 @@ class AzureDocumentIntelligenceService(BaseDocumentProvider):
     
     def get_provider_name(self) -> str:
         return "azure"
+
+    def _generate_document_id(self) -> str:
+        """Gera ID único para o documento"""
+        from uuid import uuid4
+        return str(uuid4())
 
     def extract_text_from_pdf(self, pdf_bytes: bytes) -> str:
         """
@@ -144,8 +146,7 @@ class AzureDocumentIntelligenceService(BaseDocumentProvider):
                 # Adicionar dados vazios para evitar problemas downstream
                 structured_data["image_data"] = {}
             
-            # Salvar artefatos do documento
-            await self._save_document_artifacts(file, document_id, raw_response, structured_data)
+            # NOTA: _save_document_artifacts removido - persistência agora via MongoDB + Azure Blob
             
             return structured_data
 
