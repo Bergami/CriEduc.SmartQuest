@@ -7,7 +7,6 @@ Testa funcionalidades do modelo simplificado conforme prompt original:
 """
 import pytest
 from datetime import datetime
-from typing import Dict, Any
 
 from app.models.persistence.analyze_document_record import AnalyzeDocumentRecord
 from app.models.persistence.enums import DocumentStatus

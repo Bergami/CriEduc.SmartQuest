@@ -4,7 +4,7 @@ Testes unitários para verificação de duplicatas no MongoDB
 Valida o método check_duplicate_document do MongoDBPersistenceService.
 """
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from datetime import datetime
 
 from app.services.persistence.mongodb_persistence_service import MongoDBPersistenceService

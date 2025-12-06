@@ -89,7 +89,7 @@ async def analyze_document(
     
     # --- ETAPA 5: Persistência no MongoDB ---
     persistence_service = container.resolve(ISimplePersistenceService)
-    document_id = await persistence_service.save_completed_analysis(
+    await persistence_service.save_completed_analysis(
         email=email,
         filename=file.filename,
         file_size=duplicate_result.file_size,
