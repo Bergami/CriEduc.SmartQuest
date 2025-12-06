@@ -102,10 +102,16 @@ async def analyze_document(
         # Resolver serviço de persistência via DI Container
         persistence_service = container.resolve(ISimplePersistenceService)
         
+        # Obter tamanho do arquivo
+        await file.seek(0, 2)  # Ir para o final do arquivo
+        file_size = file.file.tell()  # Obter posição (tamanho)
+        await file.seek(0)  # Voltar ao início
+        
         # Criar registro conforme prompt original
         analysis_record = AnalyzeDocumentRecord.create_from_request(
             user_email=email,
             file_name=file.filename,
+            file_size=file_size,
             response=api_response.dict(),  # Response JSON completo
             status=DocumentStatus.COMPLETED
         )

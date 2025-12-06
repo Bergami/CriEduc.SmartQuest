@@ -26,6 +26,7 @@ class AnalyzeDocumentRecord(BaseDocument):
     
     user_email: str = Field(..., description="Email informado no request")
     file_name: str = Field(..., description="Nome do documento enviado")
+    file_size: int = Field(default=0, description="Tamanho do arquivo em bytes")
     response: Dict[str, Any] = Field(..., description="Response completo em formato JSON")
     status: DocumentStatus = Field(default=DocumentStatus.PENDING, description="Status do processamento")
     
@@ -35,6 +36,7 @@ class AnalyzeDocumentRecord(BaseDocument):
             "example": {
                 "user_email": "user@example.com",
                 "file_name": "document.pdf",
+                "file_size": 245760,
                 "response": {
                     "document_id": "123e4567-e89b-12d3-a456-426614174000",
                     "status": "completed",
@@ -46,13 +48,14 @@ class AnalyzeDocumentRecord(BaseDocument):
         }
     
     @classmethod
-    def create_from_request(cls, user_email: str, file_name: str, response: Dict[str, Any], status: DocumentStatus = DocumentStatus.PENDING):
+    def create_from_request(cls, user_email: str, file_name: str, file_size: int, response: Dict[str, Any], status: DocumentStatus = DocumentStatus.PENDING):
         """
         Cria novo registro a partir dos dados da requisição.
         
         Args:
             user_email: Email do usuário
             file_name: Nome do arquivo
+            file_size: Tamanho do arquivo em bytes
             response: Response JSON completo
             status: Status inicial (padrão: PENDING)
             
@@ -62,6 +65,7 @@ class AnalyzeDocumentRecord(BaseDocument):
         return cls(
             user_email=user_email,
             file_name=file_name,
+            file_size=file_size,
             response=response,
             status=status
         )
