@@ -9,7 +9,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from pymongo.errors import PyMongoError
 
-from app.models.persistence import AnalyzeDocumentRecord, AzureProcessingDataRecord
+from app.models.persistence import AnalyzeDocumentRecord, AzureProcessingDataRecord, AzureResponseRecord
 from app.services.infrastructure import MongoDBConnectionService
 from .i_simple_persistence_service import ISimplePersistenceService
 from .exceptions import PersistenceError
@@ -135,6 +135,58 @@ class MongoDBPersistenceService(ISimplePersistenceService):
                 "event": "save_azure_data_error",
                 "status": "error",
                 "operation": "save_azure_processing_data",
+                "error": str(e)
+            })
+            raise PersistenceError(error_msg)
+
+    async def save_azure_response(self, azure_response_record: AzureResponseRecord) -> str:
+        """
+        Persiste response completo do Azure Document Intelligence.
+        
+        Args:
+            azure_response_record: Response completo do Azure
+            
+        Returns:
+            ID do documento salvo
+            
+        Raises:
+            PersistenceError: Erro durante salvamento
+        """
+        try:
+            database = await self._connection_service.get_database()
+            collection = database["azure_responses"]
+            
+            # Converte para formato MongoDB
+            doc_data = azure_response_record.dict_for_mongo()
+            
+            # Insere documento
+            result = await collection.insert_one(doc_data)
+            
+            self._logger.info({
+                "event": "azure_response_saved",
+                "status": "success",
+                "document_id": str(result.inserted_id),
+                "operation": "save_azure_response",
+                "file_name": azure_response_record.file_name,
+                "page_count": azure_response_record.page_count
+            })
+            return str(result.inserted_id)
+            
+        except ConnectionError as e:
+            error_msg = f"MongoDB is unavailable: {str(e)}"
+            self._logger.error({
+                "event": "mongodb_unavailable",
+                "operation": "save_azure_response",
+                "status": "error",
+                "error": str(e)
+            })
+            raise PersistenceError(error_msg)
+        except Exception as e:
+            error_msg = f"Failed to save Azure response: {str(e)}"
+            self._logger.error({
+                "event": "save_azure_response_error",
+                "status": "error",
+                "operation": "save_azure_response",
                 "error": str(e)
             })
             raise PersistenceError(error_msg)
