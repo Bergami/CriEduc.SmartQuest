@@ -217,8 +217,33 @@ class HybridAlternativeExtractor(AlternativeExtractor):
         # Usa lookbehind negativo (?<!\() para evitar capturar se precedido por "("
         self.inline_pattern = re.compile(r'(?<!\()([a-e])\)\s*([^)]+?)(?=[a-e]\)|$)', re.IGNORECASE)
         
-        # Padrão para alternativas em parágrafos separados (compatibilidade)
+        # CENÁRIO 3: Alternativas com parênteses: (A), (B), (C), (D), (E)
+        # Este é o formato padrão do Azure Document Intelligence
+        self.parentheses_pattern = re.compile(r'^\(([A-Ea-e])\)\s*(.+)', re.IGNORECASE)
+        
+        # CENÁRIO 4: Alternativas com hífen: A -, B -, C -, D -, E -
+        # Exemplo: "A - Primeira alternativa."
+        self.hyphen_pattern = re.compile(r'^([A-Ea-e])\s*-\s*(.+)', re.IGNORECASE)
+        
+        # CENÁRIO 5: Alternativas com numerais romanos e hífen: I -, II -, III -, IV -, V -
+        # Exemplo: "I - Primeira alternativa."
+        self.roman_hyphen_pattern = re.compile(r'^(I{1,3}|IV|V)\s*-\s*(.+)', re.IGNORECASE)
+        
+        # CENÁRIO 6: Alternativas com numerais romanos e parênteses: (I), (II), (III), (IV), (V)
+        # Exemplo: "(I) Primeira alternativa."
+        self.roman_parentheses_pattern = re.compile(r'^\((I{1,3}|IV|V)\)\s*(.+)', re.IGNORECASE)
+        
+        # Padrão para alternativas em parágrafos separados (compatibilidade legado)
         self.separate_pattern = re.compile(r'^([a-e])\)\s*(.+)', re.IGNORECASE)
+        
+        # Mapeamento de numerais romanos para letras (a-e)
+        self.roman_to_letter = {
+            'i': 'a',
+            'ii': 'b',
+            'iii': 'c',
+            'iv': 'd',
+            'v': 'e'
+        }
     
     def extract_alternatives(
         self, 
@@ -312,7 +337,7 @@ class HybridAlternativeExtractor(AlternativeExtractor):
         end_position: Optional[int],
         inline_count: int
     ) -> List[Alternative]:
-        """Extrai alternativas de parágrafos separados"""
+        """Extrai alternativas de parágrafos separados com suporte para múltiplos formatos"""
         alternatives = []
         expected_letter = chr(ord('a') + inline_count)
         
@@ -324,22 +349,64 @@ class HybridAlternativeExtractor(AlternativeExtractor):
                 
             content = paragraphs[i].get('content', '').strip()
             
-            # Verifica se é uma alternativa
-            match = self.separate_pattern.match(content)
-            if match:
-                letter = match.group(1).lower()
-                alt_text = match.group(2).strip()
-                
+            # Tenta todos os formatos de alternativas suportados:
+            # 1. (A) (B) (C) - parênteses com letras maiúsculas
+            # 2. a) b) c) - letras minúsculas com parêntese
+            # 3. A - B - C - - letras com hífen
+            # 4. I - II - III - - numerais romanos com hífen
+            # 5. (I) (II) (III) - numerais romanos com parênteses
+            
+            match = None
+            letter = None
+            alt_text = None
+            
+            # Tenta cada pattern na ordem de prioridade
+            if not match:
+                match = self.parentheses_pattern.match(content)
+                if match:
+                    letter = match.group(1).lower()
+                    alt_text = match.group(2).strip()
+                    
+            if not match:
+                match = self.separate_pattern.match(content)
+                if match:
+                    letter = match.group(1).lower()
+                    alt_text = match.group(2).strip()
+                    
+            if not match:
+                match = self.hyphen_pattern.match(content)
+                if match:
+                    letter = match.group(1).lower()
+                    alt_text = match.group(2).strip()
+                    
+            if not match:
+                match = self.roman_hyphen_pattern.match(content)
+                if match:
+                    roman = match.group(1).lower()
+                    letter = self.roman_to_letter.get(roman)
+                    alt_text = match.group(2).strip()
+                    
+            if not match:
+                match = self.roman_parentheses_pattern.match(content)
+                if match:
+                    roman = match.group(1).lower()
+                    letter = self.roman_to_letter.get(roman)
+                    alt_text = match.group(2).strip()
+            
+            if match and letter and alt_text:
                 # Verifica se é a próxima alternativa esperada
                 if letter == expected_letter:
                     alternatives.append(Alternative(id=letter, text=alt_text))
                     expected_letter = chr(ord(expected_letter) + 1)
+                    logger.debug(f"Alternativa separada {letter} extraída: '{alt_text[:40]}...'")
                 else:
                     # Não é sequencial, para de procurar
+                    logger.debug(f"Alternativa {letter} fora de sequência. Esperado: {expected_letter}")
                     break
             else:
                 # Se não é alternativa e já temos algumas, para
                 if alternatives:
+                    logger.debug(f"Parágrafo não é alternativa. Parando busca: '{content[:30]}...'")
                     break
         
         return alternatives
