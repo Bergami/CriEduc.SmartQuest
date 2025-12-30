@@ -221,8 +221,8 @@ class HybridAlternativeExtractor(AlternativeExtractor):
         # Este é o formato padrão do Azure Document Intelligence
         self.parentheses_pattern = re.compile(r'^\(([A-Ea-e])\)\s*(.+)', re.IGNORECASE)
         
-        # CENÁRIO 4: Alternativas com hífen: A -, B -, C -, D -, E -
-        # Exemplo: "A - Primeira alternativa."
+        # CENÁRIO 4: Alternativas com hífen em parágrafos separados: A - (em parágrafos separados)
+        # Exemplo (cada alternativa em seu próprio parágrafo): "A - Primeira alternativa."
         self.hyphen_pattern = re.compile(r'^([A-Ea-e])\s*-\s*(.+)', re.IGNORECASE)
         
         # CENÁRIO 5: Alternativas com numerais romanos e hífen: I -, II -, III -, IV -, V -
@@ -232,9 +232,6 @@ class HybridAlternativeExtractor(AlternativeExtractor):
         # CENÁRIO 6: Alternativas com numerais romanos e parênteses: (I), (II), (III), (IV), (V)
         # Exemplo: "(I) Primeira alternativa."
         self.roman_parentheses_pattern = re.compile(r'^\((I{1,3}|IV|V)\)\s*(.+)', re.IGNORECASE)
-        
-        # Padrão para alternativas em parágrafos separados (compatibilidade legado)
-        self.separate_pattern = re.compile(r'^([a-e])\)\s*(.+)', re.IGNORECASE)
         
         # Mapeamento de numerais romanos para letras (a-e)
         self.roman_to_letter = {
@@ -360,38 +357,41 @@ class HybridAlternativeExtractor(AlternativeExtractor):
             letter = None
             alt_text = None
             
-            # Tenta cada pattern na ordem de prioridade
-            if not match:
-                match = self.parentheses_pattern.match(content)
-                if match:
+            # Define padrões na ordem de prioridade (tipo, pattern)
+            patterns = [
+                ("normal", self.parentheses_pattern),  # (A) (B) (C)
+                ("normal", self.paragraph_start_pattern),  # a) b) c)
+                ("normal", self.hyphen_pattern),  # A - B - C -
+                ("roman", self.roman_hyphen_pattern),  # I - II - III -
+                ("roman", self.roman_parentheses_pattern),  # (I) (II) (III)
+            ]
+            
+            # Tenta cada pattern até encontrar um match
+            for pattern_type, pattern in patterns:
+                match = pattern.match(content)
+                if not match:
+                    continue
+                
+                # Extrai letra e texto baseado no tipo de pattern
+                if pattern_type == "normal":
                     letter = match.group(1).lower()
                     alt_text = match.group(2).strip()
-                    
-            if not match:
-                match = self.separate_pattern.match(content)
-                if match:
-                    letter = match.group(1).lower()
-                    alt_text = match.group(2).strip()
-                    
-            if not match:
-                match = self.hyphen_pattern.match(content)
-                if match:
-                    letter = match.group(1).lower()
-                    alt_text = match.group(2).strip()
-                    
-            if not match:
-                match = self.roman_hyphen_pattern.match(content)
-                if match:
+                else:  # pattern_type == "roman"
                     roman = match.group(1).lower()
                     letter = self.roman_to_letter.get(roman)
-                    alt_text = match.group(2).strip()
                     
-            if not match:
-                match = self.roman_parentheses_pattern.match(content)
-                if match:
-                    roman = match.group(1).lower()
-                    letter = self.roman_to_letter.get(roman)
+                    # Validação defensiva: romano inválido
+                    if not letter:
+                        logger.warning(
+                            f"Numeral romano inesperado: '{roman}'. Ignorando parágrafo.",
+                            extra={"paragraph_content": content[:50]}
+                        )
+                        continue
+                    
                     alt_text = match.group(2).strip()
+                
+                # Match encontrado, não precisa tentar outros padrões
+                break
             
             if match and letter and alt_text:
                 # Verifica se é a próxima alternativa esperada
