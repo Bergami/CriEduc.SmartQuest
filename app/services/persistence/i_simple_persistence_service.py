@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, List, Tuple
 from datetime import datetime
 
-from app.models.persistence import AnalyzeDocumentRecord, AzureProcessingDataRecord
+from app.models.persistence import AnalyzeDocumentRecord, AzureProcessingDataRecord, AzureResponseRecord
 
 
 class ISimplePersistenceService(ABC):
@@ -37,6 +37,19 @@ class ISimplePersistenceService(ABC):
         
         Args:
             azure_data_record: Dados de processamento Azure
+            
+        Returns:
+            ID do documento salvo
+        """
+        pass
+
+    @abstractmethod
+    async def save_azure_response(self, azure_response_record: AzureResponseRecord) -> str:
+        """
+        Persiste response completo do Azure Document Intelligence.
+        
+        Args:
+            azure_response_record: Response completo do Azure
             
         Returns:
             ID do documento salvo

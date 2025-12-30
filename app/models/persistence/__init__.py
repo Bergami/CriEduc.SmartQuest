@@ -8,6 +8,7 @@ de dados no MongoDB conforme prompt original.
 from .base_document import BaseDocument
 from .analyze_document_record import AnalyzeDocumentRecord
 from .azure_processing_data_record import AzureProcessingDataRecord, ProcessingMetrics
+from .azure_response_record import AzureResponseRecord
 from .enums import DocumentStatus
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "AnalyzeDocumentRecord", 
     "AzureProcessingDataRecord",
     "ProcessingMetrics",
+    "AzureResponseRecord",
     "DocumentStatus"
 ]
