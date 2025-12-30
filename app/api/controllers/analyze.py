@@ -7,6 +7,8 @@ from app.config import di_config  # Configura automaticamente todas as dependên
 
 # Importações dos novos serviços e dos existentes
 from app.services.extraction.document_extraction_service import DocumentExtractionService
+from app.services.utils.azure_response_helper import AzureResponseHelper
+from app.models.persistence import AzureResponseRecord
 from app.services.core.analyze_service import AnalyzeService
 from app.validators.analyze_validator import AnalyzeValidator
 from app.dtos.responses.document_response_dto import DocumentResponseDTO
@@ -63,6 +65,9 @@ async def analyze_document(
         return duplicate_result.existing_response
     
     # --- ETAPA 2: Extração de Dados ---
+    import time
+    extraction_start = time.time()
+    
     extracted_data = await DocumentExtractionService.get_extraction_data(file, email)
     if not extracted_data:
         raise DocumentProcessingError(
@@ -70,9 +75,15 @@ async def analyze_document(
             "The file might be empty, corrupted, or in an unsupported format."
         )
     
+    extraction_duration = time.time() - extraction_start
+    
     structured_logger.info(
         "Data extraction completed",
-        context={"email": email, "filename": file.filename}
+        context={
+            "email": email,
+            "filename": file.filename,
+            "extraction_duration_seconds": round(extraction_duration, 2)
+        }
     )
 
     # --- ETAPA 3: Orquestração da Análise ---
@@ -87,8 +98,60 @@ async def analyze_document(
     # --- ETAPA 4: Conversão para DTO da API ---
     api_response = DocumentResponseDTO.from_internal_response(internal_response)
     
-    # --- ETAPA 5: Persistência no MongoDB ---
+    # --- ETAPA 5: Resolver Persistence Service ---
     persistence_service = container.resolve(ISimplePersistenceService)
+    
+    # --- ETAPA 6: Salvar Response do Azure ---
+    try:
+        azure_response = AzureResponseHelper.get_azure_response_from_extracted_data(extracted_data)
+        
+        if azure_response:
+            # Extrair metadados
+            azure_model_id, azure_api_version = AzureResponseHelper.extract_azure_metadata(extracted_data)
+            metrics = AzureResponseHelper.extract_metrics(azure_response)
+            
+            # Criar registro do response do Azure
+            azure_response_record = AzureResponseRecord.create_from_azure_processing(
+                document_id=internal_response.document_id,
+                user_email=email,
+                file_name=file.filename,
+                file_size=duplicate_result.file_size,
+                azure_response=azure_response,
+                azure_model_id=azure_model_id,
+                azure_api_version=azure_api_version,
+                processing_duration=extraction_duration,
+                azure_operation_id=metrics.get("operation_id"),
+                confidence_score=metrics.get("confidence_score"),
+                status="success"
+            )
+            
+            # Salvar no MongoDB
+            await persistence_service.save_azure_response(azure_response_record)
+            
+            structured_logger.info(
+                "Azure response saved successfully",
+                context={
+                    "document_id": internal_response.document_id,
+                    "page_count": metrics.get("page_count", 0),
+                    "paragraph_count": metrics.get("paragraph_count", 0)
+                }
+            )
+        else:
+            structured_logger.warning(
+                "No Azure response found in extracted_data",
+                context={"document_id": internal_response.document_id}
+            )
+    except Exception as e:
+        # Log erro mas não falha o processamento
+        structured_logger.error(
+            "Failed to save Azure response",
+            context={
+                "document_id": internal_response.document_id,
+                "error": str(e)
+            }
+        )
+    
+    # --- ETAPA 7: Persistência do Resultado Final ---
     await persistence_service.save_completed_analysis(
         email=email,
         filename=file.filename,

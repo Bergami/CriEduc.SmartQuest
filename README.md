@@ -521,15 +521,33 @@ SmartQuest features a **comprehensive MongoDB persistence system** that automati
 AnalyzeDocumentRecord:
 - user_email: str
 - file_name: str
+- file_size: int
 - response: Dict[str, Any]  # Complete API response
 - status: DocumentStatus
 - created_at: datetime
 
-AzureProcessingDataRecord:
+AzureResponseRecord:  # 🆕 NEW - Armazena responses completos do Azure
+- document_id: str          # Referência ao documento processado
+- user_email: str
+- file_name: str
+- file_size: int
+- azure_response: Dict      # Response completo do Azure (JSON)
+- azure_operation_id: str
+- azure_model_id: str
+- azure_api_version: str
+- processing_duration_seconds: float
+- confidence_score: float
+- page_count: int
+- paragraph_count: int
+- status: str               # success/error
+- error_message: str | None
+- created_at: datetime
+
+AzureProcessingDataRecord:  # Legacy - considerar deprecação
 - operation_id: str
 - model_id: str
 - api_version: str
-- response: Dict[str, Any]  # Azure raw response
+- response: Dict[str, Any]
 - metrics: ProcessingMetrics
 - created_at: datetime
 ```
@@ -545,6 +563,7 @@ python run_migrations.py
 - 2025-10-14_001000: Create initial collections
 - 2025-10-14_002000: Add enhanced status field
 - 2025-10-18_001000: Remove duplicate collections
+- 2025-12-30_001000: Create azure_responses collection  # 🆕 NEW
 ```
 
 ### 📊 **MongoDB Collections**
