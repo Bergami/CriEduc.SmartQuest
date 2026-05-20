@@ -114,13 +114,13 @@ expires = "2026-08-20"
 [[ignore]]
 id = "GHSA-2c2j-9gv5-cj73"
 package = "starlette"
-reason = "Fix requer starlette>=0.47.2, acoplado a FastAPI>=0.115. Resolver em SQ-DEP-02."
+reason = "Fix requer starlette>=0.47.2 que exige Python>=3.10 (SQ-DEP-05). FastAPI 0.111+ que o puxa tambem exige Pydantic v2 (SQ-DEP-02)."
 expires = "2026-08-20"
 
 [[ignore]]
 id = "GHSA-f96h-pmfr-66vw"
 package = "starlette"
-reason = "Fix requer starlette>=0.40.0, acoplado a FastAPI>=0.110. Resolver em SQ-DEP-02."
+reason = "Fix requer starlette>=0.40.0 que exige Python>=3.10 (SQ-DEP-05). FastAPI 0.111+ que o puxa tambem exige Pydantic v2 (SQ-DEP-02)."
 expires = "2026-08-20"
 
 # ── Sem fix disponível ───────────────────────────────────────────────────────
