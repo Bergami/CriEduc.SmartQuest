@@ -1,0 +1,29 @@
+# Runtime dependencies — source of truth.
+# DO NOT edit requirements.txt directly; edit this file and run:
+#   pip-compile requirements.in
+#
+# To upgrade all packages:
+#   pip-compile --upgrade requirements.in
+
+fastapi>=0.110.0,<1.0
+uvicorn[standard]>=0.29.0,<1.0
+python-multipart>=0.0.9,<1.0
+pydantic>=1.10.0,<2.0
+
+python-dotenv>=1.0.0,<2.0
+
+# Azure AI Document Intelligence
+azure-ai-documentintelligence>=1.0.0b4
+azure-core>=1.30.0,<2.0
+azure-identity>=1.15.0,<2.0
+
+# PDF / image processing
+PyMuPDF>=1.23.25,<2.0
+Pillow>=10.3.0,<12.0
+
+# HTTP client
+httpx>=0.28.0,<1.0
+
+# MongoDB
+motor>=3.3.0,<4.0
+pymongo>=4.6.0,<5.0
