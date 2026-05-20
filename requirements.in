@@ -1,0 +1,29 @@
+# Runtime dependencies — source of truth.
+# DO NOT edit requirements.txt directly; edit this file and run:
+#   pip-compile --generate-hashes requirements.in
+#
+# To upgrade all packages:
+#   pip-compile --upgrade --generate-hashes requirements.in
+
+fastapi>=0.110.0,<1.0
+uvicorn[standard]>=0.29.0,<1.0
+python-multipart>=0.0.18,<0.0.21  # Max compatible with Python 3.9; CVEs that require 0.0.22+ need Py3.10 (SQ-DEP-05)
+pydantic>=1.10.0,<2.0
+
+python-dotenv>=1.2.0,<2.0
+
+# Azure AI Document Intelligence
+azure-ai-documentintelligence>=1.0.0b4
+azure-core>=1.30.0,<2.0
+azure-identity>=1.16.1,<2.0
+
+# PDF / image processing
+PyMuPDF>=1.23.25,<2.0
+Pillow>=10.3.0,<12.0  # 12.x requires Python 3.10; upgrade blocked until SQ-DEP-05
+
+# HTTP client
+httpx>=0.28.0,<1.0
+
+# MongoDB
+motor>=3.3.0,<4.0
+pymongo>=4.6.3,<5.0
