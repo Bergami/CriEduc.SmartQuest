@@ -1,7 +1,10 @@
 [project]
 name = "crieduc-smartquest"
-# python_requires will be raised to ">=3.11" once SQ-DEP-05 is complete.
-# Python 3.9.0 is currently in use but is EOL since Oct 2025.
+# Supported runtimes (SQ-DEP-05):
+#   3.9  — production runtime (Dockerfile uses python:3.9-slim)
+#   3.10 — CI compat probe (not production until SQ-DEP-02 Pydantic v2 migration done)
+#   3.11 — CI compat probe (target production runtime after SQ-DEP-02)
+# python_requires will be raised to ">=3.11" once SQ-DEP-05 upgrade is complete.
 requires-python = ">=3.9.2"
 
 [tool.pytest.ini_options]

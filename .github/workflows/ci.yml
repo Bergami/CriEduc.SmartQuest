@@ -92,7 +92,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9"]
+        # Python 3.9: production runtime — enforced lockfile with SHA256 hashes.
+        # Python 3.10 / 3.11: compatibility probes — pinned source constraints (.in files).
+        # Compiled packages (cryptography, Pillow) use different wheels per Python version,
+        # so hash-strict lockfile install is only valid for the exact compiled version (3.9).
+        # Upgrade production runtime to 3.11 when SQ-DEP-02 (Pydantic v2) is complete.
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
       - name: Checkout code
@@ -111,8 +116,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-${{ matrix.python-version }}-
 
-      - name: Install dependencies from lockfile
+      # Python 3.9 (production): strict hash-enforced install from compiled lockfile.
+      - name: Install dependencies (Python 3.9 — strict lockfile)
+        if: matrix.python-version == '3.9'
         run: pip install -r requirements-dev.txt
+
+      # Python 3.10/3.11 (compat probe): install from .in source files without hash enforcement.
+      # Compiled wheels (cryptography, Pillow, PyMuPDF) have per-version hashes not in the
+      # Python-3.9 lockfile. The .in files guarantee same version ceilings as production.
+      - name: Install dependencies (Python 3.10+ — source constraints)
+        if: matrix.python-version != '3.9'
+        run: |
+          pip install -r requirements.in
+          pip install pip-tools pytest pytest-asyncio pytest-cov pytest-mock
 
       - name: Run tests
         run: pytest tests/ --tb=short -q
