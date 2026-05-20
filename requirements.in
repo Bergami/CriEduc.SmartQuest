@@ -17,9 +17,11 @@ pydantic>=1.10.0,<2.0  # v2 migration: schema_extra->json_schema_extra, .dict()-
 python-dotenv>=1.2.0,<2.0
 
 # Azure AI Document Intelligence
-azure-ai-documentintelligence>=1.0.0b4
-azure-core>=1.30.0,<2.0
-azure-identity>=1.16.1,<2.0
+# Upgraded from 1.0.0b4 (beta) to 1.0.2 (GA stable) in SQ-DEP-04.
+# API is backward-compatible: DocumentIntelligenceClient and AnalyzeOutputOption unchanged.
+azure-ai-documentintelligence>=1.0.2,<2.0
+azure-core>=1.35.0,<2.0
+azure-identity>=1.22.0,<2.0
 
 # PDF / image processing
 PyMuPDF>=1.23.25,<2.0

@@ -11,9 +11,9 @@ anyio==4.12.1 \
     #   httpx
     #   starlette
     #   watchfiles
-azure-ai-documentintelligence==1.0.0b4 \
-    --hash=sha256:1aa36f0617b0c129fdc82b039b7084fd5b69af08e8e0cb500108b9f6efd61b36 \
-    --hash=sha256:c3a90560b4029e232dbab1334ac2f3dda4cae7c1f60dad277fe21a876dd6bb9f
+azure-ai-documentintelligence==1.0.2 \
+    --hash=sha256:4d75a2513f2839365ebabc0e0e1772f5601b3a8c9a71e75da12440da13b63484 \
+    --hash=sha256:e1fb446abbdeccc9759d897898a0fe13141ed29f9ad11fc705f951925822ed59
     # via -r requirements.in
 azure-core==1.39.0 \
     --hash=sha256:4ac7b70fab5438c3f68770649a78daf97833caa83827f91df9c14e0e0ea7d34f \
