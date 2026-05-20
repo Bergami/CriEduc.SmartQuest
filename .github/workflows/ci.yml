@@ -6,10 +6,88 @@ on:
   pull_request:
     branches: ["main"]
 
+# Policy: fail the pipeline on any HIGH or CRITICAL vulnerability.
+# To document a known false-positive add it to .pip-audit-ignore.toml
+# with an expiry date and a justification comment.
+
 jobs:
+  # ── Security gate ─────────────────────────────────────────────────────────
+  vulnerability-scan:
+    name: Dependency vulnerability scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install pip-audit
+        run: pip install pip-audit>=2.9.0
+
+      - name: Run pip-audit (fail on HIGH/CRITICAL)
+        run: |
+          # Baseline ignores — CVEs blocked by Python 3.9.0 (EOL) or pending SQ-DEP-02/05.
+          # Review: see .pip-audit-ignore.toml for full justifications and expiry dates.
+          IGNORE_FLAGS=(
+            # cryptography — fix needs Python !=3.9.0 (SQ-DEP-05)
+            --ignore-vuln PYSEC-2026-35
+            --ignore-vuln GHSA-79v4-65xg-pq4g
+            --ignore-vuln GHSA-r6ph-v2qm-q3c2
+            # requests/urllib3 — fix needs Python>=3.10 (SQ-DEP-05)
+            --ignore-vuln GHSA-gc5v-m9x4-r6x2
+            --ignore-vuln PYSEC-2026-141
+            --ignore-vuln PYSEC-2026-142
+            # pillow — fix needs Python>=3.10 (SQ-DEP-05)
+            --ignore-vuln GHSA-cfh3-3jmp-rvhc
+            --ignore-vuln GHSA-pwv6-vv43-88gr
+            --ignore-vuln GHSA-r73j-pqj5-w3x7
+            --ignore-vuln GHSA-whj4-6x5x-4v2j
+            --ignore-vuln GHSA-wjx4-4jcj-g98j
+            # python-dotenv — fix needs Python>=3.10 (SQ-DEP-05)
+            --ignore-vuln GHSA-mf9w-mj56-hr94
+            # python-multipart — fix needs Python>=3.10 (SQ-DEP-05)
+            --ignore-vuln GHSA-mj87-hwqh-73pj
+            --ignore-vuln GHSA-pp6c-gr5w-3c5g
+            --ignore-vuln GHSA-wp53-j4wj-2cfg
+            # starlette — fix needs FastAPI upgrade (SQ-DEP-02)
+            --ignore-vuln GHSA-2c2j-9gv5-cj73
+            --ignore-vuln GHSA-f96h-pmfr-66vw
+            # pyjwt — no fix version published yet
+            --ignore-vuln PYSEC-2025-183
+          )
+
+          pip-audit \
+            --requirement requirements.txt \
+            --requirement requirements-dev.txt \
+            --vulnerability-service osv \
+            --format markdown \
+            --output pip-audit-report.md \
+            "${IGNORE_FLAGS[@]}" || true
+
+          # Gate: fail on any NEW vulnerability not in the baseline above.
+          pip-audit \
+            --requirement requirements.txt \
+            --requirement requirements-dev.txt \
+            --vulnerability-service osv \
+            "${IGNORE_FLAGS[@]}"
+
+      - name: Upload vulnerability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pip-audit-report
+          path: pip-audit-report.md
+          retention-days: 30
+
+  # ── Test suite ─────────────────────────────────────────────────────────────
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    needs: vulnerability-scan
 
     strategy:
       fail-fast: false
